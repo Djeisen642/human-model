@@ -29,12 +29,12 @@ kill(person: Person, cause: number, killer?: Person): void {
 
 **Death is a research signal.** The cause of death distribution across ticks — how many killed vs. illness vs. disaster vs. suicide — directly informs the collapse/thrive analysis. `TickSnapshot` (ARD 004) should include a breakdown of deaths by cause each tick. `Simulation.kill()` is the single place to record this, keeping cause-of-death accounting centralized.
 
-**Killers get a `KillingRecord`.** When `cause === MURDER`, the killer receives a `KillingRecord` for the victim before the victim moves to `deceased`. This must happen inside `Simulation.kill()` or the calling event — either is acceptable, but it must be consistent.
+**Killers get a `KillingRecord` inside `Simulation.kill()`.** When `cause === MURDER`, the killer receives a `KillingRecord` for the victim before the victim moves to `deceased`. This happens inside `Simulation.kill()`, not in the calling event. Centralizing it means no killing path — misfortune, murder event, future causes — can skip the bookkeeping.
 
 ## Consequences
 
 - `Simulation.kill()` is the only place a person moves from living to deceased
 - `Person.causeOfDeath` is set inside `kill()`, not by the calling event
-- Events that cause death (killing, misfortune) call `simulation.kill(person, cause, killer?)` rather than manipulating arrays directly
+- Events that cause death call `simulation.kill(person, cause, killer?)` — they do not set `causeOfDeath` or add `KillingRecord` themselves
 - `TickSnapshot` includes death counts by cause
 - Population decline rate and cause-of-death mix are primary signals for detecting civilizational collapse
