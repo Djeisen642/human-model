@@ -39,6 +39,10 @@ src/
   tests/                   # Mirrors src/ structure; one test file per source file
 ```
 
+## Discovering new mechanisms
+
+While implementing, you will sometimes encounter a behavior or interaction that isn't planned but could meaningfully affect the collapse/thrive dynamics. **Do not implement it speculatively.** Instead, add it to `docs/future-ideas.md` with a brief note on why it matters and what problem it solves. It will be reviewed and, if worthwhile, discussed and formalized as an ARD before being built.
+
 ## Design pattern philosophy
 
 This project deliberately explores design patterns — but only when they have a concrete job to do. Before applying a pattern, answer: *what specific problem does this solve here?* If you can't answer that concretely, don't use it.
