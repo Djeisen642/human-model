@@ -11,7 +11,7 @@ The project has zero production dependencies, ruling out seeded PRNG libraries.
 
 ## Decision
 
-Define an `RNG` type alias and use `Math.random` as the default. Pass `rng` as a constructor argument to `EventFactory`; individual event classes that need randomness receive it at construction from the factory.
+Implement a lightweight `SeededRandom` class in-project (~8 lines, no dependencies) and define an `RNG` type alias. `EventFactory` accepts `rng: RNG`, defaulting to a `SeededRandom` instance. The seed is recorded so any run can be replayed exactly.
 
 ```typescript
 // src/Helpers/Types.ts
@@ -19,32 +19,46 @@ export type RNG = () => number;
 ```
 
 ```typescript
-// Usage
-const factory = new EventFactory(Math.random);
+// src/Helpers/SeededRandom.ts
+export default class SeededRandom {
+  constructor(private seed: number) {}
 
-// In tests
-const seededRng = (() => {
-  let i = 0;
-  const values = [0.1, 0.9, 0.4];
-  return () => values[i++ % values.length];
-})();
-const factory = new EventFactory(seededRng);
+  next(): number {
+    this.seed = (this.seed * 1664525 + 1013904223) & 0xFFFFFFFF;
+    return (this.seed >>> 0) / 0xFFFFFFFF;
+  }
+
+  asRNG(): RNG {
+    return () => this.next();
+  }
+}
+```
+
+```typescript
+// Production use — seed recorded for reproducibility
+const rng = new SeededRandom(Date.now()).asRNG();
+const factory = new EventFactory(rng);
+
+// Tests — controlled values
+const factory = new EventFactory(() => 0);   // all probabilistic events fire
+const factory = new EventFactory(() => 1);   // all probabilistic events suppressed
 ```
 
 ## Reasoning
 
-An injectable `RNG` type costs five lines and no dependencies. It solves two distinct problems:
+A pure type alias (Option B) is minimal but puts reproducibility burden on the caller — they have to wire up their own seeded function. The tiny in-project PRNG makes reproducibility a first-class feature: every run has a seed, every run can be replayed.
 
-**Testability**: tests pass a deterministic function, eliminating flakiness. Combined with intents as 0–1 probabilities (ARD 003), setting `rng = () => 0` makes all probabilistic events fire; `rng = () => 1` suppresses them all. This gives full control over event selection in tests without mocking.
+The `RNG` type alias is still the right contract — any `() => number` satisfies it, including `Math.random`, test fixtures, or `SeededRandom.asRNG()`. The two complement each other: `SeededRandom` is the production default, the type alias keeps everything injectable and testable.
 
-**Reproducibility**: a seeded PRNG passed to `EventFactory` makes a simulation run fully reproducible given the same seed. This is essential for the research goal — comparing runs requires being able to re-run a specific scenario exactly.
+Jest spying on `Math.random` was rejected — it mutates global state and doesn't solve reproducibility for actual runs. A full strategy pattern with `fork()` and branching was deferred — valuable for counterfactual analysis but premature before the simulation loop exists.
 
-The type alias rather than an interface or abstract class keeps the pattern lightweight. Any `() => number` function satisfies `RNG`, including `Math.random`, custom seedable functions, or test fixtures.
+A future improvement worth noting: multiple independent RNG streams (one per event category) would prevent event additions from shifting subsequent random values across categories, improving reproducibility stability as the event set grows.
 
 ## Consequences
 
-- `src/Helpers/Types.ts` exports `RNG` type alias (and any other shared types)
-- `EventFactory` constructor accepts `rng: RNG`
-- Event classes that need randomness receive `rng` at construction via the factory
-- Simulation runs are reproducible by passing a seeded RNG to `EventFactory`
-- Tests are deterministic by passing controlled values
+- `src/Helpers/Types.ts` exports `RNG` type alias
+- `src/Helpers/SeededRandom.ts` implements the PRNG (~8 lines)
+- `EventFactory` constructor accepts `rng: RNG`; defaults to `new SeededRandom(Date.now()).asRNG()`
+- Every simulation run should record its seed so it can be reproduced
+- Tests are fully deterministic: pass `() => 0` or `() => 1` or a fixed sequence
+- Multiple RNG streams deferred; consider if event set grows complex
