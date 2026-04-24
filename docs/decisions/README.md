@@ -19,6 +19,27 @@ An ARD is a historical record. Editing it after the fact would falsify the decis
 
 This way the full decision history is preserved, including decisions that turned out to be wrong.
 
+## Template
+
+```markdown
+# ARD NNN: Title
+
+**Status:** Proposed | Accepted | Superseded by ARD XXX
+**Date:** YYYY-MM-DD
+
+## Context
+Why is this decision needed? What problem or constraint prompted it?
+
+## Decision
+What was chosen? Include code examples where the shape of the solution is non-obvious.
+
+## Reasoning
+Why this option over the alternatives? Name and briefly dismiss the rejected options.
+
+## Consequences
+What does this decision make easier, harder, or impossible? What must be true for it to hold?
+```
+
 ## Statuses
 
 - **Proposed** — under discussion, not yet accepted

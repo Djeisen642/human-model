@@ -18,7 +18,7 @@ Events are classes implementing a common `IEvent` interface. An `EventFactory` o
 
 ```typescript
 interface IEvent {
-  execute(person: Person, population: Person[]): void;
+  execute(person: Person, simulation: Simulation): void;
 }
 
 class EventFactory {
@@ -39,7 +39,7 @@ The simulation loop becomes:
 ```typescript
 for (const person of livingPeople) {
   for (const event of factory.getEventsFor(person)) {
-    event.execute(person, population);
+    event.execute(person, simulation);
   }
 }
 ```
@@ -52,7 +52,7 @@ The class-per-event approach pairs naturally with a factory (factories produce o
 
 `rng` is injected into `EventFactory` at construction and threaded into individual event classes that need it. This avoids passing `rng` as a parameter on every `execute()` call and keeps the `IEvent` interface minimal.
 
-For events involving two people (stealing, killing, relationships), the factory creates an event for the actor; the event itself selects a target from `population` inside `execute()`. This is a minor seam — some "should this happen?" logic leaks into the event class — but it is preferable to making the factory responsible for population traversal.
+For events involving two people (stealing, killing, relationships), the factory creates an event for the actor; the event itself selects a target via `simulation.getRandomOther()` inside `execute()`. This is a minor seam — some "should this happen?" logic leaks into the event class — but it is preferable to making the factory responsible for population traversal.
 
 This decision also resolves what would have been ARD 004 (intent-to-action mechanism): intents are treated as 0–1 probabilities, and `EventFactory.getEventsFor()` is the mechanism that evaluates them.
 
