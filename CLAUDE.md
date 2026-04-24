@@ -1,6 +1,10 @@
 # human-model
 
-Agent-based human population simulator in TypeScript. Each person participates in a set of events once per simulated year; no intra-year cross-event impacts. Zero production dependencies — devDependencies only.
+Agent-based simulation for studying civilizational collapse vs. thriving. Each person has stats, behavioral intents, and participates in events once per simulated year. The research question: what starting conditions and behavioral dynamics cause a population to grow and stabilize versus spiral into decline?
+
+Inspired by Sugarscape (Epstein & Axtell, 1996), the HANDY civilizational collapse model (Motesharrei et al., 2014), and Turchin's Cliodynamics. Key HANDY finding relevant here: collapse is driven by resource overexploitation combined with inequality — not scarcity alone. The Gini coefficient of `resources` across the population is therefore a more meaningful collapse signal than average resources.
+
+Zero production dependencies — devDependencies only.
 
 ## Commands
 
@@ -17,9 +21,14 @@ npm run start:dev    # nodemon (watches src/, runs ts-node src/index.ts)
 ```
 src/
   App/
-    Person.ts              # Core data class (all properties readonly)
-    LooperSingleton.ts     # Simulation loop controller (singleton) — STUB
+    Person.ts              # Core data class — mutable stats/intents, readonly collections
+    Simulation.ts          # Owns population (living + deceased), tick history, aggregate metrics — STUB
+    LooperSingleton.ts     # Drives the tick loop (singleton); delegates population to Simulation — STUB
     index.ts               # Entry point
+  Events/
+    IEvent.ts              # Interface: execute(person, simulation): void
+    EventFactory.ts        # Maps person intents → event instances for a given tick — STUB
+    (one file per event)   # AgeEvent, GatherResourcesEvent, StealEvent, etc. — not yet implemented
   Records/
     DeathRecord.ts         # Cause of death + optional killer reference
     KillingRecord.ts       # Victim reference + murderer's age at time of killing
@@ -62,26 +71,30 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 ## What's not implemented yet
 
-Pick up here:
+Pick up here, roughly in dependency order:
 
-1. **`LooperSingleton.start()`** — needs an actual loop: maintain a population array, advance each person through events each tick, handle death/removal.
-2. **Population seeding** — `Person` constructor zeros all stats; need random initialization for a starting population.
-3. **Aging** — `age` never increments; it should increase by 1 each tick until death.
-4. **`happiness` getter** — stub needs resources, relationship status, age, and health factors added.
-5. **Events** (none implemented):
+1. **`Person` stat mutability** — remove `readonly` from primitive fields (`age`, `resources`, `intelligence`, etc.) per ARD 002. Keep `readonly` on collection fields.
+2. **`Simulation` class** — owns `living: Person[]`, `deceased: Person[]`, `history: TickSnapshot[]`; exposes `getLiving()`, `getRandomOther()`, `kill()`, `add()`, `snapshot()`.
+3. **Population seeding** — `Simulation.seed(n, rng)` creates `n` persons with randomized stats/intents drawn from reasonable distributions.
+4. **`IEvent` interface + `EventFactory`** — per ARD 003; factory maps person intents to event instances each tick.
+5. **`LooperSingleton.start()`** — creates `Simulation`, seeds it, runs tick loop: for each living person, get events from factory, execute, then call `simulation.snapshot()`.
+6. **Aging** — `AgeEvent`: `person.age++` each tick; death by old age when `age >= Variables.OLD_AGE`.
+7. **`happiness` getter** — expand stub to factor in resources, relationship status, age, and health.
+8. **Events** (implement roughly in this order):
    - Gathering resources: `resources += f(experience, intelligence)`
    - Exercising: `constitution++`
    - Learning: `intelligence++`
+   - Misfortune: illness, disaster, suicide — uses `Variables.ILLNESS`
    - Job gain/loss
    - Graduation: `isWorkingOnEd` → `education`
-   - Lying: modifies targets' intent fields; effectiveness scaled by `charisma`
-   - Stealing: resource transfer between persons; creates `StealingRecord`
-   - Killing: creates `KillingRecord` on killer, `DeathRecord` on victim
-   - Misfortune: illness, disaster, suicide — uses `Variables.ILLNESS` and `Variables.OLD_AGE`
-   - Windfall: resource bump
    - Relationships: sets `isInRelationshipWith`
-   - Childbirth: new `Person([parent1, parent2])`; removes resources from parents
-   - Invention: changes intent values society-wide; requires high intelligence + charisma
+   - Stealing: resource transfer; creates `StealingRecord`
+   - Killing: creates `KillingRecord` + `DeathRecord`; calls `simulation.kill()`
+   - Windfall: resource bump
+   - Childbirth: `simulation.add(new Person([p1, p2]))`; removes resources from parents
+   - Lying: modifies targets' intent fields; effectiveness scaled by `charisma`
+   - Invention: modifies intent values across all living persons; requires high intelligence + charisma
+9. **Observability** — after simulation ends, `simulation.history` contains per-tick `TickSnapshot` records. Key metrics to watch: population size, `resourceGini` (inequality), `averageHappiness`, aggregate `killingIntent`. These are the collapse/thrive signals.
 
 ## Coding conventions
 

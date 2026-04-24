@@ -1,16 +1,16 @@
 # Human Model Project
-This a model of a group of people.
-It's going to be simplistic.
-It's going to have assumptions.
-Don't take it seriously.
-Feel free to fork and add your own assumptions.
 
-People can learn, have jobs, lie, steal, kill, and have children in this simulation.
+An agent-based simulation for exploring what causes civilizations to thrive or collapse. Each agent (person) has stats, behavioral intents, and participates in events each simulated year. Emergent dynamics — resource inequality, violence, cooperation, invention — determine whether the population grows and stabilizes or spirals into decline.
 
-The simulation will be on a yearly basis. Every action or event that a person takes part in
-happens over the course of a year. No events within a year impact other events within the same year.
+The model is inspired by and adjacent to:
+- **Sugarscape** (Epstein & Axtell, 1996) — agents gathering resources, reproducing, dying; wealth inequality and cultural dynamics emerge
+- **HANDY model** (Motesharrei et al., 2014) — civilizational collapse driven by resource overexploitation combined with inequality, not scarcity alone
+- **Axelrod's Evolution of Cooperation** — how cooperative vs. defecting behaviors spread through a population
+- **Turchin's Cliodynamics** — secular cycles of demographic pressure, elite conflict, and state collapse
 
-It's also an attempt at trying out typescript and test driven-development.
+It's also an exercise in TypeScript and test-driven development. The model is intentionally simplistic and makes assumptions. Contributions and forks that challenge those assumptions are welcome.
+
+The simulation runs on a yearly basis. Every action or event a person participates in happens over the course of one year. No events within a year impact other events within the same year.
 
 ## Events and Actions
 * Lying - changes intent in specific others
