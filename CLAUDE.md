@@ -6,6 +6,38 @@ Inspired by Sugarscape (Epstein & Axtell, 1996), the HANDY civilizational collap
 
 Zero production dependencies — devDependencies only.
 
+## Git workflow
+
+**Never commit directly to `master`.** All work happens on a branch and merges via squash.
+
+### Branch naming
+
+| Prefix | Use for |
+|--------|---------|
+| `docs/` | ARDs, future ideas, readme, CLAUDE.md |
+| `feature/` | New simulation code (events, classes, mechanics) |
+| `fix/` | Bug fixes |
+| `research/` | Exploratory or experimental changes |
+
+### Squash merge into master
+
+```bash
+git checkout master
+git pull origin master
+git merge --squash <branch-name>
+git commit -m "concise summary of what the branch did"
+git push origin master
+```
+
+Squash keeps `master` as a clean, readable changelog — each commit represents one complete piece of work. Branch history is preserved locally and remotely if you need the detail.
+
+### Why squash over other strategies
+
+- `master` reads as a narrative, not a topology
+- ARD immutability is meaningful — nothing lands on `master` by accident
+- Branch work can be as granular as needed without cluttering the main history
+- Each squash commit is a natural unit for revert if something goes wrong
+
 ## Commands
 
 ```bash
