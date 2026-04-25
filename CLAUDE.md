@@ -149,6 +149,14 @@ At the end of every session that changes code, update "What's implemented" and "
 
 Before closing: does each section match reality? Is the Architecture section accurate about what's a stub vs. real?
 
+Also before closing, do a brief integrity scan of the code changed this session:
+
+- Is there a scenario where the new code breaks — an edge case, an empty collection, a stat at zero or max, two events running in the same tick that interact badly?
+- Is there something the new code *almost* does but stops short of, where the missing piece would meaningfully affect collapse/thrive dynamics?
+
+If the scan finds a real bug: fix it before closing.
+If it finds a plausible new direction that isn't in the current plan: add it to `docs/future-ideas.md` with a one-sentence note on why it matters. Don't implement it.
+
 ## Coding conventions
 
 - Strict TypeScript (`tsconfig.json` has `"strict": true`)
