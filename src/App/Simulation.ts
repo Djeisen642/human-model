@@ -143,7 +143,7 @@ export default class Simulation {
     const deathsByDisaster = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.DISASTER).length;
     const deathsBySuicide = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.SUICIDE).length;
 
-    const s: TickSnapshot = {
+    const snap: TickSnapshot = {
       tick,
       population,
       deaths,
@@ -158,9 +158,9 @@ export default class Simulation {
       aggregateStealingIntent,
     };
 
-    this.history.push(s);
+    this.history.push(snap);
     this.tickDeathCauses = [];
-    return s;
+    return snap;
   }
 }
 
