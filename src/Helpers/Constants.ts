@@ -3,7 +3,8 @@ export default class Constants {
     MURDER: 1,
     ILLNESS: 2,
     DISASTER: 3,
-    SUICIDE: 4
+    SUICIDE: 4,
+    OLD_AGE: 5
   };
   static readonly EDUCATION = {
     NONE: 0,
