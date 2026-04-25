@@ -187,7 +187,7 @@ function mean(values: number[]): number {
  * Gini coefficient using the sorted weighted-sum formula.
  * Returns 0 when all values are equal or the array is empty.
  *
- * @param values - non-negative numeric values
+ * @param values - numeric values
  * @returns Gini coefficient in [0, 1)
  */
 function gini(values: number[]): number {

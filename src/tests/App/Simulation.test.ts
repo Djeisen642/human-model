@@ -1,6 +1,7 @@
 import Simulation from '../../App/Simulation';
 import Person from '../../App/Person';
 import Constants from '../../Helpers/Constants';
+import SeededRandom from '../../Helpers/SeededRandom';
 
 const alwaysFirst: () => number = () => 0;
 
@@ -183,14 +184,11 @@ describe('Simulation', () => {
       expect(sim.getLiving()).toHaveLength(0);
     });
 
-    it('should produce deterministic results for the same rng', () => {
+    it('should produce deterministic results for the same seed', () => {
       const sim1 = new Simulation();
       const sim2 = new Simulation();
-      let v = 0;
-      const seqRng = () => { v = (v + 0.137) % 1; return v; };
-      sim1.seed(5, seqRng);
-      v = 0;
-      sim2.seed(5, seqRng);
+      sim1.seed(5, new SeededRandom(42).asRNG());
+      sim2.seed(5, new SeededRandom(42).asRNG());
       sim1.getLiving().forEach((p, i) => {
         const q = sim2.getLiving()[i];
         expect(p.age).toBe(q.age);
