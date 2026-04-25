@@ -2,7 +2,7 @@ import Person from '../App/Person';
 import Simulation from '../App/Simulation';
 
 /** Contract all simulation events must satisfy. */
-export default interface IEvent {
+interface IEvent {
   /**
    * Apply the event's effect to `person` within the context of `simulation`.
    *
@@ -11,3 +11,5 @@ export default interface IEvent {
    */
   execute(person: Person, simulation: Simulation): void;
 }
+
+export default IEvent;
