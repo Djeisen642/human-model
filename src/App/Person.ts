@@ -17,16 +17,16 @@ export default class Person {
   age = 0;
   illness = 0;
   causeOfDeath: DeathRecord|null = null;
-  resources: number;
-  experience: number;
-  intelligence: number;
-  constitution: number;
-  charisma: number;
-  learningIntent: number;
-  exerciseIntent: number;
-  stealingIntent: number;
-  lyingIntent: number;
-  killingIntent: number;
+  resources = 0;
+  experience = 0;
+  intelligence = 0;
+  constitution = 0;
+  charisma = 0;
+  learningIntent = 0;
+  exerciseIntent = 0;
+  stealingIntent = 0;
+  lyingIntent = 0;
+  killingIntent = 0;
 
   /**
    * Person Constructor
@@ -39,24 +39,12 @@ export default class Person {
       throw new Error('Invalid parents given');
     }
     this.childOf = parents;
-    this.resources = 0;
-    this.experience = 0;
-    this.intelligence = 0;
-    this.constitution = 0;
-    this.charisma = 0;
-    this.learningIntent = 0;
-    this.exerciseIntent = 0;
-    this.stealingIntent = 0;
-    this.lyingIntent = 0;
-    this.killingIntent = 0;
   }
 
   /**
-   * Happiness score is generated based off many factors associated with a person
-   * Job, resources, relationship status, age, health
+   * Happiness score computed from job, resources, relationship status, age, and health.
    *
    * @returns happiness score
-   * @private
    */
   get happiness(): number {
     let happiness = 0;
