@@ -31,6 +31,16 @@ git push origin master
 
 Squash keeps `master` as a clean, readable changelog — each commit represents one complete piece of work. Branch history is preserved locally and remotely if you need the detail.
 
+### PR descriptions after pushing
+
+After every `git push` to a branch with an open PR:
+
+1. Read all commits on the branch (`git log master..HEAD`) and the current PR description
+2. Update the PR description to reflect what the branch now actually does
+3. If the commits represent a meaningfully different scope from the original PR title/summary — different subsystem, different purpose, or the original goal is now a minority of the work — **propose splitting**: suggest the user create a new PR for the new scope rather than widening this one
+
+The split threshold is qualitative: if someone reading the original PR title would be surprised by what's in the branch, it's time to split.
+
 ### Why squash over other strategies
 
 - `master` reads as a narrative, not a topology
