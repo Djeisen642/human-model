@@ -7,8 +7,21 @@
           {
             "type": "command",
             "if": "Bash(git push*)",
-            "command": "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"A git push just completed. Per project rules: check if this branch has an open PR. If it does, (1) review all commits on the branch vs the current PR description, (2) update the PR description to match what the branch now actually does, (3) if the scope has shifted significantly from the original PR purpose, propose splitting into a new PR instead of updating.\"}}'",
-            "statusMessage": "Checking PR description..."
+            "command": "touch /tmp/human-model-pushed",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "asyncRewake": true,
+            "rewakeMessage": "A git push just completed on this branch.",
+            "rewakeSummary": "git push detected — checking PR description",
+            "command": "if [ -f /tmp/human-model-pushed ]; then rm /tmp/human-model-pushed; exit 2; fi"
           }
         ]
       }
