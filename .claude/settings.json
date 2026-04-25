@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git push*)",
+            "command": "touch /tmp/human-model-pushed",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "asyncRewake": true,
+            "rewakeMessage": "A git push just completed on this branch.",
+            "rewakeSummary": "git push detected — checking PR description",
+            "command": "if [ -f /tmp/human-model-pushed ]; then rm /tmp/human-model-pushed; exit 2; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
