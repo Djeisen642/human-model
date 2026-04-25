@@ -134,14 +134,21 @@ export default class Simulation {
   }
 }
 
+/**
+ * @param values - numeric values to average
+ * @returns arithmetic mean, or 0 if empty
+ */
 function mean(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
 /**
- * Gini coefficient using the sorted absolute-difference formula.
+ * Gini coefficient using the sorted weighted-sum formula.
  * Returns 0 when all values are equal or the array is empty.
+ *
+ * @param values - non-negative numeric values
+ * @returns Gini coefficient in [0, 1)
  */
 function gini(values: number[]): number {
   if (values.length === 0) return 0;

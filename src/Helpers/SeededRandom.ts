@@ -13,7 +13,7 @@ export default class SeededRandom {
    */
   next(): number {
     this.seed = (this.seed * 1664525 + 1013904223) & 0xFFFFFFFF;
-    return (this.seed >>> 0) / 0xFFFFFFFF;
+    return (this.seed >>> 0) / 0x100000000;
   }
 
   /**
