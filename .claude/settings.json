@@ -24,6 +24,14 @@
             "command": "if [ -f /tmp/human-model-pushed ]; then rm /tmp/human-model-pushed; exit 2; fi"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\": \"Reminder: if code changed this session, update CLAUDE.md — What'\\''s implemented and What'\\''s not implemented yet — before closing.\", \"hookSpecificOutput\": {\"hookEventName\": \"Stop\", \"additionalContext\": \"MANDATORY: Before this session closes, update the '\\''What'\\''s implemented'\\'' and '\\''What'\\''s not implemented yet'\\'' sections of CLAUDE.md to reflect actual current state. Read source files to verify — do not rely on memory. This keeps the next agent oriented.\"}}'"
+          }
+        ]
       }
     ]
   }

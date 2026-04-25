@@ -64,13 +64,14 @@ npm run start:dev    # nodemon (watches src/, runs ts-node src/index.ts)
 src/
   App/
     Person.ts              # Core data class — mutable stats/intents, readonly collections
-    Simulation.ts          # Owns population (living + deceased), tick history, aggregate metrics — STUB
-    LooperSingleton.ts     # Drives the tick loop (singleton); delegates population to Simulation — STUB
-    index.ts               # Entry point
+    Simulation.ts          # Owns population (living + deceased), tick history, aggregate metrics
+    LooperSingleton.ts     # Drives the tick loop (singleton); delegates population to Simulation
+    index.ts               # Entry point — runs start() with defaults (100 persons, 100 ticks, seed 42)
   Events/
     IEvent.ts              # Interface: execute(person, simulation): void
-    EventFactory.ts        # Maps person intents → event instances for a given tick — STUB
-    (one file per event)   # AgeEvent, GatherResourcesEvent, StealEvent, etc. — not yet implemented
+    EventFactory.ts        # Maps person intents → event instances for a given tick — STUB (only AgeEvent wired)
+    AgeEvent.ts            # Increments age; kills person at OLD_AGE
+    (one file per event)   # GatherResourcesEvent, StealEvent, etc. — not yet implemented
   Records/
     DeathRecord.ts         # Cause of death + optional killer reference
     KillingRecord.ts       # Victim reference + murderer's age at time of killing
@@ -78,6 +79,8 @@ src/
   Helpers/
     Constants.ts           # CAUSE_OF_DEATH, EDUCATION, TYPE_OF_HELP enums
     Variables.ts           # ILLNESS = 0.05 (base rate), OLD_AGE = 60
+    SeededRandom.ts        # LCG seeded RNG; asRNG() returns an RNG-typed function
+    Types.ts               # RNG = () => number
   tests/                   # Mirrors src/ structure; one test file per source file
 ```
 
@@ -102,45 +105,53 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 - **Person stats are mutable, collections are not reassignable**: primitive fields (`age`, `resources`, etc.) are mutable so events can update them in place. Collection fields (`killed`, `hasChildren`, etc.) are `readonly` to prevent accidental replacement — but their contents remain mutable. See ARD 002.
 - **Object references as identity**: `Person` objects have no ID field. Reference equality (`===`) is identity. See ARD 001.
-- **Stats and intents start at 0**: `resources`, `experience`, `intelligence`, `constitution`, `charisma`, and all five intent fields (`learningIntent`, `exerciseIntent`, `stealingIntent`, `lyingIntent`, `killingIntent`) are initialized to `0`. Random seeding for a starting population is not yet implemented.
-- **Stats and intents start at 0**: `resources`, `experience`, `intelligence`, `constitution`, `charisma`, and all five intent fields (`learningIntent`, `exerciseIntent`, `stealingIntent`, `lyingIntent`, `killingIntent`) are initialized to `0`. Random seeding for a starting population is not yet implemented.
-- **`happiness` is a computed getter** (not a stored stat). Currently stubbed: `+5 if hasJob, -3 if not, min 0`. The readme specifies it should also factor in resources, relationship status, age, and health.
+- **Stats and intents start at 0** in the constructor, but `Simulation.seed(n, rng)` randomizes them on startup: age [15,50), resources [0,100), experience [0,age], intelligence/constitution/charisma [1,10], learningIntent/exerciseIntent [0,1), stealingIntent/lyingIntent [0,0.3), killingIntent [0,0.1).
+- **`happiness` is a computed getter** (not a stored stat). Currently partial: `+5 if hasJob, -3 if not, min 0`. Still needs: resources, relationship status, age, and health factors.
 - **Records are plain data classes** — they record that an event happened, they don't trigger anything.
 
 ## What's implemented
 
-- `Person` data model with all planned properties
+- `Person` data model — all properties, mutable primitives, readonly collections, `happiness` getter (partial)
+- `Simulation` — `living`, `deceased`, `history`; `getLiving()`, `getRandomOther()`, `kill()`, `add()`, `seed()`, `snapshot()`; Gini coefficient computed per tick
+- `LooperSingleton.start(n, ticks, seed)` — full tick loop: seeds simulation, runs EventFactory per person per tick, calls `snapshot()` each tick
+- `IEvent` interface
+- `AgeEvent` — age increment + old-age death
+- `EventFactory` — skeleton; always returns `[AgeEvent]` (intent-gated events not yet wired)
 - `DeathRecord`, `KillingRecord`, `StealingRecord` data classes
-- `Constants` and `Variables` helpers
-- `LooperSingleton` skeleton (singleton pattern; `start()` returns a stub `1`)
+- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables`
+- `TickSnapshot` observability: population, death counts by cause, `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`
 - Tests for all of the above
 
 ## What's not implemented yet
 
 Pick up here, roughly in dependency order:
 
-1. **`Person` stat mutability** — remove `readonly` from primitive fields (`age`, `resources`, `intelligence`, etc.) per ARD 002. Keep `readonly` on collection fields.
-2. **`Simulation` class** — owns `living: Person[]`, `deceased: Person[]`, `history: TickSnapshot[]`; exposes `getLiving()`, `getRandomOther()`, `kill()`, `add()`, `snapshot()`.
-3. **Population seeding** — `Simulation.seed(n, rng)` creates `n` persons with randomized stats/intents drawn from reasonable distributions.
-4. **`IEvent` interface + `EventFactory`** — per ARD 003; factory maps person intents to event instances each tick.
-5. **`LooperSingleton.start()`** — creates `Simulation`, seeds it, runs tick loop: for each living person, get events from factory, execute, then call `simulation.snapshot()`.
-6. **Aging** — `AgeEvent`: `person.age++` each tick; death by old age when `age >= Variables.OLD_AGE`.
-7. **`happiness` getter** — expand stub to factor in resources, relationship status, age, and health.
-8. **Events** (implement roughly in this order):
-   - Gathering resources: `resources += f(experience, intelligence)`
-   - Exercising: `constitution++`
-   - Learning: `intelligence++`
-   - Misfortune: illness, disaster, suicide — uses `Variables.ILLNESS`
-   - Job gain/loss
-   - Graduation: `isWorkingOnEd` → `education`
-   - Relationships: sets `isInRelationshipWith`
-   - Stealing: resource transfer; creates `StealingRecord`
-   - Killing: creates `KillingRecord` + `DeathRecord`; calls `simulation.kill()`
-   - Windfall: resource bump
-   - Childbirth: `simulation.add(new Person([p1, p2]))`; removes resources from parents
-   - Lying: modifies targets' intent fields; effectiveness scaled by `charisma`
-   - Invention: modifies intent values across all living persons; requires high intelligence + charisma
-9. **Observability** — after simulation ends, `simulation.history` contains per-tick `TickSnapshot` records. Key metrics to watch: population size, `resourceGini` (inequality), `averageHappiness`, aggregate `killingIntent`. These are the collapse/thrive signals.
+1. **`happiness` getter** — expand to factor in resources, relationship status, age, and health (currently only job status)
+2. **`EventFactory` intent routing** — wire intent values to probabilistic event selection; currently returns only `[AgeEvent]`
+3. **Events** (implement roughly in this order):
+   - `GatherResourcesEvent` — `resources += f(experience, intelligence)`
+   - `ExerciseEvent` — `constitution++`
+   - `LearnEvent` — `intelligence++`
+   - `MisfortuneEvent` — illness, disaster, suicide; uses `Variables.ILLNESS`
+   - Job gain/loss event
+   - Graduation event — `isWorkingOnEd` → `education`
+   - Relationship event — sets `isInRelationshipWith`
+   - `StealEvent` — resource transfer; creates `StealingRecord`
+   - `KillEvent` — creates `KillingRecord` + `DeathRecord`; calls `simulation.kill()`
+   - Windfall event — resource bump
+   - Childbirth event — `simulation.add(new Person([p1, p2]))`; costs parents resources
+   - Lying event — modifies targets' intent fields; effectiveness scaled by `charisma`
+   - Invention event — shifts intent values across all living persons; requires high intelligence + charisma
+
+## Keeping CLAUDE.md current
+
+**At the end of every session that changes code**, update the "What's implemented" and "What's not implemented yet" sections to reflect actual state. Read the relevant source files rather than relying on memory. This file is the primary handoff document between sessions — if it's stale, the next agent starts blind.
+
+Checklist before closing a session:
+- Does "What's implemented" list every file/feature that now actually works?
+- Does "What's not implemented yet" only list things that are genuinely missing?
+- Does the Architecture section accurately name what's a stub vs. real?
+- Are any duplicate or contradictory bullets removed?
 
 ## Coding conventions
 
