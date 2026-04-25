@@ -169,4 +169,100 @@ describe('Simulation', () => {
       expect(snap.averageResources).toBe(0);
     });
   });
+
+  describe('seed', () => {
+    it('should add exactly n persons', () => {
+      const sim = new Simulation();
+      sim.seed(10, alwaysFirst);
+      expect(sim.getLiving()).toHaveLength(10);
+    });
+
+    it('should add 0 persons when n is 0', () => {
+      const sim = new Simulation();
+      sim.seed(0, alwaysFirst);
+      expect(sim.getLiving()).toHaveLength(0);
+    });
+
+    it('should produce deterministic results for the same rng', () => {
+      const sim1 = new Simulation();
+      const sim2 = new Simulation();
+      let v = 0;
+      const seqRng = () => { v = (v + 0.137) % 1; return v; };
+      sim1.seed(5, seqRng);
+      v = 0;
+      sim2.seed(5, seqRng);
+      sim1.getLiving().forEach((p, i) => {
+        const q = sim2.getLiving()[i];
+        expect(p.age).toBe(q.age);
+        expect(p.resources).toBe(q.resources);
+        expect(p.intelligence).toBe(q.intelligence);
+      });
+    });
+
+    it('age should be in [15, 50)', () => {
+      const sim = new Simulation();
+      sim.seed(50, Math.random);
+      sim.getLiving().forEach(p => {
+        expect(p.age).toBeGreaterThanOrEqual(15);
+        expect(p.age).toBeLessThan(50);
+      });
+    });
+
+    it('resources should be in [0, 100)', () => {
+      const sim = new Simulation();
+      sim.seed(50, Math.random);
+      sim.getLiving().forEach(p => {
+        expect(p.resources).toBeGreaterThanOrEqual(0);
+        expect(p.resources).toBeLessThan(100);
+      });
+    });
+
+    it('intelligence, constitution, charisma should be in [1, 10]', () => {
+      const sim = new Simulation();
+      sim.seed(50, Math.random);
+      sim.getLiving().forEach(p => {
+        expect(p.intelligence).toBeGreaterThanOrEqual(1);
+        expect(p.intelligence).toBeLessThanOrEqual(10);
+        expect(p.constitution).toBeGreaterThanOrEqual(1);
+        expect(p.constitution).toBeLessThanOrEqual(10);
+        expect(p.charisma).toBeGreaterThanOrEqual(1);
+        expect(p.charisma).toBeLessThanOrEqual(10);
+      });
+    });
+
+    it('experience should be in [0, age]', () => {
+      const sim = new Simulation();
+      sim.seed(50, Math.random);
+      sim.getLiving().forEach(p => {
+        expect(p.experience).toBeGreaterThanOrEqual(0);
+        expect(p.experience).toBeLessThanOrEqual(p.age);
+      });
+    });
+
+    it('killingIntent should be in [0, 0.1)', () => {
+      const sim = new Simulation();
+      sim.seed(50, Math.random);
+      sim.getLiving().forEach(p => {
+        expect(p.killingIntent).toBeGreaterThanOrEqual(0);
+        expect(p.killingIntent).toBeLessThan(0.1);
+      });
+    });
+
+    it('stealingIntent and lyingIntent should be in [0, 0.3)', () => {
+      const sim = new Simulation();
+      sim.seed(50, Math.random);
+      sim.getLiving().forEach(p => {
+        expect(p.stealingIntent).toBeGreaterThanOrEqual(0);
+        expect(p.stealingIntent).toBeLessThan(0.3);
+        expect(p.lyingIntent).toBeGreaterThanOrEqual(0);
+        expect(p.lyingIntent).toBeLessThan(0.3);
+      });
+    });
+
+    it('minimum age with rng always 0 should be 15', () => {
+      const sim = new Simulation();
+      sim.seed(1, alwaysFirst);
+      expect(sim.getLiving()[0].age).toBe(15);
+    });
+  });
 });

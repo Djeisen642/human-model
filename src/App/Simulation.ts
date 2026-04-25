@@ -91,6 +91,36 @@ export default class Simulation {
   }
 
   /**
+   * Creates `n` persons with stats and intents drawn from uniform distributions
+   * and adds them to the living population.
+   *
+   * Ranges: age [15, 50), resources [0, 100), experience [0, age],
+   * intelligence/constitution/charisma [1, 10],
+   * learningIntent/exerciseIntent [0, 1),
+   * stealingIntent/lyingIntent [0, 0.3), killingIntent [0, 0.1).
+   *
+   * @param n - number of persons to seed
+   * @param rng - random number source
+   */
+  seed(n: number, rng: RNG): void {
+    for (let i = 0; i < n; i++) {
+      const person = new Person([]);
+      person.age = randomInt(rng, 15, 50);
+      person.resources = randomInt(rng, 0, 100);
+      person.experience = randomInt(rng, 0, person.age + 1);
+      person.intelligence = randomInt(rng, 1, 11);
+      person.constitution = randomInt(rng, 1, 11);
+      person.charisma = randomInt(rng, 1, 11);
+      person.learningIntent = rng();
+      person.exerciseIntent = rng();
+      person.stealingIntent = rng() * 0.3;
+      person.lyingIntent = rng() * 0.3;
+      person.killingIntent = rng() * 0.1;
+      this.add(person);
+    }
+  }
+
+  /**
    * Captures aggregate stats for the current tick, appends to history,
    * resets per-tick accumulators, and returns the snapshot.
    *
@@ -132,6 +162,16 @@ export default class Simulation {
     this.tickDeathCauses = [];
     return s;
   }
+}
+
+/**
+ * @param rng - random number source
+ * @param min - inclusive minimum
+ * @param max - exclusive maximum
+ * @returns random integer in [min, max)
+ */
+function randomInt(rng: RNG, min: number, max: number): number {
+  return min + Math.floor(rng() * (max - min));
 }
 
 /**
