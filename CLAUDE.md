@@ -145,13 +145,9 @@ Pick up here, roughly in dependency order:
 
 ## Keeping CLAUDE.md current
 
-**At the end of every session that changes code**, update the "What's implemented" and "What's not implemented yet" sections to reflect actual state. Read the relevant source files rather than relying on memory. This file is the primary handoff document between sessions — if it's stale, the next agent starts blind.
+At the end of every session that changes code, update "What's implemented" and "What's not implemented yet" to reflect actual state. Read source files to verify — don't rely on memory. This is the handoff document; if it's stale, the next agent starts blind.
 
-Checklist before closing a session:
-- Does "What's implemented" list every file/feature that now actually works?
-- Does "What's not implemented yet" only list things that are genuinely missing?
-- Does the Architecture section accurately name what's a stub vs. real?
-- Are any duplicate or contradictory bullets removed?
+Before closing: does each section match reality? Is the Architecture section accurate about what's a stub vs. real?
 
 ## Coding conventions
 
