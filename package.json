@@ -4,7 +4,7 @@
   "description": "Model of a group of humans",
   "main": "index.js",
   "scripts": {
-    "test": "npx jest",
+    "test": "npx jest --config src/jest.config.js",
     "build": "rimraf ./build && tsc",
     "lint": "eslint . --ext .ts",
     "start:dev": "nodemon"

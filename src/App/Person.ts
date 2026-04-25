@@ -4,29 +4,29 @@ import Constants from '../Helpers/Constants';
 import DeathRecord from '../Records/DeathRecord';
 
 export default class Person {
-  readonly hasJob = false;
-  readonly education = Constants.EDUCATION.NONE;
-  readonly isWorkingOnEd = Constants.EDUCATION.NONE;
-  readonly helpsPeople = Constants.TYPE_OF_HELP.NONE;
+  hasJob = false;
+  education = Constants.EDUCATION.NONE;
+  isWorkingOnEd = Constants.EDUCATION.NONE;
+  helpsPeople = Constants.TYPE_OF_HELP.NONE;
   readonly killed = new Map<Person, KillingRecord>();
   readonly amountStolen: Array<StealingRecord> = [];
   readonly peopleLiedTo = new Set<Person>();
-  readonly isInRelationshipWith: Person|null = null;
+  isInRelationshipWith: Person|null = null;
   readonly hasChildren: Array<Person> = [];
   readonly childOf: Array<Person> = [];
-  readonly age = 0;
-  readonly illness = 0;
-  readonly causeOfDeath: DeathRecord|null = null;
-  readonly resources: number;
-  readonly experience: number;
-  readonly intelligence: number;
-  readonly constitution: number;
-  readonly charisma: number;
-  readonly learningIntent: number;
-  readonly exerciseIntent: number;
-  readonly stealingIntent: number;
-  readonly lyingIntent: number;
-  readonly killingIntent: number;
+  age = 0;
+  illness = 0;
+  causeOfDeath: DeathRecord|null = null;
+  resources: number;
+  experience: number;
+  intelligence: number;
+  constitution: number;
+  charisma: number;
+  learningIntent: number;
+  exerciseIntent: number;
+  stealingIntent: number;
+  lyingIntent: number;
+  killingIntent: number;
 
   /**
    * Person Constructor
