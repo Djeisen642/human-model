@@ -46,7 +46,7 @@ export default class Simulation {
   /** Maximum accessible resources; grows via InventionEvent. */
   naturalResourceCeiling: number = Variables.NATURAL_RESOURCE_CEILING_INITIAL;
   /** Pool cost per unit gathered; starts at 1.0, modified by InventionEvent. Floor: 0.01. */
-  extractionEfficiency: number = 1.0;
+  extractionEfficiency = 1.0;
 
   private tickDeathCauses: number[] = [];
 

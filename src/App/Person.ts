@@ -2,6 +2,7 @@ import StealingRecord from '../Records/StealingRecord';
 import KillingRecord from '../Records/KillingRecord';
 import Constants from '../Helpers/Constants';
 import DeathRecord from '../Records/DeathRecord';
+import Variables from '../Helpers/Variables';
 
 export default class Person {
   hasJob = false;
@@ -39,6 +40,16 @@ export default class Person {
       throw new Error('Invalid parents given');
     }
     this.childOf = parents;
+  }
+
+  /**
+   * Multiplier on base illness/death probability.
+   * Forms a U-shaped curve: minimum near PRIME_AGE, rising toward infancy and old age.
+   *
+   * @returns mortality multiplier (always >= 1)
+   */
+  get ageMortalityModifier(): number {
+    return 1 + Variables.AGE_DEATH_CURVATURE * Math.pow(this.age - Variables.PRIME_AGE, 2);
   }
 
   /**
