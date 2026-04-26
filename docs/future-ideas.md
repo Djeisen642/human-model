@@ -77,3 +77,9 @@ When does a run stop? Options: fixed tick count, population hits zero, collapse 
 
 **Seeding strategy as experimental variable**
 The starting distribution of stats and intents is the independent variable in the experiment. Needs to be parameterizable so you can ask "what happens when a population starts with high `killingIntent` vs. low?" Requires a configurable `Simulation.seed()` interface.
+
+## Discarded
+
+Ideas that were considered and rejected without rising to ARD-level discussion. Each entry: name, the date it was dropped, and a one-sentence reason — e.g., "subsumed by ARD 00X," "not enough collapse/thrive signal," "operationally indistinguishable from <other mechanism>." Decisions formal enough to merit an ARD belong in `docs/decisions/` instead.
+
+_(none yet)_
