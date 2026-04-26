@@ -8,9 +8,6 @@ If you discover a new mechanism during implementation that could meaningfully af
 
 ## Mechanics
 
-**Resource cap / environmental limit**
-Resources currently accumulate without bound. The HANDY model's core finding — overexploitation + inequality = collapse — requires a natural resource ceiling that the population can deplete faster than it regenerates. Without it, extraction-driven collapse cannot be modeled. Likely the highest-priority addition after the core loop is running.
-
 **Voluntary cooperation / helping event**
 The current event set is almost entirely extractive or destructive (stealing, killing, lying). The `helpsPeople` property exists but there's no event where a police/medical/education/research person actually does anything. Civilizations thrive through positive-sum interactions — without cooperation mechanics, the model can only show decline, not thriving.
 
