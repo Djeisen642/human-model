@@ -31,10 +31,13 @@ git push origin master
 
 Squash keeps `master` as a clean, readable changelog — each commit represents one complete piece of work. Branch history is preserved locally and remotely if you need the detail.
 
-### PR descriptions after pushing
+### PR sync after every push
 
-After every `git push` to a branch with an open PR:
+After every `git push`, a hook rewakes the agent to sync the PR state:
 
+**If no PR exists:** create a draft PR immediately. Write a description based on `git log master..HEAD` — what the branch does, not just what the latest commit did.
+
+**If a PR exists:**
 1. Read all commits on the branch (`git log master..HEAD`) and the current PR description
 2. Update the PR description to reflect what the branch now actually does
 3. If the commits represent a meaningfully different scope from the original PR title/summary — different subsystem, different purpose, or the original goal is now a minority of the work — **propose splitting**: suggest the user create a new PR for the new scope rather than widening this one
