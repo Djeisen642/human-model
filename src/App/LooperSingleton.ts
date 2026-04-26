@@ -20,6 +20,7 @@ export default class LooperSingleton {
     const factory = new EventFactory(rng);
 
     for (let t = 0; t < ticks; t++) {
+      simulation.regenerate();
       const living = simulation.getLiving();
       for (const person of living) {
         for (const event of factory.getEventsFor(person)) {

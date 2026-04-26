@@ -99,29 +99,28 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - **Stats and intents start at 0** in the constructor, but `Simulation.seed(n, rng)` randomizes them on startup: age [15,50), resources [0,100), experience [0,age], intelligence/constitution/charisma [1,10], learningIntent/exerciseIntent [0,1), stealingIntent/lyingIntent [0,0.3), killingIntent [0,0.1).
 - **`happiness` is a computed getter** (not a stored stat). Currently partial: `+5 if hasJob, -3 if not, min 0`. Still needs: resources, relationship status, age, and health factors.
 - **Records are plain data classes** — they record that an event happened, they don't trigger anything.
-- **Global natural resource pool** (not yet implemented): `Simulation` will own `naturalResources` (current pool), `naturalResourceCeiling` (max accessible), and `extractionEfficiency` (pool cost per unit gathered, starts at 1.0). `GatherResourcesEvent` depletes the pool; `InventionEvent` randomly shifts efficiency or ceiling. See ARD 007.
+- **Global natural resource pool**: `Simulation` owns `naturalResources` (current pool), `naturalResourceCeiling` (max accessible), and `extractionEfficiency` (pool cost per unit gathered, starts at 1.0). Pool regenerates by `NATURAL_RESOURCE_REGEN_RATE` each tick (capped at ceiling) via `simulation.regenerate()`, called at the start of each tick in `LooperSingleton`. `GatherResourcesEvent` depletes the pool; `InventionEvent` randomly shifts efficiency or ceiling. See ARD 007.
 - **Age modifiers**: mortality uses a U-shaped curve (`ageMortalityModifier` getter on `Person`); all event probabilities are multiplied by a per-event bell curve via `ageModifier()` in `Helpers/AgeModifier.ts`. See ARD 008.
 
 ## What's implemented
 
 - `Person` data model — all properties, mutable primitives, readonly collections, `happiness` getter (partial)
-- `Simulation` — `living`, `deceased`, `history`; `getLiving()`, `getRandomOther()`, `kill()`, `add()`, `seed()`, `snapshot()`; Gini coefficient computed per tick
-- `LooperSingleton.start(n, ticks, seed)` — full tick loop: seeds simulation, runs EventFactory per person per tick, calls `snapshot()` each tick
+- `Simulation` — `living`, `deceased`, `history`; `getLiving()`, `getRandomOther()`, `kill()`, `add()`, `seed()`, `snapshot()`, `regenerate()`; Gini coefficient computed per tick; `naturalResources`, `naturalResourceCeiling`, `extractionEfficiency` resource pool fields (ARD 007)
+- `LooperSingleton.start(n, ticks, seed)` — full tick loop: seeds simulation, calls `regenerate()` then runs EventFactory per person per tick, calls `snapshot()` each tick
 - `IEvent` interface
 - `AgeEvent` — age increment only (old-age hard cutoff removed; death handled by MisfortuneEvent via age mortality curve)
 - `EventFactory` — skeleton; always returns `[AgeEvent]` (intent-gated events not yet wired)
 - `DeathRecord`, `KillingRecord`, `StealingRecord` data classes
 - `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables`
-- `TickSnapshot` observability: population, death counts by cause, `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`
+- `TickSnapshot` observability: population, death counts by cause, `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`
 - Tests for all of the above
 
 ## What's not implemented yet
 
 Pick up here, roughly in dependency order:
 
-1. **`Simulation` resource pool fields** — add `naturalResources`, `naturalResourceCeiling`, `extractionEfficiency` fields; initialize from constants; include `naturalResources` in `TickSnapshot`. See ARD 007.
-2. **`Helpers/AgeModifier.ts`** — implement `ageModifier(age, peakAge, scale, floor): number` bell curve helper. See ARD 008.
-3. **`Person.ageMortalityModifier`** — computed getter using `PRIME_AGE` and `AGE_DEATH_CURVATURE`. See ARD 008.
+1. **`Helpers/AgeModifier.ts`** — implement `ageModifier(age, peakAge, scale, floor): number` bell curve helper. See ARD 008.
+2. **`Person.ageMortalityModifier`** — computed getter using `PRIME_AGE` and `AGE_DEATH_CURVATURE`. See ARD 008.
 4. **`happiness` getter** — expand to factor in resources, relationship status, age, and health (currently only job status)
 5. **`EventFactory` intent routing** — wire intent values to probabilistic event selection; wrap each intent check with `ageModifier()`; currently returns only `[AgeEvent]`
 6. **Events** (implement roughly in this order):

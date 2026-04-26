@@ -1,6 +1,7 @@
 import Simulation from '../../App/Simulation';
 import Person from '../../App/Person';
 import Constants from '../../Helpers/Constants';
+import Variables from '../../Helpers/Variables';
 import SeededRandom from '../../Helpers/SeededRandom';
 
 const alwaysFirst: () => number = () => 0;
@@ -261,6 +262,57 @@ describe('Simulation', () => {
       const sim = new Simulation();
       sim.seed(1, alwaysFirst);
       expect(sim.getLiving()[0].age).toBe(15);
+    });
+  });
+
+  describe('resource pool', () => {
+    it('should initialize naturalResources to NATURAL_RESOURCE_CEILING_INITIAL', () => {
+      const sim = new Simulation();
+      expect(sim.naturalResources).toBe(Variables.NATURAL_RESOURCE_CEILING_INITIAL);
+    });
+
+    it('should initialize naturalResourceCeiling to NATURAL_RESOURCE_CEILING_INITIAL', () => {
+      const sim = new Simulation();
+      expect(sim.naturalResourceCeiling).toBe(Variables.NATURAL_RESOURCE_CEILING_INITIAL);
+    });
+
+    it('should initialize extractionEfficiency to 1.0', () => {
+      const sim = new Simulation();
+      expect(sim.extractionEfficiency).toBe(1.0);
+    });
+
+    it('regenerate should increase naturalResources by NATURAL_RESOURCE_REGEN_RATE', () => {
+      const sim = new Simulation();
+      sim.naturalResources = 100;
+      sim.regenerate();
+      expect(sim.naturalResources).toBe(100 + Variables.NATURAL_RESOURCE_REGEN_RATE);
+    });
+
+    it('regenerate should not exceed naturalResourceCeiling', () => {
+      const sim = new Simulation();
+      sim.naturalResources = sim.naturalResourceCeiling - 1;
+      sim.regenerate();
+      expect(sim.naturalResources).toBe(sim.naturalResourceCeiling);
+    });
+
+    it('regenerate should leave naturalResources at ceiling when already full', () => {
+      const sim = new Simulation();
+      sim.regenerate();
+      expect(sim.naturalResources).toBe(sim.naturalResourceCeiling);
+    });
+
+    it('snapshot should include naturalResources', () => {
+      const sim = new Simulation();
+      sim.naturalResources = 5_000;
+      const snap = sim.snapshot();
+      expect(snap.naturalResources).toBe(5_000);
+    });
+
+    it('snapshot naturalResources reflects post-extraction state', () => {
+      const sim = new Simulation();
+      sim.naturalResources = 3_000;
+      const snap = sim.snapshot();
+      expect(snap.naturalResources).toBe(3_000);
     });
   });
 });
