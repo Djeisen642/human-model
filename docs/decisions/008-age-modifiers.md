@@ -11,74 +11,104 @@ Two independent age effects need modeling:
 
 **Mortality** follows a U-shaped curve across the lifespan — high in infancy, lowest in the mid-to-late 20s, rising steeply through old age. This pattern is one of the most consistent findings in human demography (Gompertz, 1825; Makeham, 1860). The current hard cutoff at `OLD_AGE = 60` is a poor substitute: it produces a cliff rather than a gradient, and it is too young — people in the real world commonly live well past 60.
 
-**Productive capacity** follows a bell curve — low in childhood, peaking in early-to-mid adulthood, declining gradually into old age. Research on creative and intellectual output (Simonton, 1988; Salthouse, 2010) places peak complex cognitive performance in the 35–45 range. Physical and reactive tasks peak earlier (~25); accumulated-knowledge tasks peak later (~50–60). For a general-purpose modifier a peak around 35–40 is a defensible synthesis.
+**Productive capacity** varies by activity and by age. A single global modifier cannot capture that childbirth has a steep biological decline after ~38, that physically demanding work peaks in the mid-20s, that intellectual invention peaks in the late 30s to mid-40s, or that learning capacity is highest in adolescence and early adulthood. Each activity has a distinct age profile backed by research (Simonton, 1988; Salthouse, 2010; Menken et al., 1986 on fertility).
 
-`AgeEvent` currently kills persons at `OLD_AGE`. This decision replaces that mechanism.
+`AgeEvent` currently kills persons at `OLD_AGE`. This decision replaces that mechanism and establishes the pattern for per-event age tuning.
 
 ## Decision
 
 **Remove the hard old-age death cutoff from `AgeEvent`.** `AgeEvent` only increments `age`. Death from aging is absorbed into the mortality modifier on `MisfortuneEvent`.
 
-**Add two computed getters to `Person`:**
+**Add a helper function `ageModifier` in `src/Helpers/AgeModifier.ts`:**
 
 ```typescript
-/** Multiplier on base illness/death probability. U-shaped: high at birth, minimum near PRIME_AGE, rising steeply in old age. */
+/** Returns a [floor, 1] multiplier representing how age affects a given activity. */
+export function ageModifier(age: number, peakAge: number, scale: number, floor: number): number {
+  const raw = 1 - Math.pow((age - peakAge) / scale, 2);
+  return Math.max(floor, raw);
+}
+```
+
+**Add a mortality modifier getter on `Person`** for the U-shaped death curve:
+
+```typescript
+/** Multiplier on base illness/death probability. Minimum near PRIME_AGE, rising toward infancy and old age. */
 get ageMortalityModifier(): number {
   return 1 + AGE_DEATH_CURVATURE * Math.pow(this.age - PRIME_AGE, 2);
 }
-
-/** Multiplier on event intent probability. Bell curve: low in childhood, peaks near PEAK_AGE, floors at AGE_MODIFIER_FLOOR in old age. */
-get ageProductivityModifier(): number {
-  const raw = 1 - Math.pow((this.age - PEAK_AGE) / AGE_SCALE, 2);
-  return Math.max(AGE_MODIFIER_FLOOR, raw);
-}
 ```
 
-**`MisfortuneEvent`** multiplies the base `ILLNESS` rate by `person.ageMortalityModifier` to get the per-tick death probability.
-
-**`EventFactory`** multiplies each person's intent value by `person.ageProductivityModifier` before the probability check:
+**`MisfortuneEvent`** multiplies the base `ILLNESS` rate by `person.ageMortalityModifier`:
 
 ```typescript
-if (this.rng() < person.stealingIntent * person.ageProductivityModifier) events.push(new StealEvent(this.rng));
-if (this.rng() < person.killingIntent * person.ageProductivityModifier)  events.push(new KillEvent(this.rng));
-// etc.
+if (this.rng() < ILLNESS * person.ageMortalityModifier) simulation.kill(person, CAUSE_OF_DEATH.ILLNESS);
 ```
 
-This means a young or old person can still commit murder — their `killingIntent` is nonzero — but the suppressed modifier makes it proportionally unlikely.
-
-**New constants in `Variables.ts`:**
+**`EventFactory`** calls `ageModifier` per-event with activity-specific constants:
 
 ```typescript
-export const PRIME_AGE = 28;           // age of minimum mortality
-export const AGE_DEATH_CURVATURE = 0.001;  // controls steepness of U-curve
+const age = person.age;
 
-export const PEAK_AGE = 40;            // age of maximum productivity
-export const AGE_SCALE = 50;           // controls width of bell curve
-export const AGE_MODIFIER_FLOOR = 0.1; // minimum productivity modifier (never zero)
+// Steep fertility cliff — biologically grounded
+if (this.rng() < CHILDBIRTH_BASE_RATE * ageModifier(age, CHILDBIRTH_PEAK_AGE, CHILDBIRTH_AGE_SCALE, CHILDBIRTH_AGE_FLOOR))
+  events.push(new ChildbirthEvent(this.rng));
+
+// Gradual work decline — physical and cognitive capacity
+if (this.rng() < person.workIntent * ageModifier(age, WORK_PEAK_AGE, WORK_AGE_SCALE, WORK_AGE_FLOOR))
+  events.push(new WorkEvent(this.rng));
+
+// Invention peaks later — requires accumulated knowledge
+if (this.rng() < person.inventionIntent * ageModifier(age, INVENTION_PEAK_AGE, INVENTION_AGE_SCALE, INVENTION_AGE_FLOOR))
+  events.push(new InventionEvent(this.rng));
+
+// Killing is physical and impulsive — peaks young
+if (this.rng() < person.killingIntent * ageModifier(age, KILL_PEAK_AGE, KILL_AGE_SCALE, KILL_AGE_FLOOR))
+  events.push(new KillEvent(this.rng));
 ```
+
+**New constants in `Variables.ts`** — mortality curve:
+
+```typescript
+export const PRIME_AGE = 28;              // age of minimum mortality
+export const AGE_DEATH_CURVATURE = 0.001; // controls steepness of U-curve
+```
+
+Per-event age constants follow the naming pattern `<EVENT>_PEAK_AGE`, `<EVENT>_AGE_SCALE`, `<EVENT>_AGE_FLOOR`. Representative starting values:
+
+| Event | Peak age | Scale | Floor | Rationale |
+|---|---|---|---|---|
+| Childbirth | 26 | 12 | 0.02 | Fertility peaks mid-20s; steep cliff after 38 |
+| Work | 35 | 40 | 0.1 | Broad productive period; gradual late decline |
+| Gathering | 28 | 35 | 0.1 | Physical labor; peaks late 20s |
+| Exercise | 24 | 35 | 0.1 | Physical peak earlier than cognitive |
+| Learning | 18 | 45 | 0.15 | Fluid intelligence peaks in late teens/early 20s |
+| Stealing | 24 | 30 | 0.05 | Physical + impulsive; peaks young |
+| Killing | 24 | 30 | 0.05 | Same profile as stealing |
+| Relationships | 26 | 35 | 0.1 | Social formation peaks in 20s–30s |
+| Invention | 40 | 45 | 0.1 | Accumulated knowledge; peaks later |
+| Lying | 32 | 40 | 0.1 | Social intelligence; broad peak in adulthood |
 
 **Remove `OLD_AGE` from `Variables.ts`** — it is no longer used.
 
 ## Reasoning
 
-**Computed getters on `Person`, not a helper class.** Both modifiers are pure functions of `age`, which is a `Person` property. Placing them as getters keeps age-related logic with the entity it describes. Callers (`EventFactory`, `MisfortuneEvent`) read a named property rather than calling a free function with a raw number.
+**Per-event constants rather than a global modifier.** A single `ageProductivityModifier` getter on `Person` cannot represent the difference between childbirth's steep fertility cliff and invention's late peak. The per-event approach makes the simulation more truthful to how age actually operates — different capacities decline at different rates — and makes each activity independently tunable as a research parameter.
 
-**Parabola as approximation.** The true mortality curve is closer to a Gompertz exponential (mortality doubles roughly every 8 years after age 30). The parabola underestimates late-life mortality acceleration but is adequate for a stylized model and requires no math beyond basic arithmetic. If late-age dynamics become important to the research question, the formula can be swapped without changing anything else.
+**`ageModifier` as a free helper function, not a `Person` getter.** The function takes `(age, peakAge, scale, floor)` — it is parameterized, not specific to any one activity. A `Person` getter would hardcode one set of parameters. The helper lives in `Helpers/` alongside `SeededRandom` and is called by `EventFactory` with per-event constants. `Person` retains only `ageMortalityModifier` because that curve is specific to the person's biological state, not to any event.
 
-**Asymmetry is partially addressed by `PEAK_AGE = 40` and `AGE_SCALE = 50`.** At these values a 15-year-old (0.75 modifier) and a 65-year-old (0.75 modifier) are symmetric around the peak — which overstates how capable a 15-year-old is relative to a 65-year-old on knowledge-intensive tasks. This is an accepted simplification for V1; per-event sensitivity weights could refine it later.
+**Parabola as approximation.** The true mortality curve is closer to a Gompertz exponential; the true fertility curve is closer to a logistic decline. The parabola captures the shape with minimal arithmetic. Constants in `Variables.ts` make replacement tractable if a more accurate curve is needed.
 
-**`AGE_MODIFIER_FLOOR = 0.1`** prevents anyone from being completely inert. A very old person still has a small chance of acting; a very young person still has a small chance of committing murder. The floor keeps the model consistent with the research finding that extreme age suppresses but does not eliminate behavior.
+**Floor prevents complete inaction.** `AGE_MODIFIER_FLOOR` ensures no activity reaches zero probability from age alone. A 70-year-old can still commit murder; a 5-year-old can still learn. The floor is the claim that age suppresses but does not eliminate. Childbirth gets a very low floor (0.02) because post-menopausal birth is effectively zero in the real world, but not literally impossible in a stylized model.
 
-**`MisfortuneEvent` owns age-scaled mortality, not `AgeEvent`.** `AgeEvent` is a mechanical bookkeeper — it advances time. Mortality belongs to misfortune: illness, accident, the body failing. Mixing time-keeping with probabilistic death in a single event blurs two distinct things. The hard cutoff was a workaround for the absence of a proper mortality model; it is no longer needed.
-
-**`OLD_AGE` constant removed.** Keeping it would imply the hard cutoff might be used somewhere; removing it makes the architectural change unambiguous.
+**`MisfortuneEvent` owns age-scaled mortality, not `AgeEvent`.** `AgeEvent` is a mechanical bookkeeper — it advances time. Mortality belongs to misfortune. The hard cutoff was a workaround for the absence of a proper mortality model; it is no longer needed.
 
 ## Consequences
 
 - `AgeEvent` only increments `person.age`; no death logic
-- `Person` gains two computed getters: `ageMortalityModifier` and `ageProductivityModifier`
+- `src/Helpers/AgeModifier.ts` exports `ageModifier(age, peakAge, scale, floor): number`
+- `Person` gains `ageMortalityModifier` computed getter; loses any global productivity getter
 - `MisfortuneEvent` death check: `if (this.rng() < ILLNESS * person.ageMortalityModifier)`
-- `EventFactory` wraps each intent with `* person.ageProductivityModifier` before the probability draw
-- `Variables.ts` gains five constants (`PRIME_AGE`, `AGE_DEATH_CURVATURE`, `PEAK_AGE`, `AGE_SCALE`, `AGE_MODIFIER_FLOOR`) and loses `OLD_AGE`
-- Age distribution of the living population becomes a meaningful observable — a young or elderly-skewed population behaves measurably differently from a prime-age one
-- Tests for `AgeEvent` should confirm it no longer kills; tests for `Person` should confirm modifier values at representative ages (infant, child, prime, elder)
+- `EventFactory` calls `ageModifier(person.age, ...)` per-event with named constants
+- `Variables.ts` gains mortality constants (`PRIME_AGE`, `AGE_DEATH_CURVATURE`) plus per-event age constants for every wired event; loses `OLD_AGE`
+- **Every new event added to `EventFactory` must document its age profile** — peak age, scale, floor — and add the corresponding constants to `Variables.ts`. See CLAUDE.md.
+- Tests for `AgeEvent` confirm it no longer kills; tests for `ageModifier` confirm output at representative ages; tests for `Person.ageMortalityModifier` confirm U-shape

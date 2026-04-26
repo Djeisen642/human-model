@@ -70,7 +70,7 @@ src/
   Events/
     IEvent.ts              # Interface: execute(person, simulation): void
     EventFactory.ts        # Maps person intents → event instances for a given tick — STUB (only AgeEvent wired)
-    AgeEvent.ts            # Increments age; kills person at OLD_AGE
+    AgeEvent.ts            # Increments age only (death handled by MisfortuneEvent)
     (one file per event)   # GatherResourcesEvent, StealEvent, etc. — not yet implemented
   Records/
     DeathRecord.ts         # Cause of death + optional killer reference
@@ -78,8 +78,9 @@ src/
     StealingRecord.ts      # Victim reference + amount stolen + thief's age
   Helpers/
     Constants.ts           # CAUSE_OF_DEATH, EDUCATION, TYPE_OF_HELP enums
-    Variables.ts           # ILLNESS = 0.05 (base rate), OLD_AGE = 60
+    Variables.ts           # ILLNESS, age curve constants, per-event age profiles
     SeededRandom.ts        # LCG seeded RNG; asRNG() returns an RNG-typed function
+    AgeModifier.ts         # ageModifier(age, peakAge, scale, floor) — bell curve helper
     Types.ts               # RNG = () => number
   tests/                   # Mirrors src/ structure; one test file per source file
 ```
@@ -142,6 +143,29 @@ Pick up here, roughly in dependency order:
    - Childbirth event — `simulation.add(new Person([p1, p2]))`; costs parents resources
    - Lying event — modifies targets' intent fields; effectiveness scaled by `charisma`
    - Invention event — shifts intent values across all living persons; requires high intelligence + charisma
+
+## Age profiles for new events
+
+Every event wired into `EventFactory` must declare an age profile. When adding a new event:
+
+1. Decide its **peak age** (when this activity is most likely), **scale** (how steeply it falls off — smaller = steeper), and **floor** (minimum modifier; never zero, but can be very small).
+2. Add three constants to `Variables.ts` following the naming pattern: `<EVENT>_PEAK_AGE`, `<EVENT>_AGE_SCALE`, `<EVENT>_AGE_FLOOR`.
+3. In `EventFactory`, wrap the intent/base-rate check with `ageModifier(person.age, <EVENT>_PEAK_AGE, <EVENT>_AGE_SCALE, <EVENT>_AGE_FLOOR)`.
+
+Reference profiles (from ARD 008):
+
+| Event | Peak | Scale | Floor |
+|---|---|---|---|
+| Childbirth | 26 | 12 | 0.02 |
+| Work | 35 | 40 | 0.1 |
+| Gathering | 28 | 35 | 0.1 |
+| Exercise | 24 | 35 | 0.1 |
+| Learning | 18 | 45 | 0.15 |
+| Stealing | 24 | 30 | 0.05 |
+| Killing | 24 | 30 | 0.05 |
+| Relationships | 26 | 35 | 0.1 |
+| Invention | 40 | 45 | 0.1 |
+| Lying | 32 | 40 | 0.1 |
 
 ## Keeping CLAUDE.md current
 
