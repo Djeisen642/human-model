@@ -19,8 +19,8 @@
           {
             "type": "command",
             "asyncRewake": true,
-            "rewakeMessage": "A git push just completed on this branch.",
-            "rewakeSummary": "git push detected — checking PR description",
+            "rewakeMessage": "A git push just completed. Check if a draft PR exists for the current branch — if not, create one with a description based on the branch commits; if one exists, update its description to reflect what the branch now actually does, and propose splitting if the scope has widened significantly.",
+            "rewakeSummary": "git push detected — PR sync",
             "command": "if [ -f /tmp/human-model-pushed ]; then rm /tmp/human-model-pushed; exit 2; fi"
           }
         ]
