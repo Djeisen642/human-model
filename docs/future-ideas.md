@@ -11,9 +11,6 @@ If you discover a new mechanism during implementation that could meaningfully af
 **Voluntary cooperation / helping event**
 The current event set is almost entirely extractive or destructive (stealing, killing, lying). The `helpsPeople` property exists but there's no event where a police/medical/education/research person actually does anything. Civilizations thrive through positive-sum interactions — without cooperation mechanics, the model can only show decline, not thriving.
 
-**Age-based stat modifiers**
-Children consume resources without contributing; peak productivity in middle age; elderly have reduced capacity. A population skewed young or old behaves very differently from one with a healthy age distribution. Relevant to modeling demographic-driven collapse cycles (Turchin).
-
 **Education payoff on stats**
 Graduation changes `isWorkingOnEd` → `education` but doesn't modify any stats. For education to affect civilizational health it needs to increase `intelligence` or unlock job types. Without a payoff, the education system is inert.
 
