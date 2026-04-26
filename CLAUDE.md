@@ -75,6 +75,14 @@ src/
   tests/                   # Mirrors src/ structure; one test file per source file
 ```
 
+## ARD requirement
+
+**Any implementation that encodes a non-obvious design choice requires an ARD before the code is written.** This includes: new stats or computed properties, event mechanics (probabilities, magnitudes, outcomes), changes to how existing fields are used, and any parameter whose value could reasonably be different.
+
+The test: if a future agent would have to guess *why* you made a choice, write an ARD first. If the choice is forced by the existing architecture with no real alternative, a comment in code may suffice.
+
+After writing an ARD: add it to the index in `docs/decisions/README.md`, reference it in the relevant "Key design decisions" bullet in CLAUDE.md, and include it in the same commit or PR as the implementation it covers.
+
 ## Discovering new mechanisms
 
 While implementing, you will sometimes encounter a behavior or interaction that isn't planned but could meaningfully affect the collapse/thrive dynamics. **Do not implement it speculatively.** Instead, add it to `docs/future-ideas.md` with a brief note on why it matters and what problem it solves. It will be reviewed and, if worthwhile, discussed and formalized as an ARD before being built.
@@ -99,14 +107,14 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - **Person stats are mutable, collections are not reassignable**: primitive fields (`age`, `resources`, etc.) are mutable so events can update them in place. Collection fields (`killed`, `hasChildren`, etc.) are `readonly` to prevent accidental replacement — but their contents remain mutable. See ARD 002.
 - **Object references as identity**: `Person` objects have no ID field. Reference equality (`===`) is identity. See ARD 001.
 - **Stats and intents start at 0** in the constructor, but `Simulation.seed(n, rng)` randomizes them on startup: age [15,50), resources [0,100), experience [0,age], intelligence/constitution/charisma [1,10], learningIntent/exerciseIntent [0,1), stealingIntent/lyingIntent [0,0.3), killingIntent [0,0.1).
-- **`happiness` is a computed getter** (not a stored stat). Currently partial: `+5 if hasJob, -3 if not, min 0`. Still needs: resources, relationship status, age, and health factors.
+- **`happiness` is a computed getter** (not a stored stat). Factors: job (+5/-3), resources (critical <10: -5, low <30: -2, comfortable ≥70: +3), relationship (+3), age (<18: -1, >65: -3), illness (−round(illness×5)). Floor 0. See ARD 009.
 - **Records are plain data classes** — they record that an event happened, they don't trigger anything.
 - **Global natural resource pool**: `Simulation` owns `naturalResources` (current pool), `naturalResourceCeiling` (max accessible), and `extractionEfficiency` (pool cost per unit gathered, starts at 1.0). Pool regenerates by `NATURAL_RESOURCE_REGEN_RATE` each tick (capped at ceiling) via `simulation.regenerate()`, called at the start of each tick in `LooperSingleton`. `GatherResourcesEvent` depletes the pool; `InventionEvent` randomly shifts efficiency or ceiling. See ARD 007.
 - **Age modifiers**: mortality uses a U-shaped curve (`ageMortalityModifier` getter on `Person`); all event probabilities are multiplied by a per-event bell curve via `ageModifier()` in `Helpers/AgeModifier.ts`. See ARD 008.
 
 ## What's implemented
 
-- `Person` data model — all properties, mutable primitives, readonly collections, `happiness` getter (partial), `ageMortalityModifier` getter (U-shaped curve, ARD 008)
+- `Person` data model — all properties, mutable primitives, readonly collections, `happiness` getter (job + resources + relationship + age + health, floor 0), `ageMortalityModifier` getter (U-shaped curve, ARD 008)
 - `Simulation` — `living`, `deceased`, `history`; `getLiving()`, `getRandomOther()`, `kill()`, `add()`, `seed()`, `snapshot()`, `regenerate()`; Gini coefficient computed per tick; `naturalResources`, `naturalResourceCeiling`, `extractionEfficiency` resource pool fields (ARD 007)
 - `LooperSingleton.start(n, ticks, seed)` — full tick loop: seeds simulation, calls `regenerate()` then runs EventFactory per person per tick, calls `snapshot()` each tick
 - `IEvent` interface
@@ -122,8 +130,7 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 Pick up here, roughly in dependency order:
 
-1. **`happiness` getter** — expand to factor in resources, relationship status, age, and health (currently only job status)
-2. **`EventFactory` intent routing** — wire intent values to probabilistic event selection; wrap each intent check with `ageModifier()`; currently returns only `[AgeEvent]`
+1. **`EventFactory` intent routing** — wire intent values to probabilistic event selection; wrap each intent check with `ageModifier()`; currently returns only `[AgeEvent]`
 3. **Events** (implement roughly in this order):
    - `GatherResourcesEvent` — person gains `extracted = min(f(experience, intelligence), pool / extractionEfficiency)`; pool loses `extracted * extractionEfficiency`. See ARD 007.
    - `ExerciseEvent` — `constitution++`
@@ -166,7 +173,7 @@ Reference profiles (from ARD 008):
 
 At the end of every session — whether it changed code or only docs/ARDs — verify that CLAUDE.md reflects actual state. This is the handoff document; if it's stale, the next agent starts blind.
 
-**After writing a new ARD:** add it to the index in `docs/decisions/README.md` and update any affected sections of CLAUDE.md ("Key design decisions", "What's not implemented yet" event descriptions).
+**After writing a new ARD:** see the ARD requirement section above for the full checklist.
 
 **After changing code:** update "What's implemented" and "What's not implemented yet". Read source files to verify — don't rely on memory.
 

@@ -58,3 +58,4 @@ What does this decision make easier, harder, or impossible? What must be true fo
 | [006](./006-dead-person-handling.md) | Dead Person Handling | Accepted |
 | [007](./007-resource-cap-and-invention.md) | Resource Cap and Invention | Accepted |
 | [008](./008-age-modifiers.md) | Age-Based Modifiers | Accepted |
+| [009](./009-happiness-model.md) | Happiness Model | Accepted |
