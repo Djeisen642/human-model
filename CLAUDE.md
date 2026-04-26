@@ -112,6 +112,8 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - **Stats and intents start at 0** in the constructor, but `Simulation.seed(n, rng)` randomizes them on startup: age [15,50), resources [0,100), experience [0,age], intelligence/constitution/charisma [1,10], learningIntent/exerciseIntent [0,1), stealingIntent/lyingIntent [0,0.3), killingIntent [0,0.1).
 - **`happiness` is a computed getter** (not a stored stat). Currently partial: `+5 if hasJob, -3 if not, min 0`. Still needs: resources, relationship status, age, and health factors.
 - **Records are plain data classes** — they record that an event happened, they don't trigger anything.
+- **Global natural resource pool** (not yet implemented): `Simulation` will own `naturalResources` (current pool), `naturalResourceCeiling` (max accessible), and `extractionEfficiency` (pool cost per unit gathered, starts at 1.0). `GatherResourcesEvent` depletes the pool; `InventionEvent` randomly shifts efficiency or ceiling. See ARD 007.
+- **Age modifiers**: mortality uses a U-shaped curve (`ageMortalityModifier` getter on `Person`); all event probabilities are multiplied by a per-event bell curve via `ageModifier()` in `Helpers/AgeModifier.ts`. See ARD 008.
 
 ## What's implemented
 
@@ -119,7 +121,7 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - `Simulation` — `living`, `deceased`, `history`; `getLiving()`, `getRandomOther()`, `kill()`, `add()`, `seed()`, `snapshot()`; Gini coefficient computed per tick
 - `LooperSingleton.start(n, ticks, seed)` — full tick loop: seeds simulation, runs EventFactory per person per tick, calls `snapshot()` each tick
 - `IEvent` interface
-- `AgeEvent` — age increment + old-age death
+- `AgeEvent` — age increment only (old-age hard cutoff removed; death handled by MisfortuneEvent via age mortality curve)
 - `EventFactory` — skeleton; always returns `[AgeEvent]` (intent-gated events not yet wired)
 - `DeathRecord`, `KillingRecord`, `StealingRecord` data classes
 - `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables`
@@ -130,13 +132,16 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 Pick up here, roughly in dependency order:
 
-1. **`happiness` getter** — expand to factor in resources, relationship status, age, and health (currently only job status)
-2. **`EventFactory` intent routing** — wire intent values to probabilistic event selection; currently returns only `[AgeEvent]`
-3. **Events** (implement roughly in this order):
-   - `GatherResourcesEvent` — `resources += f(experience, intelligence)`
+1. **`Simulation` resource pool fields** — add `naturalResources`, `naturalResourceCeiling`, `extractionEfficiency` fields; initialize from constants; include `naturalResources` in `TickSnapshot`. See ARD 007.
+2. **`Helpers/AgeModifier.ts`** — implement `ageModifier(age, peakAge, scale, floor): number` bell curve helper. See ARD 008.
+3. **`Person.ageMortalityModifier`** — computed getter using `PRIME_AGE` and `AGE_DEATH_CURVATURE`. See ARD 008.
+4. **`happiness` getter** — expand to factor in resources, relationship status, age, and health (currently only job status)
+5. **`EventFactory` intent routing** — wire intent values to probabilistic event selection; wrap each intent check with `ageModifier()`; currently returns only `[AgeEvent]`
+6. **Events** (implement roughly in this order):
+   - `GatherResourcesEvent` — person gains `extracted = min(f(experience, intelligence), pool / extractionEfficiency)`; pool loses `extracted * extractionEfficiency`. See ARD 007.
    - `ExerciseEvent` — `constitution++`
    - `LearnEvent` — `intelligence++`
-   - `MisfortuneEvent` — illness, disaster, suicide; uses `Variables.ILLNESS`
+   - `MisfortuneEvent` — death probability = `ILLNESS * person.ageMortalityModifier`; also handles disaster and suicide. See ARD 007 (illness), ARD 008 (age curve).
    - Job gain/loss event
    - Graduation event — `isWorkingOnEd` → `education`
    - Relationship event — sets `isInRelationshipWith`
@@ -145,7 +150,7 @@ Pick up here, roughly in dependency order:
    - Windfall event — resource bump
    - Childbirth event — `simulation.add(new Person([p1, p2]))`; costs parents resources
    - Lying event — modifies targets' intent fields; effectiveness scaled by `charisma`
-   - Invention event — shifts intent values across all living persons; requires high intelligence + charisma
+   - Invention event — three outcomes weighted by `Variables` constants: depletion faster (`extractionEfficiency *= 1 + delta`), slower (`extractionEfficiency *= 1 - delta`), ceiling growth (`naturalResourceCeiling += delta * ceiling`); `delta = inventor.intelligence * INVENTION_MAGNITUDE_SCALAR`. See ARD 007.
 
 ## Age profiles for new events
 
@@ -172,7 +177,11 @@ Reference profiles (from ARD 008):
 
 ## Keeping CLAUDE.md current
 
-At the end of every session that changes code, update "What's implemented" and "What's not implemented yet" to reflect actual state. Read source files to verify — don't rely on memory. This is the handoff document; if it's stale, the next agent starts blind.
+At the end of every session — whether it changed code or only docs/ARDs — verify that CLAUDE.md reflects actual state. This is the handoff document; if it's stale, the next agent starts blind.
+
+**After writing a new ARD:** add it to the index in `docs/decisions/README.md` and update any affected sections of CLAUDE.md ("Key design decisions", "What's not implemented yet" event descriptions).
+
+**After changing code:** update "What's implemented" and "What's not implemented yet". Read source files to verify — don't rely on memory.
 
 Before closing: does each section match reality? Is the Architecture section accurate about what's a stub vs. real?
 
