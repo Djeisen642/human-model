@@ -5,7 +5,7 @@
 
 ## Context
 
-Resources currently accumulate without bound. The HANDY model's central finding — that civilizational collapse is driven by overexploitation combined with inequality, not scarcity alone — requires a natural resource ceiling that the population can deplete faster than it regenerates. Without a finite environmental pool, extraction-driven collapse cannot be modeled.
+Resources currently accumulate without bound. Real resource dynamics have a ceiling — land, water, and extractable energy are finite at any given level of technology. Without a finite environmental pool, extraction-driven collapse cannot be modeled: a population can always gather more, so overexploitation is impossible by construction.
 
 The simulation also needs a mechanism for civilizational thriving, not just decline. A pure depletion model can only show collapse. Invention is the historical mechanism by which societies have pushed back resource limits — sometimes by reducing waste, sometimes by opening new frontiers — but invention also sometimes accelerates depletion (e.g. industrial extraction). Its net effect should be an emergent property of the simulation, not assumed.
 
@@ -60,7 +60,7 @@ export const INVENTION_MAGNITUDE_SCALAR = 0.05;
 
 ## Reasoning
 
-**Global pool, not per-person cap.** The HANDY collapse dynamic requires the population to collectively deplete a shared environment. A per-person cap prevents unlimited individual accumulation but does not model environmental degradation — the pool remains infinite and overexploitation is impossible.
+**Global pool, not per-person cap.** Resources in the real world come from a shared environment — the same forest, the same watershed, the same arable land. A per-person cap limits individual accumulation but leaves the environment infinite; overexploitation becomes structurally impossible. The interesting dynamic is what happens when many agents extract from the same finite pool at different rates.
 
 **`extractionEfficiency` decouples environmental cost from personal gain.** If invention simply scaled how much a person gains per gather, it would be indistinguishable from a stat boost. The ratio framing captures something real: efficient technologies can provide the same human benefit at lower environmental cost (efficiency < 1), or wasteful ones can extract more than they deliver net (efficiency > 1). This is the mechanism through which inequality and collapse interact — a high-efficiency population extracts more per person while depleting the pool faster.
 
@@ -82,4 +82,4 @@ export const INVENTION_MAGNITUDE_SCALAR = 0.05;
 - `InventionEvent` selects one of three outcomes via weighted random draw, computes `delta = inventor.intelligence * INVENTION_MAGNITUDE_SCALAR`, applies the effect permanently
 - `Variables.ts` gains six new constants: initial ceiling, regen rate, three invention weights, magnitude scalar
 - `NATURAL_RESOURCE_CEILING_INITIAL` and `NATURAL_RESOURCE_REGEN_RATE` are passed into `Simulation` constructor (or `LooperSingleton.start()`); exact threading TBD when implemented
-- The interaction between `extractionEfficiency` and Gini is the primary signal for HANDY-style collapse: a high-efficiency population that also has high inequality depletes the pool while the bottom of the distribution starves — scarcity is distributed unequally even when total extraction is moderate
+- The interaction between `extractionEfficiency` and Gini is the primary collapse signal: when extraction is wasteful (high `extractionEfficiency`) and inequality is high, the pool depletes while the bottom of the distribution starves — scarcity is distributed unequally even when total extraction is moderate
