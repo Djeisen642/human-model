@@ -31,7 +31,7 @@ export interface TickSnapshot {
   aggregateKillingIntent: number;
   /** Sum of stealingIntent across living population. */
   aggregateStealingIntent: number;
-  /** Remaining natural resource pool at end of tick (after extraction, before regen). */
+  /** Remaining natural resource pool at end of tick (after this tick's regen and extraction). */
   naturalResources: number;
 }
 

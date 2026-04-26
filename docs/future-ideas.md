@@ -8,6 +8,11 @@ If you discover a new mechanism during implementation that could meaningfully af
 
 ## Mechanics
 
+**Randomize extraction order each tick**
+Persons extract from the shared pool in `living` array order, giving a consistent positional advantage to those seeded first. Shuffling the order each tick (using the seeded RNG) would make the advantage random rather than structural, which matters once `GatherResourcesEvent` is live and the pool is finite.
+
+
+
 **Voluntary cooperation / helping event**
 The current event set is almost entirely extractive or destructive (stealing, killing, lying). The `helpsPeople` property exists but there's no event where a police/medical/education/research person actually does anything. Civilizations thrive through positive-sum interactions — without cooperation mechanics, the model can only show decline, not thriving.
 
