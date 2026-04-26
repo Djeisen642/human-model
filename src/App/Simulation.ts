@@ -2,6 +2,7 @@ import Person from './Person';
 import DeathRecord from '../Records/DeathRecord';
 import KillingRecord from '../Records/KillingRecord';
 import Constants from '../Helpers/Constants';
+import Variables from '../Helpers/Variables';
 import { RNG } from '../Helpers/Types';
 
 /** Per-tick aggregate state captured at the end of each tick. */
@@ -30,6 +31,8 @@ export interface TickSnapshot {
   aggregateKillingIntent: number;
   /** Sum of stealingIntent across living population. */
   aggregateStealingIntent: number;
+  /** Remaining natural resource pool at end of tick (after extraction, before regen). */
+  naturalResources: number;
 }
 
 export default class Simulation {
@@ -37,6 +40,13 @@ export default class Simulation {
   private deceased: Person[] = [];
   /** Accumulated snapshot history — one entry per completed tick. */
   readonly history: TickSnapshot[] = [];
+
+  /** Current available natural resource pool; depleted by gathering. */
+  naturalResources: number = Variables.NATURAL_RESOURCE_CEILING_INITIAL;
+  /** Maximum accessible resources; grows via InventionEvent. */
+  naturalResourceCeiling: number = Variables.NATURAL_RESOURCE_CEILING_INITIAL;
+  /** Pool cost per unit gathered; starts at 1.0, modified by InventionEvent. Floor: 0.01. */
+  extractionEfficiency: number = 1.0;
 
   private tickDeathCauses: number[] = [];
 
@@ -121,6 +131,17 @@ export default class Simulation {
   }
 
   /**
+   * Replenishes naturalResources by NATURAL_RESOURCE_REGEN_RATE, capped at naturalResourceCeiling.
+   * Call once at the start of each tick before events run.
+   */
+  regenerate(): void {
+    this.naturalResources = Math.min(
+      this.naturalResources + Variables.NATURAL_RESOURCE_REGEN_RATE,
+      this.naturalResourceCeiling,
+    );
+  }
+
+  /**
    * Captures aggregate stats for the current tick, appends to history,
    * resets per-tick accumulators, and returns the snapshot.
    *
@@ -156,6 +177,7 @@ export default class Simulation {
       averageHappiness,
       aggregateKillingIntent,
       aggregateStealingIntent,
+      naturalResources: this.naturalResources,
     };
 
     this.history.push(snap);
