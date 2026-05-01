@@ -22,9 +22,6 @@ A sick person gathers less — illness consumes energy and limits productive cap
 **Previous suicide attempts increase future risk**
 Empirically, a prior attempt is the strongest predictor of future suicide. Currently persons have no memory of past suicidal crises. Tracking attempt history on `Person` and multiplying the base rate by an escalating factor would capture this feedback loop. Requires a new field on `Person` and a record type.
 
-**Happiness model recalibration**
-The current happiness model floors easily at 0 — unemployment plus low resources alone produces -8 before the floor. This means happiness=0 covers a wide range of situations from mildly bad to catastrophically bad, making it a coarse input for suicide probability and other happiness-driven mechanics. Consider shifting the baseline or widening the scale so ordinary hardship doesn't immediately floor.
-
 **Voluntary cooperation / helping event**
 The current event set is almost entirely extractive or destructive (stealing, killing, lying). The `helpsPeople` property exists but there's no event where a police/medical/education/research person actually does anything. Civilizations thrive through positive-sum interactions — without cooperation mechanics, the model can only show decline, not thriving.
 
