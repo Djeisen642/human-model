@@ -98,6 +98,7 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - **Records are plain data classes** — they record that an event happened, they don't trigger anything.
 - **Global natural resource pool**: `Simulation` owns `naturalResources` (current pool), `naturalResourceCeiling` (max accessible), and `extractionEfficiency` (pool cost per unit gathered, starts at 1.0). Pool regenerates by `NATURAL_RESOURCE_REGEN_RATE` each tick (capped at ceiling) via `simulation.regenerate()`, called at the start of each tick in `LooperSingleton`. `GatherResourcesEvent` depletes the pool; `InventionEvent` randomly shifts efficiency or ceiling. See ARD 007.
 - **Age modifiers**: mortality uses a U-shaped curve (`ageMortalityModifier` getter on `Person`); all event probabilities are multiplied by a per-event bell curve via `ageModifier()` in `Helpers/AgeModifier.ts`. See ARD 008.
+- **10-year summary every 10 ticks**: `LooperSingleton` checks `tick % 10 === 0` and appends a `TenYearSummary` to `Simulation.decadeHistory`. The summary aggregates the 10 most recent `TickSnapshot` objects: averaged Gini/resources/happiness/naturalResources, peak Gini, delta death counts by cause, population delta. See ARD 015.
 
 ## What's implemented
 
