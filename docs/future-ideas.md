@@ -13,8 +13,17 @@ Persons extract from the shared pool in `living` array order, giving a consisten
 
 
 
-**Resource-damage disaster (vs. kill-only)**
-ARD 010 chose a flat-kill model for disaster for simplicity. A resource-damage variant — lose a fraction of accumulated wealth rather than die — would interact more richly with inequality: wealthy persons absorb the shock, poor persons are wiped out. This is a stronger Gini signal than flat mortality and worth revisiting once the resource economy is observable in practice.
+**Disaster pod/proximity targeting**
+ARD 012 selects disaster victims randomly from the full population. In reality, family clusters and neighbors share physical proximity and would be co-affected by local disasters. Once a proximity model exists, disaster should target a cluster rather than random individuals. See the proximity future idea below.
+
+**Illness reduces gathering capacity**
+A sick person gathers less — illness consumes energy and limits productive capacity. Currently illness only affects mortality (via `ageMortalityModifier`) and happiness. A direct penalty on gathering output (e.g. `potential *= (1 - person.illness)`) would make illness a resource drain, not just a death risk, strengthening the collapse feedback loop.
+
+**Previous suicide attempts increase future risk**
+Empirically, a prior attempt is the strongest predictor of future suicide. Currently persons have no memory of past suicidal crises. Tracking attempt history on `Person` and multiplying the base rate by an escalating factor would capture this feedback loop. Requires a new field on `Person` and a record type.
+
+**Happiness model recalibration**
+The current happiness model floors easily at 0 — unemployment plus low resources alone produces -8 before the floor. This means happiness=0 covers a wide range of situations from mildly bad to catastrophically bad, making it a coarse input for suicide probability and other happiness-driven mechanics. Consider shifting the baseline or widening the scale so ordinary hardship doesn't immediately floor.
 
 **Voluntary cooperation / helping event**
 The current event set is almost entirely extractive or destructive (stealing, killing, lying). The `helpsPeople` property exists but there's no event where a police/medical/education/research person actually does anything. Civilizations thrive through positive-sum interactions — without cooperation mechanics, the model can only show decline, not thriving.

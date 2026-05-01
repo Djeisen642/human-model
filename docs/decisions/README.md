@@ -60,3 +60,5 @@ What does this decision make easier, harder, or impossible? What must be true fo
 | [008](./008-age-modifiers.md) | Age-Based Modifiers | Accepted |
 | [009](./009-happiness-model.md) | Happiness Model | Accepted |
 | [010](./010-eventfactory-routing.md) | EventFactory Routing | Proposed |
+| [011](./011-gather-resources-event.md) | GatherResourcesEvent | Proposed |
+| [012](./012-disaster-event.md) | Disaster | Proposed |
