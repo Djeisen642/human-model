@@ -1,8 +1,6 @@
 # human-model
 
-Agent-based simulation for studying civilizational collapse vs. thriving. Each person has stats, behavioral intents, and participates in events once per simulated year. The research question: what starting conditions and behavioral dynamics cause a population to grow and stabilize versus spiral into decline?
-
-Inspired by Sugarscape (Epstein & Axtell, 1996), the HANDY civilizational collapse model (Motesharrei et al., 2014), and Turchin's Cliodynamics. Key HANDY finding relevant here: collapse is driven by resource overexploitation combined with inequality — not scarcity alone. The Gini coefficient of `resources` across the population is therefore a more meaningful collapse signal than average resources.
+Agent-based simulation for studying civilizational collapse vs. thriving. Each person has stats, behavioral intents, and participates in events once per simulated year. The Gini coefficient of `resources` is the primary collapse signal (inequality matters more than scarcity). See `docs/project-background.md` for research inspirations.
 
 Zero production dependencies — devDependencies only.
 
@@ -28,15 +26,6 @@ git merge --squash <branch-name>
 git commit -m "concise summary of what the branch did"
 git push origin master
 ```
-
-Squash keeps `master` as a clean, readable changelog — each commit represents one complete piece of work. Branch history is preserved locally and remotely if you need the detail.
-
-### Why squash over other strategies
-
-- `master` reads as a narrative, not a topology
-- ARD immutability is meaningful — nothing lands on `master` by accident
-- Branch work can be as granular as needed without cluttering the main history
-- Each squash commit is a natural unit for revert if something goes wrong
 
 ## Commands
 
@@ -91,9 +80,7 @@ When a candidate in `docs/future-ideas.md` is rejected without rising to ARD-lev
 
 ## Design pattern philosophy
 
-This project deliberately explores design patterns — but only when they have a concrete job to do. Before applying a pattern, answer: *what specific problem does this solve here?* If you can't answer that concretely, don't use it.
-
-When a pattern stops earning its place — the abstraction adds more friction than it removes, or the problem it solved no longer exists — remove it and simplify. A pattern that made sense at one stage of the project may not survive the next. That's expected, not a failure.
+Only use a pattern when it has a concrete job to do. Remove it when it stops earning its place. See `docs/project-background.md` for the full philosophy.
 
 Patterns currently in use and why:
 - **Singleton** (`LooperSingleton`) — one simulation loop should exist; enforced at the type level
