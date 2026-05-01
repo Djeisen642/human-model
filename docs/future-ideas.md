@@ -13,6 +13,9 @@ Persons extract from the shared pool in `living` array order, giving a consisten
 
 
 
+**Resource-damage disaster (vs. kill-only)**
+ARD 010 chose a flat-kill model for disaster for simplicity. A resource-damage variant — lose a fraction of accumulated wealth rather than die — would interact more richly with inequality: wealthy persons absorb the shock, poor persons are wiped out. This is a stronger Gini signal than flat mortality and worth revisiting once the resource economy is observable in practice.
+
 **Voluntary cooperation / helping event**
 The current event set is almost entirely extractive or destructive (stealing, killing, lying). The `helpsPeople` property exists but there's no event where a police/medical/education/research person actually does anything. Civilizations thrive through positive-sum interactions — without cooperation mechanics, the model can only show decline, not thriving.
 
