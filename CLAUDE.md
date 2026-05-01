@@ -94,7 +94,7 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - **Person stats are mutable, collections are not reassignable**: primitive fields (`age`, `resources`, etc.) are mutable so events can update them in place. Collection fields (`killed`, `hasChildren`, etc.) are `readonly` to prevent accidental replacement — but their contents remain mutable. See ARD 002.
 - **Object references as identity**: `Person` objects have no ID field. Reference equality (`===`) is identity. See ARD 001.
 - **Stats and intents start at 0** in the constructor, but `Simulation.seed(n, rng)` randomizes them on startup: age [15,50), resources [0,100), experience [0,age], intelligence/constitution/charisma [1,10], learningIntent/exerciseIntent [0,1), stealingIntent/lyingIntent [0,0.3), killingIntent [0,0.1).
-- **`happiness` is a computed getter** (not a stored stat). Factors: job (+5/-3), resources (critical <10: -5, low <30: -2, comfortable ≥70: +3), relationship (+3), age (<18: -1, >65: -3), illness (−round(illness×5)). Floor 0. See ARD 009.
+- **`happiness` is a computed getter** (not a stored stat). Factors: job (+5 if employed; −3 if unemployed and working-age 18–65 only), resources (critical/low/comfortable thresholds vary by age group), relationship (+3), age (>65: −1), illness (−round(illness×5)). Children use average living parents' resources instead of their own. Floor 0. See ARD 009 (original), ARD 014 (revision).
 - **Records are plain data classes** — they record that an event happened, they don't trigger anything.
 - **Global natural resource pool**: `Simulation` owns `naturalResources` (current pool), `naturalResourceCeiling` (max accessible), and `extractionEfficiency` (pool cost per unit gathered, starts at 1.0). Pool regenerates by `NATURAL_RESOURCE_REGEN_RATE` each tick (capped at ceiling) via `simulation.regenerate()`, called at the start of each tick in `LooperSingleton`. `GatherResourcesEvent` depletes the pool; `InventionEvent` randomly shifts efficiency or ceiling. See ARD 007.
 - **Age modifiers**: mortality uses a U-shaped curve (`ageMortalityModifier` getter on `Person`); all event probabilities are multiplied by a per-event bell curve via `ageModifier()` in `Helpers/AgeModifier.ts`. See ARD 008.
@@ -117,12 +117,13 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 Pick up here, roughly in dependency order:
 
-1. **`EventFactory` intent routing** — wire intent values to probabilistic event selection; wrap each intent check with `ageModifier()`; currently returns only `[AgeEvent]`
+1. **`EventFactory` intent routing** — wire intent values to probabilistic event selection; wrap each intent check with `ageModifier()`; currently returns only `[AgeEvent]`. See ARD 010.
 3. **Events** (implement roughly in this order):
-   - `GatherResourcesEvent` — person gains `extracted = min(f(experience, intelligence), pool / extractionEfficiency)`; pool loses `extracted * extractionEfficiency`. See ARD 007.
+   - `GatherResourcesEvent` — unconditional; `extracted = min(experience * (BASE_GATHER_AMOUNT + intelligence * INTELLIGENCE_GATHER_SCALAR), pool / extractionEfficiency)`; pool loses `extracted * extractionEfficiency`. See ARD 007, ARD 011.
+   - `MisfortuneEvent` — unconditional; illness death (`ILLNESS * ageMortalityModifier`) + suicide (`SUICIDE_PROBABILITY_SCALE / (happiness + 1)`). See ARD 007, ARD 008, ARD 013.
+   - Disaster — population-level event run once per tick in `LooperSingleton`; probabilistic trigger, random number of affected persons, kill or resource damage based on age/constitution. See ARD 012.
    - `ExerciseEvent` — `constitution++`
    - `LearnEvent` — `intelligence++`
-   - `MisfortuneEvent` — death probability = `ILLNESS * person.ageMortalityModifier`; also handles disaster and suicide. See ARD 007 (illness), ARD 008 (age curve).
    - Job gain/loss event
    - Graduation event — `isWorkingOnEd` → `education`
    - Relationship event — sets `isInRelationshipWith`
@@ -147,7 +148,6 @@ Reference profiles (from ARD 008):
 |---|---|---|---|
 | Childbirth | 26 | 12 | 0.02 |
 | Work | 35 | 40 | 0.1 |
-| Gathering | 28 | 35 | 0.1 |
 | Exercise | 24 | 35 | 0.1 |
 | Learning | 18 | 45 | 0.15 |
 | Stealing | 24 | 30 | 0.05 |
