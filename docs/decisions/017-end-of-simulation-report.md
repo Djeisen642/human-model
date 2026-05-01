@@ -5,17 +5,17 @@
 
 ## Context
 
-Progress reporting (ARD 016) shows what happened decade by decade while the simulation runs. That answers "is it doing something?" but not "what was the outcome?" A researcher or developer reviewing a completed run needs a consolidated verdict: did this civilization collapse, thrive, or muddle through?
+Progress reporting (ARD 016) shows what happened decade by decade while the simulation runs. That answers "is it doing something?" but not "what was the outcome?" A researcher reviewing a completed run needs a consolidated verdict — did this civilization collapse, thrive, or muddle through — and enough visual data to understand *why*.
 
 The end-of-simulation report answers: *what was the overall outcome, and what drove it?*
 
-This is distinct from the per-decade progress output in both purpose and audience. Progress output is ephemeral — it scrolls past. The end report is the artifact you save, share, and compare across runs with different seeds or parameters.
+This is distinct from progress output in both purpose and audience. Progress output is ephemeral — it scrolls past. The end report is the artifact you save, share, and compare across runs with different seeds or parameters. Graphs make trends (Gini rising, population declining) immediately legible in a way tables cannot.
 
 ## Decision
 
-After `LooperSingleton.start()` completes the tick loop, it prints an end-of-simulation report to `console.log` and also writes it as a JSON file to `./output/report-<seed>-<timestamp>.json`.
+After `LooperSingleton.start()` completes the tick loop, `index.ts` prints a text summary to `console.log` and writes an HTML report with embedded charts to `./output/report-<seed>-<timestamp>.html`.
 
-**Console output — structured sections:**
+### Console output
 
 ```
 === End of Simulation (100 ticks, seed 42) ===
@@ -40,14 +40,56 @@ HAPPINESS
   Trend: declining
 
 DECADE SUMMARY TABLE
-  Yr  Pop   ΔPop  Gini  PkGini  Res   Happy  Deaths
-  010  98    -2   0.31  0.38   61.2   5.8     4
+  Yr  Pop  ΔPop  Gini  PkGini  Res   Happy  Deaths
+  010  98    -2  0.31   0.38  61.2    5.8       4
   ...
+```
+
+### HTML report with charts
+
+`ReportWriter.ts` generates a self-contained HTML file. Chart.js is loaded from a CDN `<script>` tag — this does not violate the zero-npm-production-dependency constraint (no package is installed; the browser fetches it at view time). If offline use is needed, the script tag can be swapped for an inlined minified copy of Chart.js as a future enhancement.
+
+**Charts included:**
+
+| Chart | Type | X-axis | Y-series |
+|-------|------|--------|----------|
+| Inequality over time | Line | Tick (year) | `resourceGini` |
+| Population over time | Line | Tick | `population` |
+| Resources over time | Line | Tick | `averageResources`, `naturalResources` (dual Y or normalized) |
+| Happiness over time | Line | Tick | `averageHappiness` |
+| Deaths by cause per decade | Stacked bar | Decade | illness / suicide / killing / disaster / old age |
+
+All data is embedded in the HTML as an inline `<script>` block containing a JSON literal — no external data file or server required. The file opens in any browser by double-clicking.
+
+**HTML structure:**
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simulation Report — Seed 42 — COLLAPSE</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>Simulation Report</h1>
+  <p>Seed: 42 | Ticks: 100 | Outcome: <strong>COLLAPSE</strong></p>
+  <p>Reason: Gini exceeded 0.60 in final decade (peak 0.71)</p>
+
+  <!-- one <canvas> per chart -->
+  <canvas id="giniChart"></canvas>
+  ...
+
+  <script>
+    const data = { /* embedded JSON: meta, decadeHistory, fullHistory */ };
+    // Chart.js initialization for each canvas
+  </script>
+</body>
+</html>
 ```
 
 **Outcome classification:**
 
-A single label is derived from the final decade's data:
+A single label derived from the final decade's `TenYearSummary` (ARD 016):
 
 | Label | Condition |
 |-------|-----------|
@@ -56,62 +98,50 @@ A single label is derived from the final decade's data:
 | `STABLE` | Neither of the above |
 | `THRIVING` | Final-decade avg Gini < 0.30 and final avg happiness ≥ 6.0 |
 
-These thresholds are named constants in `Variables.ts` (`COLLAPSE_GINI_THRESHOLD`, `STRUGGLING_GINI_THRESHOLD`, etc.) so they can be tuned without touching report logic.
-
-**JSON file:**
-
-```json
-{
-  "meta": { "ticks": 100, "seed": 42, "timestamp": "2026-05-01T..." },
-  "outcome": "COLLAPSE",
-  "outcomeReason": "Gini exceeded 0.60 in final decade",
-  "finalSnapshot": { /* last TickSnapshot */ },
-  "decadeHistory": [ /* all TenYearSummary objects */ ],
-  "fullHistory": [ /* all TickSnapshot objects */ ]
-}
-```
-
-The JSON contains the full `history` and `decadeHistory` arrays, making it usable for offline analysis (spreadsheets, plotting) without re-running the simulation.
+Thresholds are named constants in `Variables.ts` (`COLLAPSE_GINI_THRESHOLD`, `STRUGGLING_GINI_THRESHOLD`, `STRUGGLING_HAPPINESS_THRESHOLD`, `THRIVING_GINI_THRESHOLD`, `THRIVING_HAPPINESS_THRESHOLD`, `COLLAPSE_POPULATION_FRACTION`).
 
 **Implementation:**
 
-`formatEndReport(simulation: Simulation, n: number, ticks: number, seed: number): string` and `classifyOutcome(simulation: Simulation): { label: string; reason: string }` live in `src/Helpers/Reporters.ts` (same file as ARD 016's `formatDecadeSummary`).
+`formatEndReport` and `classifyOutcome` live in `src/Helpers/Reporters.ts` (pure functions, no I/O — same file as ARD 016 formatters).
 
-`writeReportJSON(simulation: Simulation, seed: number): void` lives in `src/Helpers/ReportWriter.ts` — separate from `Reporters.ts` because it performs I/O (requires `fs`) and must be kept out of the pure formatting layer.
+`writeReportHTML(simulation: Simulation, n: number, ticks: number, seed: number): void` lives in `src/Helpers/ReportWriter.ts`; it uses Node's `fs` module to write the file.
 
-`index.ts` calls both after `looper.start()` returns:
+`index.ts` after the run:
 
 ```typescript
 const simulation = looper.start();
 console.log(formatEndReport(simulation, 100, 100, 42));
-writeReportJSON(simulation, 42);
+writeReportHTML(simulation, 100, 100, 42);
 ```
 
 The `output/` directory is created if it doesn't exist; it is gitignored.
 
 ## Reasoning
 
-**Outcome label with a reason string.** A numeric Gini at the end is information; "COLLAPSE — Gini exceeded 0.60" is a verdict. Labeling forces the model to have an explicit definition of collapse, which is the research question the simulation exists to study. The threshold constants being in `Variables.ts` makes them easy to calibrate.
+**HTML with charts, not JSON.** The primary goal is understanding outcome and trends. A chart makes a rising Gini or a collapsing population immediately legible; a JSON file requires a separate tool to visualize. Since we're already generating a file, the marginal cost of writing HTML instead of JSON is small.
 
-**Console + JSON, not either/or.** The console report is for the human running the simulation right now. The JSON is for any downstream use (comparing seeds, plotting trends, sharing results). They serve different audiences at zero extra cost.
+**Chart.js via CDN, not a production npm dependency.** Loading Chart.js from a CDN at view time does not require `npm install` and does not appear in `package.json` — the zero-production-dependency constraint is about the npm dependency graph, not about what a generated HTML file may reference. The trade-off is that viewing the report requires internet access; this is acceptable for a development/research tool. An inlined fallback is a future option.
 
-**`ReportWriter.ts` separate from `Reporters.ts`.** `Reporters.ts` is pure functions (string in, string out) — testable without mocking `fs`. `ReportWriter.ts` does I/O and is tested with integration tests or not unit-tested at all. Mixing them would force `fs` mocks into formatter tests.
+**All data embedded inline in the HTML.** No separate data file, no local server, no CORS issues. Double-clicking the `.html` file in any browser shows the full report. The full `history` array (one entry per tick) is included so charts can plot per-year data, not just decade aggregates.
 
-**Full history in the JSON.** Decade summaries are convenient but lossy — a single bad year is averaged away. Including `fullHistory` in the JSON means a researcher can always reconstruct the decade summaries or compute their own aggregations. Storage cost is negligible (100 objects per run).
+**Per-tick data for line charts; per-decade for death breakdown.** The collapse/thrive signal lives in the per-tick Gini and resource curves — decade averaging hides the moment collapse begins. Death-by-cause is better as a stacked bar per decade because per-tick death counts are too small and noisy to plot meaningfully.
 
-**Thresholds as named constants, not magic numbers.** The collapse/thrive thresholds are the simulation's core hypothesis. Burying `0.60` in report logic would make them invisible. Named constants in `Variables.ts` document the hypothesis and make it easy to run comparative studies by changing one value.
+**Outcome label on the page title and heading.** When comparing multiple HTML files, the verdict should be visible without opening the file. `report-42-COLLAPSE-2026-05-01.html` is self-describing.
 
-**Rejected: HTML report.** An HTML report with charts would be compelling but requires either a production dependency (chart library) or hand-rolled SVG generation. Neither fits the zero-production-dependency constraint. JSON output + any spreadsheet tool achieves the same goal.
+**`classifyOutcome` in `Reporters.ts`, not `Simulation`.** Classification is a reporting concern, not a simulation concern. `Simulation` models the world; it should not know what "collapse" means for a report. Keeping it in `Reporters.ts` means the definition can change without touching simulation logic.
 
-**Rejected: outcome determined by `Simulation` itself.** Classification logic belongs in the reporting layer, not in the simulation model. `Simulation` models the world; it shouldn't know what "collapse" means for the purposes of a report. Keeping classification in `Reporters.ts` means the definition of collapse can be changed without touching the simulation.
+**Rejected: JSON output.** JSON requires a separate tool to visualize. HTML with embedded Chart.js gives immediate visual feedback. The raw data is still available inside the HTML `<script>` block for anyone who wants to extract it.
+
+**Rejected: SVG charts hand-rolled without a library.** Hand-rolled SVG is verbose, fragile, and hard to read. Chart.js via CDN produces professional charts with axes, legends, and tooltips at zero npm cost.
 
 ## Consequences
 
+- `src/Helpers/ReportWriter.ts` is created with `writeReportHTML`; uses Node `fs`
 - `src/Helpers/Reporters.ts` gains `formatEndReport` and `classifyOutcome`
-- `src/Helpers/ReportWriter.ts` is created with `writeReportJSON`; it uses Node's `fs` module
-- `Variables.ts` gains `COLLAPSE_GINI_THRESHOLD`, `STRUGGLING_GINI_THRESHOLD`, `STRUGGLING_HAPPINESS_THRESHOLD`, `THRIVING_GINI_THRESHOLD`, `THRIVING_HAPPINESS_THRESHOLD`, `COLLAPSE_POPULATION_FRACTION`
-- `output/` directory added to `.gitignore`
-- `index.ts` changes from a two-liner to a four-liner (import formatEndReport, writeReportJSON; call both)
-- The end report depends on ARD 015 (`TenYearSummary`) and ARD 016 (`Reporters.ts`) being implemented first
-- Tests for `classifyOutcome` use hand-crafted `Simulation`-like objects and cover all four outcome labels and boundary conditions
-- `ReportWriter.ts` is integration-tested (write file, read it back, parse JSON) or excluded from unit tests with a clear note
+- `Variables.ts` gains the six outcome-classification threshold constants
+- `output/` is added to `.gitignore`
+- `index.ts` imports and calls `formatEndReport` (console) and `writeReportHTML` (file) after the run
+- The HTML report depends on ARD 016 (`TenYearSummary`, `Reporters.ts`) being implemented first
+- `ReportWriter.ts` is integration-tested (write file, read it back, check it contains expected strings) or noted as excluded from unit tests
+- `classifyOutcome` tests cover all four labels and boundary conditions
+- Viewing the HTML report requires an internet connection to load Chart.js from the CDN; offline use requires manually inlining the library
