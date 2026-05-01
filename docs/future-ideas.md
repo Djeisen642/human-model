@@ -8,6 +8,9 @@ If you discover a new mechanism during implementation that could meaningfully af
 
 ## Mechanics
 
+**Resource inheritance on death**
+When a person dies, their `resources` currently vanish — they are tracked on the person object but never redistributed. Inheritance (children or relatives receive a fraction) or estate taxes (a portion flows to a shared pool) would give accumulated wealth a second-order effect on Gini: concentrated wealth passed intact to heirs steepens inequality, while redistribution dampens it. The current design loses this signal entirely.
+
 **Randomize extraction order each tick**
 Persons extract from the shared pool in `living` array order, giving a consistent positional advantage to those seeded first. Shuffling the order each tick (using the seeded RNG) would make the advantage random rather than structural, which matters once `GatherResourcesEvent` is live and the pool is finite.
 
