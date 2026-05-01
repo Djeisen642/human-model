@@ -15,20 +15,30 @@ ARD 009 established the happiness model with five additive factors. Three proble
 
 ## Decision
 
-Four changes to the happiness getter:
+Five changes to the happiness getter:
 
-**1. Age modifiers revised:**
+**1. Baseline happiness for being alive:**
+
+Every person receives a baseline happiness bonus regardless of circumstances:
+
+```typescript
+static HAPPINESS_BASELINE = 0;
+```
+
+Starting at 0, this is a no-op by default. It exists as an explicit tuning lever — if calibration shows too many persons flooring at 0, `HAPPINESS_BASELINE` can be raised without touching the individual factor magnitudes.
+
+**2. Age modifiers revised:**
 
 | Age range | Old modifier | New modifier |
 |---|---|---|
 | < 18 | −1 | 0 |
 | > 65 | −3 | −1 |
 
-**2. Job factor excludes children and elderly:**
+**3. Job factor excludes children and elderly:**
 
 No happiness penalty for lacking a job if `age < 18` or `age > 65`. Children are not expected to work; retirement is normal. The penalty applies only to working-age adults (18–65).
 
-**3. Children's resource factor uses parents' resources:**
+**4. Children's resource factor uses parents' resources:**
 
 For persons under 18, the resource tier check uses the average resources of living parents (from `childOf`) rather than the child's own resources. If no living parents exist (orphan), fall back to the child's own resources.
 
@@ -40,7 +50,7 @@ const resourceBase = (this.age < 18 && this.livingParents.length > 0)
 
 Where `livingParents` is a computed getter returning `this.childOf.filter(p => p.causeOfDeath === null)`.
 
-**4. Elderly resource thresholds shift upward:**
+**5. Elderly resource thresholds shift upward:**
 
 For persons over 65, the resource tier boundaries are higher — the elderly need more resources to feel secure and hit scarcity sooner:
 
@@ -56,7 +66,7 @@ The magnitudes (−5, −2, +3) remain the same; only the thresholds change.
 
 ```typescript
 get happiness(): number {
-  let happiness = 0;
+  let happiness = Variables.HAPPINESS_BASELINE;
 
   // Job: only penalise working-age adults for unemployment
   if (this.age >= 18 && this.age <= 65) {
@@ -93,6 +103,8 @@ get happiness(): number {
 
 ## Reasoning
 
+**Baseline at 0 is a tuning lever, not a claim.** Starting at 0 makes it a no-op — the model behaves identically to having no baseline. Its value is that it makes the intention explicit and provides a single constant to adjust if calibration shows happiness flooring too frequently. Raising it shifts the whole population upward without touching individual factor magnitudes.
+
 **No age penalty for children.** Research on subjective wellbeing (Diener & Diener, 1996; Chaplin, 2009) consistently finds children and young adults report high life satisfaction. The original −1 was meant to capture dependency, but dependency is better captured through the resource factor (children depend on parents' resources). Removing it lets the resource factor do its job.
 
 **Reduced elderly penalty (−3 → −1).** The large penalty was a proxy for declining health and social isolation. Health is already captured by the illness factor. The remaining −1 acknowledges genuine late-life challenges (bereavement, reduced mobility) without overstating them. The real elderly vulnerability is resource scarcity, now modeled directly through higher thresholds.
@@ -105,6 +117,7 @@ get happiness(): number {
 
 ## Consequences
 
+- `Variables.ts` gains `HAPPINESS_BASELINE = 0`; raise this constant if calibration shows too many persons flooring at 0
 - `Person` gains a `livingParents` computed getter: `this.childOf.filter(p => p.causeOfDeath === null)`
 - The happiness getter changes as shown above; ARD 009 is superseded by this ARD for the affected factors
 - Children of wealthy parents will show higher happiness; children of poor parents will show lower — making childbirth stakes visible in the happiness signal
