@@ -65,3 +65,5 @@ What does this decision make easier, harder, or impossible? What must be true fo
 | [013](./013-misfortune-event.md) | MisfortuneEvent | Proposed |
 | [014](./014-happiness-model-revision.md) | Happiness Model Revision | Proposed |
 | [015](./015-ten-year-summary.md) | Ten-Year Summary | Proposed |
+| [016](./016-progress-reporting.md) | Progress Reporting | Proposed |
+| [017](./017-end-of-simulation-report.md) | End-of-Simulation Report | Proposed |
