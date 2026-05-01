@@ -1,11 +1,11 @@
-# ARD 017: End-of-Simulation Report
+# ARD 015: End-of-Simulation Report
 
 **Status:** Proposed  
 **Date:** 2026-05-01
 
 ## Context
 
-Progress reporting (ARD 016) shows what happened decade by decade while the simulation runs. That answers "is it doing something?" but not "what was the outcome?" A researcher reviewing a completed run needs a consolidated verdict — did this civilization collapse, thrive, or muddle through — and enough visual data to understand *why*.
+Progress reporting (ARD 015) shows what happened decade by decade while the simulation runs. That answers "is it doing something?" but not "what was the outcome?" A researcher reviewing a completed run needs a consolidated verdict — did this civilization collapse, thrive, or muddle through — and enough visual data to understand *why*.
 
 The end-of-simulation report answers: *what was the overall outcome, and what drove it?*
 
@@ -89,7 +89,7 @@ All data is embedded in the HTML as an inline `<script>` block containing a JSON
 
 **Outcome classification:**
 
-A single label derived from the final decade's `TenYearSummary` (ARD 016):
+A single label derived from the final decade's `TenYearSummary` (ARD 015):
 
 | Label | Condition |
 |-------|-----------|
@@ -102,7 +102,7 @@ Thresholds are named constants in `Variables.ts` (`COLLAPSE_GINI_THRESHOLD`, `ST
 
 **Implementation:**
 
-`formatEndReport` and `classifyOutcome` live in `src/Helpers/Reporters.ts` (pure functions, no I/O — same file as ARD 016 formatters).
+`formatEndReport` and `classifyOutcome` live in `src/Helpers/Reporters.ts` (pure functions, no I/O — same file as ARD 015 formatters).
 
 `writeReportHTML(simulation: Simulation, n: number, ticks: number, seed: number): void` lives in `src/Helpers/ReportWriter.ts`; it uses Node's `fs` module to write the file.
 
@@ -141,7 +141,7 @@ The `output/` directory is created if it doesn't exist; it is gitignored.
 - `Variables.ts` gains the six outcome-classification threshold constants
 - `output/` is added to `.gitignore`
 - `index.ts` imports and calls `formatEndReport` (console) and `writeReportHTML` (file) after the run
-- The HTML report depends on ARD 016 (`TenYearSummary`, `Reporters.ts`) being implemented first
+- The HTML report depends on ARD 015 (`TenYearSummary`, `Reporters.ts`) being implemented first
 - `ReportWriter.ts` is integration-tested (write file, read it back, check it contains expected strings) or noted as excluded from unit tests
 - `classifyOutcome` tests cover all four labels and boundary conditions
 - Viewing the HTML report requires an internet connection to load Chart.js from the CDN; offline use requires manually inlining the library
