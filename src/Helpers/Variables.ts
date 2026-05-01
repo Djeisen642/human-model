@@ -1,5 +1,12 @@
 export default class Variables {
   static ILLNESS = 0.05;
+  /** Suicide probability at happiness=0; falls as happiness rises (divided by happiness+1). */
+  static SUICIDE_PROBABILITY_SCALE = 0.03;
+
+  /** Base resources gathered per point of experience, regardless of intelligence. */
+  static BASE_GATHER_AMOUNT = 0.05;
+  /** Additional resources gathered per point of experience per point of intelligence. */
+  static INTELLIGENCE_GATHER_SCALAR = 0.005;
 
   /** Age of minimum mortality; the U-curve is centred here. */
   static PRIME_AGE = 28;

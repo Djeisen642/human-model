@@ -1,12 +1,14 @@
 import Person from '../App/Person';
 import IEvent from './IEvent';
 import AgeEvent from './AgeEvent';
+import GatherResourcesEvent from './GatherResourcesEvent';
+import MisfortuneEvent from './MisfortuneEvent';
 import { RNG } from '../Helpers/Types';
 
 /**
  * Maps a person's intent values to the events they participate in each tick.
- * Events that always fire are added unconditionally; probabilistic events are
- * gated by comparing an rng draw against the relevant intent.
+ * Unconditional events always fire; intent-gated events are appended when
+ * rng() < intent * ageModifier(...) passes.
  */
 export default class EventFactory {
   /** @param rng - random number source injected at construction */
@@ -14,15 +16,18 @@ export default class EventFactory {
 
   /**
    * Returns the ordered list of events this person participates in this tick.
-   * AgeEvent always fires first.
+   * Always starts with three unconditional events: AgeEvent, GatherResourcesEvent,
+   * MisfortuneEvent. Intent-gated events are appended after as they are implemented.
    *
    * @param person - person whose intents determine event selection
    * @returns events to execute for this tick
    */
   getEventsFor(person: Person): IEvent[] {
-    const events: IEvent[] = [new AgeEvent()];
-    // GatherResourcesEvent and intent-gated events added as they are implemented
     void person;
-    return events;
+    return [
+      new AgeEvent(),
+      new GatherResourcesEvent(),
+      new MisfortuneEvent(this.rng),
+    ];
   }
 }

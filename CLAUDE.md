@@ -48,9 +48,11 @@ src/
     index.ts               # Entry point — runs start() with defaults (100 persons, 100 ticks, seed 42)
   Events/
     IEvent.ts              # Interface: execute(person, simulation): void
-    EventFactory.ts        # Maps person intents → event instances for a given tick — STUB (only AgeEvent wired)
+    EventFactory.ts        # Maps person intents → event instances for a given tick; returns unconditional [AgeEvent, GatherResourcesEvent, MisfortuneEvent]
     AgeEvent.ts            # Increments age only (death handled by MisfortuneEvent)
-    (one file per event)   # GatherResourcesEvent, StealEvent, etc. — not yet implemented
+    GatherResourcesEvent.ts # Unconditional; extracts resources from pool each tick
+    MisfortuneEvent.ts     # Unconditional; illness and suicide checks each tick
+    (one file per event)   # StealEvent, KillEvent, etc. — not yet implemented
   Records/
     DeathRecord.ts         # Cause of death + optional killer reference
     KillingRecord.ts       # Victim reference + murderer's age at time of killing
@@ -108,9 +110,11 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - `LooperSingleton.start(n, ticks, seed)` — full tick loop: seeds simulation, calls `regenerate()` then runs EventFactory per person per tick, calls `snapshot()` each tick
 - `IEvent` interface
 - `AgeEvent` — age increment only (old-age hard cutoff removed; death handled by MisfortuneEvent via age mortality curve)
-- `EventFactory` — skeleton; always returns `[AgeEvent]` (intent-gated events not yet wired)
+- `GatherResourcesEvent` — unconditional; `extracted = min(experience * (BASE_GATHER_AMOUNT + intelligence * INTELLIGENCE_GATHER_SCALAR), pool / extractionEfficiency)`; pool loses `extracted * extractionEfficiency`. See ARD 011.
+- `MisfortuneEvent` — unconditional; illness death (`ILLNESS * ageMortalityModifier`) then suicide (`SUICIDE_PROBABILITY_SCALE / (happiness + 1)`); first cause wins. See ARD 013.
+- `EventFactory` — returns unconditional `[AgeEvent, GatherResourcesEvent, MisfortuneEvent]`; intent-gated events to be appended as implemented. See ARD 010.
 - `DeathRecord`, `KillingRecord`, `StealingRecord` data classes
-- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `PRIME_AGE`, `AGE_DEATH_CURVATURE`, and per-event age profile constants for all planned events)
+- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, and per-event age profile constants for all planned events)
 - `AgeModifier.ts` — `ageModifier(age, peakAge, scale, floor)` bell-curve helper (ARD 008)
 - `TickSnapshot` observability: population, death counts by cause, `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`
 - Tests for all of the above
@@ -119,10 +123,8 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 Pick up here, roughly in dependency order:
 
-1. **`EventFactory` intent routing** — wire intent values to probabilistic event selection; wrap each intent check with `ageModifier()`; currently returns only `[AgeEvent]`. See ARD 010.
-3. **Events** (implement roughly in this order):
-   - `GatherResourcesEvent` — unconditional; `extracted = min(experience * (BASE_GATHER_AMOUNT + intelligence * INTELLIGENCE_GATHER_SCALAR), pool / extractionEfficiency)`; pool loses `extracted * extractionEfficiency`. See ARD 007, ARD 011.
-   - `MisfortuneEvent` — unconditional; illness death (`ILLNESS * ageMortalityModifier`) + suicide (`SUICIDE_PROBABILITY_SCALE / (happiness + 1)`). See ARD 007, ARD 008, ARD 013.
+1. **`EventFactory` intent routing** — intent-gated events (exercise, learn, steal, kill, etc.) not yet wired; each needs `rng() < intent * ageModifier(...)` gate added in `getEventsFor()`. See ARD 010.
+2. **Events** (implement roughly in this order):
    - Disaster — population-level event run once per tick in `LooperSingleton`; probabilistic trigger, random number of affected persons, kill or resource damage based on age/constitution. See ARD 012.
    - `ExerciseEvent` — `constitution++`
    - `LearnEvent` — `intelligence++`
