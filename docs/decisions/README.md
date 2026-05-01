@@ -62,3 +62,4 @@ What does this decision make easier, harder, or impossible? What must be true fo
 | [010](./010-eventfactory-routing.md) | EventFactory Routing | Proposed |
 | [011](./011-gather-resources-event.md) | GatherResourcesEvent | Proposed |
 | [012](./012-disaster-event.md) | Disaster | Proposed |
+| [014](./014-happiness-model-revision.md) | Happiness Model Revision | Proposed |
