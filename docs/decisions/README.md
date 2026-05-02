@@ -67,3 +67,5 @@ What does this decision make easier, harder, or impossible? What must be true fo
 | [015](./015-progress-reporting.md) | Progress Reporting and Ten-Year Summary | Proposed |
 | [016](./016-end-of-simulation-report.md) | End-of-Simulation Report | Proposed |
 | [017](./017-experience-growth-and-decay.md) | Experience Growth and Decay | Proposed |
+| [018](./018-illness-live-state.md) | Illness as Live State | Proposed |
+| [019](./019-misfortune-illness-death-revision.md) | MisfortuneEvent Illness Death Formula Revision | Proposed |
