@@ -77,6 +77,8 @@ src/
 
 The test: if a future agent would have to guess *why* you made a choice, write an ARD first. If the choice is forced by the existing architecture with no real alternative, a comment in code may suffice.
 
+**Before writing the ARD body, read `docs/decisions/README.md`.** It is the canonical guide for ARD scope, structure, quality bar, and the after-writing checklist. Skipping it produces ARDs that are syntactically correct but thin on judgment — usually missing the rejected alternatives or the calibration intent that make an ARD useful to the next reader.
+
 After writing an ARD: add it to the index in `docs/decisions/README.md`, reference it in the relevant "Key design decisions" bullet in CLAUDE.md, and include it in the same commit or PR as the implementation it covers.
 
 ## Discovering new mechanisms

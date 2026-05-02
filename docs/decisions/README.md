@@ -8,6 +8,18 @@ An ARD documents a significant architectural decision: the context that prompted
 
 ARDs are not design documents or specifications — they are a record of *why* things are the way they are. A future developer (or agent) reading the codebase should be able to understand not just what was built, but what was rejected and why.
 
+## When to write an ARD
+
+Write one whenever you are about to encode a non-obvious design choice. The trigger test (also in `CLAUDE.md`):
+
+> If a future agent would have to guess *why* you made a choice, write an ARD first. If the choice is forced by the existing architecture with no real alternative, a comment in code may suffice.
+
+Concretely, this includes new stats or computed properties, event mechanics (probabilities, magnitudes, outcomes), changes to how existing fields are used, and any parameter whose value could reasonably be different.
+
+It does **not** include: bug fixes that restore documented behavior, refactors that preserve behavior, formatting changes, or choices forced by the existing architecture with no real alternative. Those go straight to code.
+
+The ARD is written *before* the code, not retroactively. If you're already writing the implementation and realize the choice is non-obvious, stop and write the ARD first.
+
 ## Immutability
 
 **ARDs are immutable once merged to the main branch.**
@@ -44,16 +56,58 @@ This guideline was added after ARD 013 (`MisfortuneEvent`) bundled illness death
 
 ## Context
 Why is this decision needed? What problem or constraint prompted it?
+Ground it in the actual code state — what does the current code do (or fail
+to do) that creates the need for a decision? Avoid generic "we need a
+mechanism for X" framing; cite the file or field that's incomplete.
 
 ## Decision
-What was chosen? Include code examples where the shape of the solution is non-obvious.
+What was chosen? Include code examples where the shape of the solution is
+non-obvious. If new constants are introduced, list them with initial values
+and a one-line rationale per constant. Mark numeric values that need
+empirical calibration as placeholders.
 
 ## Reasoning
-Why this option over the alternatives? Name and briefly dismiss the rejected options.
+**At least one named alternative, and why it was rejected.** This is where
+the ARD earns its keep — without rejected alternatives, the document is just
+a specification. Each alternative gets a name (e.g., "purely additive
+formula", "constant base rate") and a short paragraph explaining why it
+loses to the chosen option. Two or three alternatives is typical; one is
+the floor.
 
 ## Consequences
-What does this decision make easier, harder, or impossible? What must be true for it to hold?
+What does this decision make easier, harder, or impossible? What must be
+true for it to hold? List the files that change, the tests that must be
+written, and any side effects on other parts of the model. If known
+weaknesses exist, name them in a sub-section so they aren't a surprise to
+the next reader.
 ```
+
+## Quality bar
+
+A good ARD passes all of these:
+
+1. **Context grounds the decision in code state.** A reader who hasn't seen the codebase in months can tell from Context alone why this decision is being made now.
+2. **Reasoning names at least one rejected alternative.** "We chose X because it works" is not Reasoning. "We chose X over Y (which would have done Z) because..." is.
+3. **Constants have rationale, not just values.** If the ARD introduces `FOO = 0.05`, the document says why 0.05 — even if the rationale is "placeholder pending calibration."
+4. **Cross-references are explicit.** If this ARD depends on, modifies, or interacts with another ARD, name it. If it defers a related concern to `docs/future-ideas.md`, link the entry.
+5. **Consequences are testable.** "Tests must cover X, Y, Z" is better than "should be tested." A reader implementing the ARD shouldn't have to guess what coverage looks like.
+
+## Exemplars
+
+When in doubt about the right level of detail or rigor, look at:
+
+- **[ARD 011](./011-gather-resources-event.md)** — formula introduction with explicit calibration intent and three rejected alternatives. Good pattern for any event with a numeric formula.
+- **[ARD 014](./014-happiness-model-revision.md)** — supersession of ARD 009. Good pattern for revising a previous decision: states what changed and why the prior model fell short.
+- **[ARD 008](./008-age-modifiers.md)** — establishes a reusable helper (`ageModifier`) with a profile table. Good pattern for cross-cutting infrastructure.
+
+## After writing an ARD
+
+Before the implementation commit:
+
+1. **Add the ARD to the Index** below — title and status.
+2. **Reference it in `CLAUDE.md`** — under "Key design decisions" if it changes a project-level invariant, and under "What's implemented" once the code lands.
+3. **Cross-reference `docs/future-ideas.md`** if any item there is now subsumed (move it to the Discarded section) or made obsolete (delete it with a note in the ARD).
+4. **Include the ARD in the same commit as the implementation it covers** when possible. Splitting the ARD and implementation across commits is acceptable for ARDs that need review before code, but the link should be obvious in the commit messages.
 
 ## Statuses
 
