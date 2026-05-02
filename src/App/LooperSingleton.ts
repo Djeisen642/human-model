@@ -1,6 +1,7 @@
 import Simulation from './Simulation';
 import SeededRandom from '../Helpers/SeededRandom';
 import EventFactory from '../Events/EventFactory';
+import DisasterEvent from '../Events/DisasterEvent';
 
 export default class LooperSingleton {
   private static instance: LooperSingleton;
@@ -18,9 +19,11 @@ export default class LooperSingleton {
     const simulation = new Simulation();
     simulation.seed(n, rng);
     const factory = new EventFactory(rng);
+    const disaster = new DisasterEvent(rng);
 
     for (let t = 0; t < ticks; t++) {
       simulation.regenerate();
+      disaster.execute(simulation);
       const living = simulation.getLiving();
       for (const person of living) {
         for (const event of factory.getEventsFor(person)) {
