@@ -66,4 +66,19 @@ export default class Variables {
   static LYING_PEAK_AGE = 32;
   static LYING_AGE_SCALE = 40;
   static LYING_AGE_FLOOR = 0.1;
+
+  // Disaster event constants (ARD 012)
+  /** Probability that a disaster fires in any given tick (~1 in 10 ticks). */
+  static DISASTER_PROBABILITY = 0.1;
+  /** Upper bound on affected persons as a fraction of the living population. */
+  static DISASTER_MAX_AFFECTED_FRACTION = 0.2;
+  /** Minimum fraction of resources lost by each affected person. */
+  static DISASTER_MIN_LOSS_FRACTION = 0.1;
+  /** Maximum fraction of resources lost by each affected person. */
+  static DISASTER_MAX_LOSS_FRACTION = 0.9;
+  /**
+   * Base probability that an affected person at prime age with constitution 1 dies.
+   * Scaled by ageMortalityModifier / constitution at execution time.
+   */
+  static DISASTER_KILL_BASE = 0.1;
 }

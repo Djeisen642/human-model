@@ -48,10 +48,13 @@ src/
     index.ts               # Entry point — runs start() with defaults (100 persons, 100 ticks, seed 42)
   Events/
     IEvent.ts              # Interface: execute(person, simulation): void
-    EventFactory.ts        # Maps person intents → event instances for a given tick; returns unconditional [AgeEvent, GatherResourcesEvent, MisfortuneEvent]
+    EventFactory.ts        # Maps person intents → event instances for a given tick; unconditional + intent-gated via ageModifier
     AgeEvent.ts            # Increments age only (death handled by MisfortuneEvent)
     GatherResourcesEvent.ts # Unconditional; extracts resources from pool each tick
     MisfortuneEvent.ts     # Unconditional; illness and suicide checks each tick
+    DisasterEvent.ts       # Population-level; run once per tick by LooperSingleton (not via IEvent)
+    ExerciseEvent.ts       # Intent-gated; constitution++
+    LearnEvent.ts          # Intent-gated; intelligence++
     (one file per event)   # StealEvent, KillEvent, etc. — not yet implemented
   Records/
     DeathRecord.ts         # Cause of death + optional killer reference
@@ -112,9 +115,12 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - `AgeEvent` — age increment only (old-age hard cutoff removed; death handled by MisfortuneEvent via age mortality curve)
 - `GatherResourcesEvent` — unconditional; `extracted = min(experience * (BASE_GATHER_AMOUNT + intelligence * INTELLIGENCE_GATHER_SCALAR), pool / extractionEfficiency)`; pool loses `extracted * extractionEfficiency`. See ARD 011.
 - `MisfortuneEvent` — unconditional; illness death (`ILLNESS * ageMortalityModifier`) then suicide (`SUICIDE_PROBABILITY_SCALE / (happiness + 1)`); first cause wins. See ARD 013.
-- `EventFactory` — returns unconditional `[AgeEvent, GatherResourcesEvent, MisfortuneEvent]`; intent-gated events to be appended as implemented. See ARD 010.
+- `DisasterEvent` — population-level, run once per tick in `LooperSingleton` (does not implement `IEvent`); probabilistic trigger (`DISASTER_PROBABILITY`), random subset of living up to `DISASTER_MAX_AFFECTED_FRACTION`, kill check (`DISASTER_KILL_BASE * ageMortalityModifier / constitution`), resource loss fraction in `[DISASTER_MIN_LOSS_FRACTION, DISASTER_MAX_LOSS_FRACTION]`. See ARD 012.
+- `ExerciseEvent` — intent-gated; `constitution++`. Wired in `EventFactory` with exercise age profile.
+- `LearnEvent` — intent-gated; `intelligence++`. Wired in `EventFactory` with learning age profile.
+- `EventFactory` — unconditional `[AgeEvent, GatherResourcesEvent, MisfortuneEvent]` plus intent-gated `ExerciseEvent` and `LearnEvent` via `rng() < intent * ageModifier(...)`. See ARD 010.
 - `DeathRecord`, `KillingRecord`, `StealingRecord` data classes
-- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, and per-event age profile constants for all planned events)
+- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, disaster constants, and per-event age profile constants for all planned events)
 - `AgeModifier.ts` — `ageModifier(age, peakAge, scale, floor)` bell-curve helper (ARD 008)
 - `TickSnapshot` observability: population, death counts by cause, `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`
 - Tests for all of the above
@@ -123,11 +129,7 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 Pick up here, roughly in dependency order:
 
-1. **`EventFactory` intent routing** — intent-gated events (exercise, learn, steal, kill, etc.) not yet wired; each needs `rng() < intent * ageModifier(...)` gate added in `getEventsFor()`. See ARD 010.
-2. **Events** (implement roughly in this order):
-   - Disaster — population-level event run once per tick in `LooperSingleton`; probabilistic trigger, random number of affected persons, kill or resource damage based on age/constitution. See ARD 012.
-   - `ExerciseEvent` — `constitution++`
-   - `LearnEvent` — `intelligence++`
+1. **Events** (implement roughly in this order):
    - Job gain/loss event
    - Graduation event — `isWorkingOnEd` → `education`
    - Relationship event — sets `isInRelationshipWith`

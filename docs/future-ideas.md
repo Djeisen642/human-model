@@ -14,6 +14,9 @@ When a person dies, their `resources` currently vanish — they are tracked on t
 **Randomize extraction order each tick**
 Persons extract from the shared pool in `living` array order, giving a consistent positional advantage to those seeded first. Shuffling the order each tick (using the seeded RNG) would make the advantage random rather than structural, which matters once `GatherResourcesEvent` is live and the pool is finite.
 
+**Newborn initial stat seeding**
+When childbirth is implemented, `new Person([p1, p2])` produces a person with `constitution = 0` and all other stats at 0. `DisasterEvent` divides by `constitution`, so a newborn with constitution 0 would trigger a division-by-zero kill. Childbirth must seed initial stats (possibly inheriting from parents per the intergenerational transmission idea) before the person is added to the living population.
+
 
 
 **Disaster pod/proximity targeting**
