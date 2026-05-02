@@ -1,6 +1,6 @@
 # ARD 011: GatherResourcesEvent
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-05-01
 
 ## Context
