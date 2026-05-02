@@ -1,6 +1,6 @@
 # ARD 013: MisfortuneEvent
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-05-01
 
 ## Context
