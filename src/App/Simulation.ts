@@ -133,7 +133,7 @@ export default class Simulation {
       const person = new Person([]);
       person.age = randomInt(rng, 15, 50);
       person.resources = randomInt(rng, 0, 100);
-      person.experience = randomInt(rng, 0, person.age + 1);
+      person.experience = randomInt(rng, 0, Math.min(person.age, Variables.EXPERIENCE_CAP) + 1);
       person.intelligence = randomInt(rng, 1, 11);
       person.constitution = randomInt(rng, 1, 11);
       person.charisma = randomInt(rng, 1, 11);

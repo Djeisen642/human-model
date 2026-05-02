@@ -1,6 +1,7 @@
 import Person from '../App/Person';
 import IEvent from './IEvent';
 import AgeEvent from './AgeEvent';
+import ExperienceEvent from './ExperienceEvent';
 import GatherResourcesEvent from './GatherResourcesEvent';
 import MisfortuneEvent from './MisfortuneEvent';
 import ExerciseEvent from './ExerciseEvent';
@@ -29,6 +30,7 @@ export default class EventFactory {
   getEventsFor(person: Person): IEvent[] {
     const events: IEvent[] = [
       new AgeEvent(),
+      new ExperienceEvent(),
       new GatherResourcesEvent(),
       new MisfortuneEvent(this.rng),
     ];
