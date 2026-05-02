@@ -5,22 +5,20 @@
 
 ## Context
 
-`Person.experience` is initialized to 0, randomized in `Simulation.seed()` to `[0, age]`, and consumed by `GatherResourcesEvent` (ARD 011) as the primary multiplier on extraction output. After seeding, it is never updated — there is no event that increments, decays, or otherwise mutates it. A 90-year-old person carries the experience value they were assigned at age 15 for the rest of their life. This is a latent bug in the simulation: the field is treated as time-accumulating in the gather formula but is in fact static.
+`Person.experience` is randomized in `Simulation.seed()` to `[0, age]` and then never updated, despite being the primary multiplier in `GatherResourcesEvent` (ARD 011). A 90-year-old carries the experience they were assigned at age 15 for life. The field is treated as time-accumulating but is in fact static — a latent bug.
 
-Fixing it requires deciding *how* experience grows. The choice is non-obvious because experience interacts with several yet-to-be-implemented mechanics: education (`isWorkingOnEd`), employment (the planned `Job` event), and idleness. It also interacts with `intelligence` — the conventional wisdom that "you can't teach an old dog new tricks" implies intelligence accelerates learning differently at different ages.
+Fixing it is non-obvious because experience interacts with several yet-to-be-implemented mechanics (education, employment, idleness) and with `intelligence` ("can't teach an old dog new tricks").
 
 ## Decision
 
-Add a new unconditional event, `ExperienceEvent`, that fires once per living person per tick. It applies the following per-tick update:
+Add a new unconditional event, `ExperienceEvent`, fired once per living person per tick:
 
 ```typescript
-// 1. Base growth, attenuated for early childhood
 let growth = Variables.BASE_EXPERIENCE_GROWTH;
 if (person.age < Variables.EXPERIENCE_CHILDHOOD_AGE) {
   growth *= Variables.EXPERIENCE_CHILDHOOD_FACTOR;
 }
 
-// 2. Intelligence multiplier on growth, faded by age via the learning curve
 const intelligenceFade = ageModifier(
   person.age,
   Variables.LEARNING_PEAK_AGE,
@@ -29,10 +27,9 @@ const intelligenceFade = ageModifier(
 );
 growth += person.intelligence * Variables.INTELLIGENCE_EXPERIENCE_SCALAR * intelligenceFade;
 
-// 3. Activity bonus / idleness decay (mutually exclusive branches)
 if (person.isWorkingOnEd) {
   growth += Variables.EDUCATION_EXPERIENCE_BONUS;
-} else if (person.hasJob) {                                   // see "Job dependency" below
+} else if (person.hasJob) {                                   // see Job dependency below
   growth += Variables.EMPLOYMENT_EXPERIENCE_BONUS;
 } else if (person.age >= Variables.EXPERIENCE_ELDERLY_AGE) {
   growth -= Variables.ELDERLY_IDLENESS_DECAY;
@@ -40,7 +37,6 @@ if (person.isWorkingOnEd) {
   growth -= Variables.ADULT_IDLENESS_DECAY;
 }
 
-// 4. Clamp to [0, cap]
 person.experience = Math.max(
   0,
   Math.min(Variables.EXPERIENCE_CAP, person.experience + growth),
@@ -51,61 +47,56 @@ person.experience = Math.max(
 
 | Constant | Initial | Rationale |
 |---|---|---|
-| `BASE_EXPERIENCE_GROWTH` | `1.0` | One year of experience per year lived as baseline. |
+| `BASE_EXPERIENCE_GROWTH` | `1.0` | One year of experience per year lived. |
 | `EXPERIENCE_CHILDHOOD_AGE` | `5` | Below this, growth is attenuated. |
 | `EXPERIENCE_CHILDHOOD_FACTOR` | `0.2` | Pre-5 grows at 1/5 the rate. |
-| `INTELLIGENCE_EXPERIENCE_SCALAR` | `0.05` | At max intelligence (10) and peak fade (1.0), boost is `+0.5/tick`. |
+| `INTELLIGENCE_EXPERIENCE_SCALAR` | `0.05` | At intelligence=10, peak fade=1.0, boost is +0.5/tick. |
 | `EDUCATION_EXPERIENCE_BONUS` | `0.5` | School accelerates experience. |
-| `EMPLOYMENT_EXPERIENCE_BONUS` | `0.3` | Work also accelerates, slightly less than school. |
-| `ADULT_IDLENESS_DECAY` | `0.5` | Working-age unemployed lose half a year of experience per year idle. |
-| `ELDERLY_IDLENESS_DECAY` | `0.2` | Retirees decay slower — accumulated expertise fades less in the absence of strenuous re-engagement. |
-| `EXPERIENCE_ELDERLY_AGE` | `65` | Matches existing happiness elderly threshold (Person.ts). |
-| `EXPERIENCE_CAP` | `50` | Plausible career-length ceiling; prevents runaway gather output for centenarians. |
+| `EMPLOYMENT_EXPERIENCE_BONUS` | `0.3` | Work accelerates, slightly less than school. |
+| `ADULT_IDLENESS_DECAY` | `0.5` | Working-age unemployed lose half a year per tick. |
+| `ELDERLY_IDLENESS_DECAY` | `0.2` | Retirees decay slower. |
+| `EXPERIENCE_ELDERLY_AGE` | `65` | Matches happiness elderly threshold. |
+| `EXPERIENCE_CAP` | `50` | Career-length ceiling; prevents centenarian dominance. |
 
-**Seeding update:** `Simulation.seed()` must clamp seeded experience to `[0, min(age, EXPERIENCE_CAP)]` so a person seeded above the cap doesn't enter the simulation in violation of the invariant.
+**Seeding:** `Simulation.seed()` clamps to `[0, min(age, EXPERIENCE_CAP)]`.
 
-**Intelligence fade reuses the learning age curve** (`LEARNING_PEAK_AGE`, `LEARNING_AGE_SCALE`, `LEARNING_AGE_FLOOR`) rather than introducing a separate set of constants. The shape is the same — both express "the rate at which a person absorbs new knowledge as a function of age" — and a single curve avoids drift between the two.
+**Intelligence fade reuses the learning age curve** (`LEARNING_*` constants) — same shape, single anchor.
 
-**Wiring:** `EventFactory.getEventsFor(person)` returns `ExperienceEvent` unconditionally alongside `AgeEvent`, `GatherResourcesEvent`, and `MisfortuneEvent`. Order within the unconditional block: `AgeEvent` first (so the new age is in effect when other events read it), then `ExperienceEvent`, then `GatherResourcesEvent` (so updated experience is reflected in this tick's gather), then `MisfortuneEvent`.
+**Wiring:** `EventFactory` returns `ExperienceEvent` unconditionally. Order: AgeEvent → ExperienceEvent → GatherResourcesEvent → MisfortuneEvent. Age update visible to experience update; experience update visible to gather.
 
 ## Reasoning
 
-**Time-based growth with intelligence as accelerator, not multiplier.** Three formulations were considered:
+**Time-based growth with intelligence as accelerator.** Two alternatives rejected:
 
-1. **Pure time-based:** `experience += 1 per tick`. Simple but ignores that smart people learn faster.
-2. **Pure intelligence-multiplicative:** `experience += intelligence * SCALAR`. Couples too tightly to one stat; a smart person who never works/studies still accumulates expertise, which contradicts the idleness-decay intuition.
-3. **Additive base + intelligence boost (chosen):** Time provides the floor; intelligence accelerates via a faded curve; activity adds; idleness subtracts. Each lever is independently observable in calibration.
+1. *Pure time-based* (`experience += 1`): ignores that smart people learn faster.
+2. *Pure intelligence-multiplicative* (`experience += intelligence * k`): smart idler still accumulates expertise — contradicts idleness-decay intuition.
 
-**Childhood attenuation rather than a hard cutoff.** Earlier draft proposed no growth before age 15. The actual decision (pre-5 grows slowly, ages 5+ grow normally) better reflects developmental reality and removes a discontinuity that would otherwise cause a noisy jump at age 15 once childbirth is implemented.
+The chosen additive form keeps each lever (time, intelligence, activity, idleness) independently observable in calibration.
 
-**Asymmetric idleness decay (elderly slower).** Working-age unemployment indicates an active failure to engage — skills atrophy faster. Post-retirement disengagement is normal and physiologically/cognitively different; expertise fades but more gradually. Symmetric decay would either be too punishing for retirees (forcing them into rapid uselessness) or too gentle on the unemployed (blunting the collapse signal from joblessness).
+**Childhood attenuation rather than hard cutoff.** A no-growth-before-15 cutoff would create a discontinuity once childbirth is implemented; pre-5 attenuation reflects developmental reality without the cliff.
 
-**Floor at 0, cap at career-length.** Floor prevents negative experience from tipping `GatherResourcesEvent` into negative output. Cap prevents pathological compounding: without it, a centenarian who exercised, learned, and worked their entire life would have experience ~100, intelligence ~30+ (LearnEvent has no cap either — separate problem, see future ideas), and dominate the resource pool. Cap also reflects empirical career length — there are diminishing returns to further experience past mid-career.
+**Asymmetric idleness decay.** Working-age unemployment is an active failure to engage; skills atrophy fast. Retirement is normal disengagement; fades slower. Symmetric decay either over-punishes retirees or under-signals joblessness.
 
-**Reuse of the learning age curve for intelligence fade.** The "old dog, new tricks" effect is the same curve as the LearnEvent firing rate (per ARD 008's age-profile guidance). Defining a new curve would invite drift; reusing the existing one keeps a single semantic anchor. If empirical results require decoupling them later, that's a small refactor.
+**Floor 0, cap 50.** Floor prevents negative gather output. Cap prevents centenarians from dominating extraction; also reflects empirical career-length diminishing returns.
+
+**Reuse of learning age curve.** The "old dog" effect is the same curve as `LearnEvent` firing rate (ARD 008). One curve, one anchor.
 
 ## Consequences
 
-- **New file:** `src/Events/ExperienceEvent.ts` implementing `IEvent`. Mirror test in `src/tests/Events/ExperienceEvent.test.ts`.
-- **`Variables.ts` gains 10 new constants** listed in the table above. All marked as calibration placeholders.
-- **`EventFactory.getEventsFor()` gains `ExperienceEvent`** in the unconditional block, ordered between `AgeEvent` and `GatherResourcesEvent`.
-- **`Simulation.seed()` updated** to clamp seeded experience to `[0, min(age, EXPERIENCE_CAP)]`.
-- **`GatherResourcesEvent` formula is unchanged** — but its behavior changes meaningfully because experience is now a moving target.
-- **CLAUDE.md updates:** "What's implemented" gains `ExperienceEvent`. "Key design decisions" gains a bullet referencing this ARD. Variables.ts entry expands.
-- **Tests must cover:** growth at typical adult age; childhood attenuation; intelligence fade past learning-curve peak; education bonus; idleness decay (adult and elderly); cap enforcement; floor enforcement; seed-clamping for old persons.
+- New file `src/Events/ExperienceEvent.ts` implementing `IEvent`; mirror test.
+- `Variables.ts` gains the 10 constants above (all calibration placeholders).
+- `EventFactory.getEventsFor()` adds `ExperienceEvent` between `AgeEvent` and `GatherResourcesEvent`.
+- `Simulation.seed()` clamps seeded experience to `[0, min(age, EXPERIENCE_CAP)]`.
+- `GatherResourcesEvent` formula unchanged but behaviour shifts (experience is now moving).
+- CLAUDE.md updates ("What's implemented", "Key design decisions") in the implementation commit.
+- Tests must cover: typical adult growth; childhood attenuation; intelligence fade past learning peak; education bonus; idleness decay (adult + elderly); cap and floor enforcement; seed clamp.
 
 ### Job dependency
 
-The `hasJob` branch in the update rule above does not yet correspond to anything in the model — the `Job` event is in CLAUDE.md's "What's not implemented yet" list. Until `Job` lands, every working-age person without `isWorkingOnEd = true` falls through to the `ADULT_IDLENESS_DECAY` branch, meaning *all post-graduation working-age adults will be losing experience every tick*. This is a meaningful effect on simulation outcomes — gather output will trend down for the unemployed majority — and is worth flagging to anyone calibrating constants in this state.
-
-Two reasonable responses when `Job` lands:
-1. Re-tune `ADULT_IDLENESS_DECAY` once a non-trivial fraction of the population is employed. Likely the cleaner path.
-2. Replace the `hasJob` shape with whatever the `Job` ARD ends up specifying (employment as a continuous fraction, multiple job types with different bonuses, etc.).
-
-This ARD's update rule is intentionally written as if `hasJob` exists so the structure survives the Job ARD without restructuring — only the property access and the `EMPLOYMENT_EXPERIENCE_BONUS` constant may need adjustment.
+`Job` is unimplemented (see CLAUDE.md "What's not implemented yet"), so `person.hasJob` doesn't exist yet and every working-age post-graduate falls through to `ADULT_IDLENESS_DECAY`. All post-graduation working-age adults lose experience every tick until Job lands — relevant for calibration. The `hasJob` branch is written ahead so structure survives the Job ARD; the constant may need re-tuning then.
 
 ### Open follow-ups
 
-- **`person.illness` is similarly dead state** — separate ARD (planned 018) covers that.
-- **`intelligence` and `constitution` have no cap or decay** — separate concern; tracked in `docs/future-ideas.md` under "Stat caps and age-based decay."
-- **Calibration:** initial constants are guesses. Expect to revise after observing simulations.
+- `person.illness` is similarly dead state — covered by ARD 018.
+- `intelligence` and `constitution` have no cap/decay — see `docs/future-ideas.md` "Stat caps and age-based decay."
+- Initial constants are guesses; revise after observing simulations.

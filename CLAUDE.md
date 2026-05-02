@@ -194,3 +194,7 @@ If it finds a plausible new direction that isn't in the current plan: add it to 
 - JSDoc required on all public members (enforced by `eslint-plugin-jsdoc`)
 - Single quotes, semicolons, 2-space indent (ESLint)
 - Test files mirror source path: `src/tests/App/Person.test.ts` ↔ `src/App/Person.ts`
+
+## Documentation conventions
+
+Be concise but clear in every doc — `CLAUDE.md`, ARDs, `future-ideas.md`, `decisions/README.md`. These files load into agent context; bloat is a real cost. Cut hedging, restated points, and elaborations the next reader can infer. One sentence beats three when it carries the same information. Keep the why; trim the throat-clearing.
