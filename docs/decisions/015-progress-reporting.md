@@ -1,6 +1,6 @@
 # ARD 015: Progress Reporting and Ten-Year Summary
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-05-01
 
 ## Context

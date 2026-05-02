@@ -122,3 +122,4 @@ dist
 
 # custom
 build/
+output/

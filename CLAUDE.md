@@ -65,7 +65,9 @@ src/
     Variables.ts           # ILLNESS, age curve constants, per-event age profiles
     SeededRandom.ts        # LCG seeded RNG; asRNG() returns an RNG-typed function
     AgeModifier.ts         # ageModifier(age, peakAge, scale, floor) — bell curve helper
-    Types.ts               # RNG = () => number
+    Types.ts               # RNG = () => number; TenYearSummary interface
+    Reporters.ts           # Pure functions: buildTenYearSummary, formatDecadeSummary, formatSimulationHeader, formatEndReport, classifyOutcome
+    ReportWriter.ts        # writeReportHTML — writes self-contained HTML report with Chart.js to output/
   tests/                   # Mirrors src/ structure; one test file per source file
 ```
 
@@ -109,8 +111,8 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 ## What's implemented
 
 - `Person` data model — all properties, mutable primitives, readonly collections, `happiness` getter (ARD 014: job+5/−3 for working-age only, age-group resource thresholds, children use living-parents avg, floor 0), `livingParents` getter, `ageMortalityModifier` getter (U-shaped curve, ARD 008)
-- `Simulation` — `living`, `deceased`, `history`; `getLiving()`, `getRandomOther()`, `kill()`, `add()`, `seed()`, `snapshot()`, `regenerate()`; Gini coefficient computed per tick; `naturalResources`, `naturalResourceCeiling`, `extractionEfficiency` resource pool fields (ARD 007)
-- `LooperSingleton.start(n, ticks, seed)` — full tick loop: seeds simulation, calls `regenerate()` then runs EventFactory per person per tick, calls `snapshot()` each tick
+- `Simulation` — `living`, `deceased`, `history`, `decadeHistory`; `getLiving()`, `getRandomOther()`, `kill()`, `add()`, `seed()`, `snapshot()`, `regenerate()`; Gini coefficient computed per tick; `naturalResources`, `naturalResourceCeiling`, `extractionEfficiency` resource pool fields (ARD 007)
+- `LooperSingleton.start(n, ticks, seed, logger?)` — full tick loop: prints header, seeds simulation, calls `regenerate()` then runs EventFactory per person per tick, calls `snapshot()` each tick; builds and stores a `TenYearSummary` every 10 ticks (ARD 015)
 - `IEvent` interface
 - `AgeEvent` — age increment only (old-age hard cutoff removed; death handled by MisfortuneEvent via age mortality curve)
 - `GatherResourcesEvent` — unconditional; `extracted = min(experience * (BASE_GATHER_AMOUNT + intelligence * INTELLIGENCE_GATHER_SCALAR), pool / extractionEfficiency)`; pool loses `extracted * extractionEfficiency`. See ARD 011.
@@ -122,7 +124,11 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - `DeathRecord`, `KillingRecord`, `StealingRecord` data classes
 - `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `HAPPINESS_BASELINE`, `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, disaster constants, and per-event age profile constants for all planned events)
 - `AgeModifier.ts` — `ageModifier(age, peakAge, scale, floor)` bell-curve helper (ARD 008)
-- `TickSnapshot` observability: population, death counts by cause, `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`
+- `TickSnapshot` observability: population, per-tick and cumulative death counts by cause (murder/illness/disaster/suicide/old age), `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`
+- `Reporters.ts` — `buildTenYearSummary(window, endTick, startPopulation)`, `formatDecadeSummary`, `formatSimulationHeader`, `formatEndReport`, `classifyOutcome`. All pure; no I/O. See ARD 015, ARD 016.
+- `ReportWriter.ts` — `writeReportHTML(simulation, n, ticks, seed)`: writes `output/report-<seed>-<outcome>-<timestamp>.html` with embedded JSON data and Chart.js charts. See ARD 016.
+- `index.ts` — after the run, prints `formatEndReport` to console and calls `writeReportHTML`; `output/` is gitignored
+- `Variables.ts` — outcome classification thresholds: `COLLAPSE_GINI_THRESHOLD`, `COLLAPSE_POPULATION_FRACTION`, `STRUGGLING_GINI_THRESHOLD`, `STRUGGLING_HAPPINESS_THRESHOLD`, `THRIVING_GINI_THRESHOLD`, `THRIVING_HAPPINESS_THRESHOLD`
 - Tests for all of the above
 
 ## What's not implemented yet

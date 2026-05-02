@@ -93,6 +93,12 @@ When does a run stop? Options: fixed tick count, population hits zero, collapse 
 **Seeding strategy as experimental variable**
 The starting distribution of stats and intents is the independent variable in the experiment. Needs to be parameterizable so you can ask "what happens when a population starts with high `killingIntent` vs. low?" Requires a configurable `Simulation.seed()` interface.
 
+**Extinction as a distinct outcome label**
+Total extinction (population reaches 0) is classified as COLLAPSE via the population-fraction check. The end report still prints "Trend: falling" for Gini — technically true (Gini is 0 with no population), but it reads like inequality improved rather than everyone dying. An EXTINCTION label above COLLAPSE, or a specific callout in `formatEndReport` when `endPopulation === 0`, would make the result unambiguous and prevent the misleading narrative. Observed in seed 42 default run.
+
+**Partial-decade summary at run end**
+When `ticks` is not a multiple of 10, the final N ticks (N < 10) have no `TenYearSummary`. `formatEndReport` uses the last full decade as the "final" state, which may be stale by up to 9 ticks. A partial-window summary built at the actual end tick would make the reported end-state (Gini, happiness, population) match what actually happened. Affects `LooperSingleton.start()` and `formatEndReport`.
+
 ## Discarded
 
 Ideas that were considered and rejected without rising to ARD-level discussion. Each entry: name, the date it was dropped, and a one-sentence reason — e.g., "subsumed by ARD 00X," "not enough collapse/thrive signal," "operationally indistinguishable from <other mechanism>." Decisions formal enough to merit an ARD belong in `docs/decisions/` instead.
