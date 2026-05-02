@@ -10,15 +10,15 @@ ARDs are not design documents or specifications — they are a record of *why* t
 
 ## When to write an ARD
 
-Write one whenever you are about to encode a non-obvious design choice. The trigger test (also in `CLAUDE.md`):
+Write one before encoding a non-obvious design choice. The trigger test (also in `CLAUDE.md`):
 
 > If a future agent would have to guess *why* you made a choice, write an ARD first. If the choice is forced by the existing architecture with no real alternative, a comment in code may suffice.
 
-Concretely, this includes new stats or computed properties, event mechanics (probabilities, magnitudes, outcomes), changes to how existing fields are used, and any parameter whose value could reasonably be different.
+Includes: new stats, event mechanics (probabilities, magnitudes, outcomes), changes to how existing fields are used, parameters whose value could reasonably be different.
 
-It does **not** include: bug fixes that restore documented behavior, refactors that preserve behavior, formatting changes, or choices forced by the existing architecture with no real alternative. Those go straight to code.
+Skip for: bug fixes that restore documented behavior, behavior-preserving refactors, formatting, choices with no real alternative.
 
-The ARD is written *before* the code, not retroactively. If you're already writing the implementation and realize the choice is non-obvious, stop and write the ARD first.
+If you're mid-implementation and realize the choice is non-obvious, stop and write the ARD first.
 
 ## Immutability
 
@@ -39,12 +39,12 @@ The supersession rule above is binary: an ARD is either current or fully superse
 
 Guidelines:
 
-1. **Default to one decision per ARD.** If you find yourself writing "the event also handles X and Y" with independent reasoning for each, those are usually separate ARDs.
-2. **Tightly coupled decisions can share an ARD.** If two choices only make sense together (e.g., a formula and the constant it introduces), one ARD is fine.
-3. **The supersession test.** Before merging, ask: "if one branch of this needs revising in a year, can I write a clean replacement ARD without restating the unchanged branches?" If not, split.
-4. **When in doubt, split.** A small ARD that ends up grouped together later by a reader is fine; a large one that needs partial supersession is painful.
+1. **One decision per ARD by default.** "The event also handles X and Y" with independent reasoning per branch usually means split.
+2. **Tightly coupled decisions can share.** A formula and its introduced constant — fine together.
+3. **Supersession test.** Before merging, ask: "if one branch needs revising later, can I write a clean replacement without restating the unchanged branches?" If not, split.
+4. **When in doubt, split.** A small ARD a reader groups together later is fine; a large one needing partial supersession is painful.
 
-This guideline was added after ARD 013 (`MisfortuneEvent`) bundled illness death, suicide, and ordering decisions, then ARD 019 had to comprehensively restate the unchanged branches just to revise one formula. ARD 019 is preserved as the comprehensive document; the pattern is to be avoided going forward.
+Added after ARD 013 bundled illness death, suicide, and ordering, forcing ARD 019 to restate unchanged branches just to revise one formula.
 
 ## Template
 
@@ -55,59 +55,44 @@ This guideline was added after ARD 013 (`MisfortuneEvent`) bundled illness death
 **Date:** YYYY-MM-DD
 
 ## Context
-Why is this decision needed? What problem or constraint prompted it?
-Ground it in the actual code state — what does the current code do (or fail
-to do) that creates the need for a decision? Avoid generic "we need a
-mechanism for X" framing; cite the file or field that's incomplete.
+Why is this decision needed now? Ground it in code state — name the
+file or field that's incomplete. Skip generic framing.
 
 ## Decision
-What was chosen? Include code examples where the shape of the solution is
-non-obvious. If new constants are introduced, list them with initial values
-and a one-line rationale per constant. Mark numeric values that need
-empirical calibration as placeholders.
+What was chosen. Code example if non-obvious. New constants listed with
+initial value and one-line rationale; mark calibration placeholders.
 
 ## Reasoning
-**At least one named alternative, and why it was rejected.** This is where
-the ARD earns its keep — without rejected alternatives, the document is just
-a specification. Each alternative gets a name (e.g., "purely additive
-formula", "constant base rate") and a short paragraph explaining why it
-loses to the chosen option. Two or three alternatives is typical; one is
-the floor.
+At least one named rejected alternative with one paragraph on why it
+loses. Without alternatives, the document is just a spec.
 
 ## Consequences
-What does this decision make easier, harder, or impossible? What must be
-true for it to hold? List the files that change, the tests that must be
-written, and any side effects on other parts of the model. If known
-weaknesses exist, name them in a sub-section so they aren't a surprise to
-the next reader.
+Files that change, tests that must be written, side effects, known
+weaknesses. Make it concrete enough that an implementer doesn't guess.
 ```
 
 ## Quality bar
 
-A good ARD passes all of these:
-
-1. **Context grounds the decision in code state.** A reader who hasn't seen the codebase in months can tell from Context alone why this decision is being made now.
-2. **Reasoning names at least one rejected alternative.** "We chose X because it works" is not Reasoning. "We chose X over Y (which would have done Z) because..." is.
-3. **Constants have rationale, not just values.** If the ARD introduces `FOO = 0.05`, the document says why 0.05 — even if the rationale is "placeholder pending calibration."
-4. **Cross-references are explicit.** If this ARD depends on, modifies, or interacts with another ARD, name it. If it defers a related concern to `docs/future-ideas.md`, link the entry.
-5. **Consequences are testable.** "Tests must cover X, Y, Z" is better than "should be tested." A reader implementing the ARD shouldn't have to guess what coverage looks like.
+1. **Context grounds in code state.** A reader returning months later can tell from Context why the decision is needed.
+2. **Reasoning names a rejected alternative.** "We chose X over Y because Y would have done Z" — not "X works."
+3. **Constants have rationale.** Why 0.05? Even "placeholder pending calibration" counts.
+4. **Cross-references are explicit.** Name the ARDs you depend on, modify, or defer to.
+5. **Consequences are testable.** "Tests must cover X, Y, Z" — not "should be tested."
 
 ## Exemplars
 
-When in doubt about the right level of detail or rigor, look at:
+When in doubt:
 
-- **[ARD 011](./011-gather-resources-event.md)** — formula introduction with explicit calibration intent and three rejected alternatives. Good pattern for any event with a numeric formula.
-- **[ARD 014](./014-happiness-model-revision.md)** — supersession of ARD 009. Good pattern for revising a previous decision: states what changed and why the prior model fell short.
-- **[ARD 008](./008-age-modifiers.md)** — establishes a reusable helper (`ageModifier`) with a profile table. Good pattern for cross-cutting infrastructure.
+- **[ARD 011](./011-gather-resources-event.md)** — formula with calibration intent and rejected alternatives. Pattern for numeric formulas.
+- **[ARD 014](./014-happiness-model-revision.md)** — supersedes ARD 009. Pattern for revising a previous decision.
+- **[ARD 008](./008-age-modifiers.md)** — reusable helper (`ageModifier`) with a profile table. Pattern for cross-cutting infrastructure.
 
-## After writing an ARD
+## After writing
 
-Before the implementation commit:
-
-1. **Add the ARD to the Index** below — title and status.
-2. **Reference it in `CLAUDE.md`** — under "Key design decisions" if it changes a project-level invariant, and under "What's implemented" once the code lands.
-3. **Cross-reference `docs/future-ideas.md`** if any item there is now subsumed (move it to the Discarded section) or made obsolete (delete it with a note in the ARD).
-4. **Include the ARD in the same commit as the implementation it covers** when possible. Splitting the ARD and implementation across commits is acceptable for ARDs that need review before code, but the link should be obvious in the commit messages.
+1. Add to the Index below.
+2. Reference in `CLAUDE.md` under "Key design decisions" (if it changes a project-level invariant) and "What's implemented" (when the code lands).
+3. Update `docs/future-ideas.md` — move subsumed items to Discarded; delete obsolete ones with a note in the ARD.
+4. Same commit as implementation when possible; otherwise cross-reference in commit messages.
 
 ## Statuses
 
