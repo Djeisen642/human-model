@@ -1,6 +1,6 @@
 # ARD 017: Experience Growth and Decay
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-02
 
 ## Context

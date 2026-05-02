@@ -102,11 +102,12 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 - **Person stats are mutable, collections are not reassignable**: primitive fields (`age`, `resources`, etc.) are mutable so events can update them in place. Collection fields (`killed`, `hasChildren`, etc.) are `readonly` to prevent accidental replacement — but their contents remain mutable. See ARD 002.
 - **Object references as identity**: `Person` objects have no ID field. Reference equality (`===`) is identity. See ARD 001.
-- **Stats and intents start at 0** in the constructor, but `Simulation.seed(n, rng)` randomizes them on startup: age [15,50), resources [0,100), experience [0,age], intelligence/constitution/charisma [1,10], learningIntent/exerciseIntent [0,1), stealingIntent/lyingIntent [0,0.3), killingIntent [0,0.1).
+- **Stats and intents start at 0** in the constructor, but `Simulation.seed(n, rng)` randomizes them on startup: age [15,50), resources [0,100), experience [0, min(age, EXPERIENCE_CAP)], intelligence/constitution/charisma [1,10], learningIntent/exerciseIntent [0,1), stealingIntent/lyingIntent [0,0.3), killingIntent [0,0.1).
 - **`happiness` is a computed getter** (not a stored stat). Factors: job (+5 if employed; −3 if unemployed and working-age 18–65 only), resources (critical/low/comfortable thresholds vary by age group), relationship (+3), age (>65: −1), illness (−round(illness×5)). Children use average living parents' resources instead of their own. Floor 0. See ARD 009 (original), ARD 014 (revision).
 - **Records are plain data classes** — they record that an event happened, they don't trigger anything.
 - **Global natural resource pool**: `Simulation` owns `naturalResources` (current pool), `naturalResourceCeiling` (max accessible), and `extractionEfficiency` (pool cost per unit gathered, starts at 1.0). Pool regenerates by `NATURAL_RESOURCE_REGEN_RATE` each tick (capped at ceiling) via `simulation.regenerate()`, called at the start of each tick in `LooperSingleton`. `GatherResourcesEvent` depletes the pool; `InventionEvent` randomly shifts efficiency or ceiling. See ARD 007.
 - **Age modifiers**: mortality uses a U-shaped curve (`ageMortalityModifier` getter on `Person`); all event probabilities are multiplied by a per-event bell curve via `ageModifier()` in `Helpers/AgeModifier.ts`. See ARD 008.
+- **Experience grows and decays each tick**: `ExperienceEvent` (unconditional) computes `BASE_EXPERIENCE_GROWTH + intelligence * INTELLIGENCE_EXPERIENCE_SCALAR * learningFade ± activity modifier`, clamped to `[0, EXPERIENCE_CAP]`. Childhood attenuates growth; education and employment accelerate; adult/elderly idleness decays. Intelligence fade reuses the learning age curve. See ARD 017.
 - **10-year summary and progress reporting**: Every 10 ticks, `LooperSingleton` builds a `TenYearSummary` (averaged Gini/resources/happiness/naturalResources, peak Gini, delta death counts by cause, population delta), appends it to `Simulation.decadeHistory`, and prints a one-line console summary. `TenYearSummary` is defined in `Types.ts`. Formatting lives in `src/Helpers/Reporters.ts` (pure functions). See ARD 015.
 - **End-of-simulation report**: After the tick loop, `index.ts` calls `formatEndReport` (console summary with outcome verdict) and `writeReportHTML` (writes `output/report-<seed>-<timestamp>.html` — self-contained HTML with Chart.js charts loaded from CDN). Outcome classification (`COLLAPSE`/`STRUGGLING`/`STABLE`/`THRIVING`) uses named threshold constants in `Variables.ts`. I/O in `src/Helpers/ReportWriter.ts`, pure formatting in `Reporters.ts`. See ARD 016.
 
@@ -117,14 +118,15 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - `LooperSingleton.start(n, ticks, seed, logger?)` — full tick loop: prints header, seeds simulation, calls `regenerate()` then runs EventFactory per person per tick, calls `snapshot()` each tick; builds and stores a `TenYearSummary` every 10 ticks (ARD 015)
 - `IEvent` interface
 - `AgeEvent` — age increment only (old-age hard cutoff removed; death handled by MisfortuneEvent via age mortality curve)
+- `ExperienceEvent` — unconditional; experience growth/decay each tick with childhood attenuation, intelligence fade via learning curve, and activity bonuses/penalties. Clamped to `[0, EXPERIENCE_CAP]`. See ARD 017.
 - `GatherResourcesEvent` — unconditional; `extracted = min(experience * (BASE_GATHER_AMOUNT + intelligence * INTELLIGENCE_GATHER_SCALAR), pool / extractionEfficiency)`; pool loses `extracted * extractionEfficiency`. See ARD 011.
-- `MisfortuneEvent` — unconditional; illness death (`ILLNESS * ageMortalityModifier`) then suicide (`SUICIDE_PROBABILITY_SCALE / (happiness + 1)`); first cause wins. See ARD 013.
+- `MisfortuneEvent` — unconditional; illness death (`ILLNESS * ageMortalityModifier`) then suicide (`SUICIDE_PROBABILITY_SCALE / (happiness + 1)`); first cause wins. See ARD 013 (current), superseded by ARD 019 when ARD 018 lands.
 - `DisasterEvent` — population-level, run once per tick in `LooperSingleton` (does not implement `IEvent`); probabilistic trigger (`DISASTER_PROBABILITY`), random subset of living up to `DISASTER_MAX_AFFECTED_FRACTION`, kill check (`DISASTER_KILL_BASE * ageMortalityModifier / constitution`), resource loss fraction in `[DISASTER_MIN_LOSS_FRACTION, DISASTER_MAX_LOSS_FRACTION]`. See ARD 012.
 - `ExerciseEvent` — intent-gated; `constitution++`. Wired in `EventFactory` with exercise age profile.
 - `LearnEvent` — intent-gated; `intelligence++`. Wired in `EventFactory` with learning age profile.
-- `EventFactory` — unconditional `[AgeEvent, GatherResourcesEvent, MisfortuneEvent]` plus intent-gated `ExerciseEvent` and `LearnEvent` via `rng() < intent * ageModifier(...)`. See ARD 010.
+- `EventFactory` — unconditional `[AgeEvent, ExperienceEvent, GatherResourcesEvent, MisfortuneEvent]` plus intent-gated `ExerciseEvent` and `LearnEvent` via `rng() < intent * ageModifier(...)`. See ARD 010.
 - `DeathRecord`, `KillingRecord`, `StealingRecord` data classes
-- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `HAPPINESS_BASELINE`, `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, disaster constants, and per-event age profile constants for all planned events)
+- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `HAPPINESS_BASELINE`, `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, disaster constants, experience constants (`BASE_EXPERIENCE_GROWTH`, `EXPERIENCE_CAP`, idleness/activity bonuses, etc.), and per-event age profile constants for all planned events)
 - `AgeModifier.ts` — `ageModifier(age, peakAge, scale, floor)` bell-curve helper (ARD 008)
 - `TickSnapshot` observability: population, per-tick and cumulative death counts by cause (murder/illness/disaster/suicide/old age), `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`
 - `Reporters.ts` — `buildTenYearSummary(window, endTick, startPopulation)`, `formatDecadeSummary`, `formatSimulationHeader`, `formatEndReport`, `classifyOutcome`. All pure; no I/O. See ARD 015, ARD 016.
@@ -137,7 +139,11 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 Pick up here, roughly in dependency order:
 
-1. **Events** (implement roughly in this order):
+1. **Proposed ARDs not yet implemented** (do these first — they revise existing code):
+   - ARD 018 — `IllnessEvent`: makes `person.illness` a live stat updated each tick; new unconditional event between ExperienceEvent and GatherResourcesEvent
+   - ARD 019 — `MisfortuneEvent` revision: illness death uses `person.illness * ILLNESS_DEATH_SCALAR * ageMortalityModifier` (requires ARD 018); renames `Variables.ILLNESS` → `ILLNESS_DEATH_SCALAR`
+
+2. **Events** (implement roughly in this order):
    - Job gain/loss event
    - Graduation event — `isWorkingOnEd` → `education`
    - Relationship event — sets `isInRelationshipWith`

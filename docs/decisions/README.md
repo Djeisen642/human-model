@@ -120,6 +120,6 @@ When in doubt:
 | [014](./014-happiness-model-revision.md) | Happiness Model Revision | Accepted |
 | [015](./015-progress-reporting.md) | Progress Reporting and Ten-Year Summary | Accepted |
 | [016](./016-end-of-simulation-report.md) | End-of-Simulation Report | Accepted |
-| [017](./017-experience-growth-and-decay.md) | Experience Growth and Decay | Proposed |
+| [017](./017-experience-growth-and-decay.md) | Experience Growth and Decay | Accepted |
 | [018](./018-illness-live-state.md) | Illness as Live State | Proposed |
 | [019](./019-misfortune-illness-death-revision.md) | MisfortuneEvent Revision | Proposed |

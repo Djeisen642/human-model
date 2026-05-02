@@ -29,6 +29,28 @@ export default class Variables {
   /** Scales inventor's intelligence into the magnitude of any invention effect. */
   static INVENTION_MAGNITUDE_SCALAR = 0.05;
 
+  // ExperienceEvent constants (ARD 017)
+  /** Base experience gained per tick regardless of other factors. */
+  static BASE_EXPERIENCE_GROWTH = 1.0;
+  /** Age below which childhood attenuation applies. */
+  static EXPERIENCE_CHILDHOOD_AGE = 5;
+  /** Multiplier on BASE_EXPERIENCE_GROWTH for children under EXPERIENCE_CHILDHOOD_AGE. */
+  static EXPERIENCE_CHILDHOOD_FACTOR = 0.2;
+  /** Bonus experience per point of intelligence, scaled by learning-curve age modifier. */
+  static INTELLIGENCE_EXPERIENCE_SCALAR = 0.05;
+  /** Extra experience gained per tick while enrolled in education. */
+  static EDUCATION_EXPERIENCE_BONUS = 0.5;
+  /** Extra experience gained per tick while employed (and not in education). */
+  static EMPLOYMENT_EXPERIENCE_BONUS = 0.3;
+  /** Experience lost per tick for unemployed, non-student working-age adults. */
+  static ADULT_IDLENESS_DECAY = 0.5;
+  /** Experience lost per tick for idle persons aged EXPERIENCE_ELDERLY_AGE or older. */
+  static ELDERLY_IDLENESS_DECAY = 0.2;
+  /** Age at which elderly idleness decay replaces adult decay. */
+  static EXPERIENCE_ELDERLY_AGE = 65;
+  /** Maximum experience a person can hold; prevents centenarian extraction dominance. */
+  static EXPERIENCE_CAP = 50;
+
   // Per-event age profile constants — used by EventFactory via ageModifier()
   static CHILDBIRTH_PEAK_AGE = 26;
   static CHILDBIRTH_AGE_SCALE = 12;
