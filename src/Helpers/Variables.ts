@@ -1,4 +1,7 @@
 export default class Variables {
+  /** Baseline happiness every person receives regardless of circumstances. Raise if too many persons floor at 0. */
+  static HAPPINESS_BASELINE = 0;
+
   static ILLNESS = 0.05;
   /** Suicide probability at happiness=0; falls as happiness rises (divided by happiness+1). */
   static SUICIDE_PROBABILITY_SCALE = 0.03;

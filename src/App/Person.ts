@@ -43,6 +43,15 @@ export default class Person {
   }
 
   /**
+   * Living parents of this person (parents whose causeOfDeath is null).
+   *
+   * @returns array of living parents
+   */
+  get livingParents(): Person[] {
+    return this.childOf.filter(p => p.causeOfDeath === null);
+  }
+
+  /**
    * Multiplier on base illness/death probability.
    * Forms a U-shaped curve: minimum near PRIME_AGE, rising toward infancy and old age.
    *
@@ -54,27 +63,39 @@ export default class Person {
 
   /**
    * Happiness score computed from job, resources, relationship status, age, and health.
-   * Floor is 0 — happiness cannot go negative.
+   * Children under 18 use parents' average resources; elderly over 65 face higher thresholds.
+   * Job penalty only applies to working-age adults (18–65). Floor is 0.
    *
    * @returns happiness score (>= 0)
    */
   get happiness(): number {
-    let happiness = 0;
+    let happiness = Variables.HAPPINESS_BASELINE;
 
-    // Job
-    happiness += this.hasJob ? 5 : -3;
+    // Job: only penalise working-age adults for unemployment
+    if (this.age >= 18 && this.age <= 65) {
+      happiness += this.hasJob ? 5 : -3;
+    } else if (this.hasJob) {
+      happiness += 5;
+    }
 
-    // Resources: critical < 10, low < 30, comfortable >= 70
-    if (this.resources < 10) happiness -= 5;
-    else if (this.resources < 30) happiness -= 2;
-    else if (this.resources >= 70) happiness += 3;
+    // Resources: children use parents' average; elderly have higher thresholds
+    const resourceBase = (this.age < 18 && this.livingParents.length > 0)
+      ? this.livingParents.reduce((sum, p) => sum + p.resources, 0) / this.livingParents.length
+      : this.resources;
+
+    const criticalThreshold = this.age > 65 ? 20 : 10;
+    const lowThreshold = this.age > 65 ? 50 : 30;
+    const comfortableThreshold = this.age > 65 ? 100 : 70;
+
+    if (resourceBase < criticalThreshold) happiness -= 5;
+    else if (resourceBase < lowThreshold) happiness -= 2;
+    else if (resourceBase >= comfortableThreshold) happiness += 3;
 
     // Relationship
     if (this.isInRelationshipWith !== null) happiness += 3;
 
-    // Age: youth dependency and elderly decline
-    if (this.age < 18) happiness -= 1;
-    else if (this.age > 65) happiness -= 3;
+    // Age: small penalty for elderly only
+    if (this.age > 65) happiness -= 1;
 
     // Health: illness in [0, 1]; 0 = healthy, 1 = very ill
     happiness -= Math.round(this.illness * 5);

@@ -1,6 +1,6 @@
 # ARD 009: Happiness Model
 
-**Status:** Accepted  
+**Status:** Superseded by ARD 014  
 **Date:** 2026-04-26
 
 ## Context
