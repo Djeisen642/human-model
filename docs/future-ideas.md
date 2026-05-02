@@ -29,6 +29,18 @@ Being stolen from or lied to should raise defensive intents — either toward th
 **Randomize extraction order each tick**
 Persons extract from the shared pool in `living` array order, giving a consistent positional advantage to those seeded first. Shuffling the order each tick (using the seeded RNG) would make the advantage random rather than structural, which matters once `GatherResourcesEvent` is live and the pool is finite. (It is live — this is a current bias polluting Gini measurements.)
 
+**Resource consumption / cost of living**
+Resources currently only move up (gather) or down (disaster). No subsistence drain per tick. A person who never works stays at `resources = 0` indefinitely with no consequence; a worker accumulates without bound. Most collapse theories begin with subsistence shortfall — without per-tick consumption (possibly age-dependent, with starvation when resources hit zero) the model can't actually exhibit resource-driven collapse, only inequality-driven and disaster-driven collapse.
+
+**Long-term environmental drift**
+`naturalResourceCeiling` is fixed at seed and the pool regenerates back to it each tick. Tainter and Diamond collapse theories hinge on declining carrying capacity — soil exhaustion, climate shift, over-extraction degrading the regenerative substrate. Options: ceiling drifts down stochastically, ceiling decays as a function of cumulative extraction, or `NATURAL_RESOURCE_REGEN_RATE` itself drifts. Without some form of drift, the pool is a stationary background — incompatible with the model's collapse framing.
+
+**Stat caps and age-based decay**
+`constitution` and `intelligence` only ever increment (`ExerciseEvent`, `LearnEvent`); there is no cap and no decay. A 90-year-old who exercised every year has constitution well above what's plausible, and `DisasterEvent` divides by it — making lifelong exercisers near-immortal in disasters. Needs caps (per-stat ceiling), and probably age-based decay above some threshold so the U-shaped mortality curve is reinforced by stat decline rather than fighting it.
+
+**Job income mechanics**
+The planned `Job` event is in CLAUDE.md but its resource flow is unspecified. Is having a job additive to `GatherResourcesEvent` (jobs produce on top of gathering)? Replacing (employed people don't gather, they earn)? Multiplicative (jobs scale gathering output)? This is a design decision that has to be made *before* the Job event can be implemented, not a future idea — flagging here so it doesn't get answered ad hoc inside the implementation.
+
 ### Research / Output
 
 **Termination conditions**
@@ -47,6 +59,12 @@ When a person dies, their `resources` currently vanish — they are tracked on t
 
 **Illness reduces gathering capacity**
 A sick person gathers less — illness consumes energy and limits productive capacity. Currently illness only affects mortality (via `ageMortalityModifier`) and happiness. A direct penalty on gathering output (e.g. `potential *= (1 - person.illness)`) would make illness a resource drain, not just a death risk, strengthening the collapse feedback loop.
+
+**Contagious illness / epidemic spread**
+`MisfortuneEvent` rolls illness mortality independently per person each tick. Real epidemics propagate through contact and have historically driven civilizational collapse (Black Death, Antonine Plague, Columbian exchange). A spread mechanism — base rate plus a contagion term proportional to the share of currently-ill neighbors — would let outbreaks emerge endogenously. Requires either a proximity model (preferred) or a coarser global-mixing assumption as a stopgap. Depends on `person.illness` being a live, mutable state rather than the dead field it is today.
+
+**Resource pooling in relationships**
+`isInRelationshipWith` is a flag with no economic consequence; partners' resources stay strictly individual. Real households share a budget — pooled income, joint consumption, joint vulnerability to disaster. Pooling affects Gini directly (pair-level inequality is lower than individual-level) and changes household resilience. Decision: pool fully, partial, or treat the household as the economic unit (which has implications for how `Person.resources` is used elsewhere).
 
 ### Behavioral feedback (research-grounded)
 
