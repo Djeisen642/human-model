@@ -105,6 +105,9 @@ To study variability in outcomes, you need to run N simulations with different s
 **Seeding strategy as experimental variable**
 The starting distribution of stats and intents is the independent variable in the experiment. Needs to be parameterizable so you can ask "what happens when a population starts with high `killingIntent` vs. low?" Requires a configurable `Simulation.seed()` interface.
 
+**Profile-based population seeding**
+Compose starting populations from named archetype profiles, each defined as a range of starting stats and intents — e.g., `killer` (high `killingIntent`, low `charisma`), `unhappy` (low resources, low constitution, high `lyingIntent`), `scholar` (high `learningIntent`, high `intelligence`, high `isWorkingOnEd` rate), `drifter` (low experience, low intents across the board). Experiments are then specified as mixes: "80% baseline, 10% killers, 10% unhappy" or "50/50 scholars/drifters." More expressive than tuning per-stat distributions globally — lets you ask "above what fraction of killers does Gini collapse?" or "do scholars stabilize an otherwise-collapsing mix?" Refines the broader "Seeding strategy as experimental variable" idea above; depends on it being implemented first.
+
 ---
 
 ## Might be droppable
