@@ -1,6 +1,6 @@
 # ARD 013: MisfortuneEvent
 
-**Status:** Accepted  
+**Status:** Superseded by ARD 019  
 **Date:** 2026-05-01
 
 ## Context

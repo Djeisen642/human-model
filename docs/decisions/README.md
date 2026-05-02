@@ -62,10 +62,10 @@ What does this decision make easier, harder, or impossible? What must be true fo
 | [010](./010-eventfactory-routing.md) | EventFactory Routing | Accepted |
 | [011](./011-gather-resources-event.md) | GatherResourcesEvent | Accepted |
 | [012](./012-disaster-event.md) | Disaster | Accepted |
-| [013](./013-misfortune-event.md) | MisfortuneEvent | Accepted |
+| [013](./013-misfortune-event.md) | MisfortuneEvent | Superseded by ARD 019 |
 | [014](./014-happiness-model-revision.md) | Happiness Model Revision | Accepted |
 | [015](./015-progress-reporting.md) | Progress Reporting and Ten-Year Summary | Accepted |
 | [016](./016-end-of-simulation-report.md) | End-of-Simulation Report | Accepted |
 | [017](./017-experience-growth-and-decay.md) | Experience Growth and Decay | Proposed |
 | [018](./018-illness-live-state.md) | Illness as Live State | Proposed |
-| [019](./019-misfortune-illness-death-revision.md) | MisfortuneEvent Illness Death Formula Revision | Proposed |
+| [019](./019-misfortune-illness-death-revision.md) | MisfortuneEvent Revision | Proposed |
