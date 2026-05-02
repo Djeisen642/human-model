@@ -19,6 +19,21 @@ An ARD is a historical record. Editing it after the fact would falsify the decis
 
 This way the full decision history is preserved, including decisions that turned out to be wrong.
 
+## Scope
+
+**Each ARD should cover one decision, narrowly enough that supersession is a clean replacement.**
+
+The supersession rule above is binary: an ARD is either current or fully superseded. There is no "Amended by" or "Partially superseded by" status — those would erode the property that the index tells you, at a glance, what is currently decided. The cost of this simplicity is paid at write time: ARDs that bundle several decisions force a comprehensive rewrite when only one branch needs revising.
+
+Guidelines:
+
+1. **Default to one decision per ARD.** If you find yourself writing "the event also handles X and Y" with independent reasoning for each, those are usually separate ARDs.
+2. **Tightly coupled decisions can share an ARD.** If two choices only make sense together (e.g., a formula and the constant it introduces), one ARD is fine.
+3. **The supersession test.** Before merging, ask: "if one branch of this needs revising in a year, can I write a clean replacement ARD without restating the unchanged branches?" If not, split.
+4. **When in doubt, split.** A small ARD that ends up grouped together later by a reader is fine; a large one that needs partial supersession is painful.
+
+This guideline was added after ARD 013 (`MisfortuneEvent`) bundled illness death, suicide, and ordering decisions, then ARD 019 had to comprehensively restate the unchanged branches just to revise one formula. ARD 019 is preserved as the comprehensive document; the pattern is to be avoided going forward.
+
 ## Template
 
 ```markdown
