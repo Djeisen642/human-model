@@ -1,5 +1,7 @@
 import Person from '../../App/Person';
 import Variables from '../../Helpers/Variables';
+import DeathRecord from '../../Records/DeathRecord';
+import Constants from '../../Helpers/Constants';
 
 describe('Person', () => {
   it('should create a Person', () => {
@@ -92,7 +94,7 @@ describe('Person', () => {
       expect(coupled.happiness - single.happiness).toBe(3);
     });
 
-    it('penalises age < 18 by 1', () => {
+    it('no age penalty for children (< 18)', () => {
       const adult = new Person([]);
       adult.hasJob = true;
       adult.resources = 50;
@@ -103,10 +105,10 @@ describe('Person', () => {
       youth.resources = 50;
       youth.age = 15;
 
-      expect(adult.happiness - youth.happiness).toBe(1);
+      expect(adult.happiness).toBe(youth.happiness);
     });
 
-    it('penalises age > 65 by 3', () => {
+    it('penalises age > 65 by 1', () => {
       const adult = new Person([]);
       adult.hasJob = true;
       adult.resources = 50;
@@ -117,7 +119,88 @@ describe('Person', () => {
       elder.resources = 50;
       elder.age = 70;
 
-      expect(adult.happiness - elder.happiness).toBe(3);
+      expect(adult.happiness - elder.happiness).toBe(1);
+    });
+
+    it('no job penalty for children or elderly outside working age', () => {
+      // Difference should be exactly 5 (job bonus only), not 8 (bonus + penalty swing)
+      const unemployedYouth = new Person([]);
+      unemployedYouth.hasJob = false;
+      unemployedYouth.resources = 50;
+      unemployedYouth.age = 15;
+
+      const employedYouth = new Person([]);
+      employedYouth.hasJob = true;
+      employedYouth.resources = 50;
+      employedYouth.age = 15;
+
+      // Use resources=120 for elderly so neither hits the happiness floor
+      const unemployedElder = new Person([]);
+      unemployedElder.hasJob = false;
+      unemployedElder.resources = 120;
+      unemployedElder.age = 70;
+
+      const employedElder = new Person([]);
+      employedElder.hasJob = true;
+      employedElder.resources = 120;
+      employedElder.age = 70;
+
+      expect(employedYouth.happiness - unemployedYouth.happiness).toBe(5);
+      expect(employedElder.happiness - unemployedElder.happiness).toBe(5);
+    });
+
+    it('children use average living parents resources for happiness', () => {
+      const parent1 = new Person([]);
+      parent1.resources = 80;
+      const parent2 = new Person([]);
+      parent2.resources = 80;
+
+      const childWealthyParents = new Person([parent1, parent2]);
+      childWealthyParents.age = 10;
+      childWealthyParents.resources = 0;
+
+      const childPoorParents = new Person([]);
+      childPoorParents.age = 10;
+      childPoorParents.resources = 0;
+
+      // Child with wealthy parents should be happier (uses parents' 80 avg vs own 0)
+      expect(childWealthyParents.happiness).toBeGreaterThan(childPoorParents.happiness);
+    });
+
+    it('orphaned child falls back to own resources', () => {
+      const deadParent1 = new Person([]);
+      deadParent1.resources = 1000;
+      deadParent1.causeOfDeath = new DeathRecord(Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      const deadParent2 = new Person([]);
+      deadParent2.resources = 1000;
+      deadParent2.causeOfDeath = new DeathRecord(Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      const orphan = new Person([deadParent1, deadParent2]);
+      orphan.age = 10;
+      orphan.resources = 5;
+
+      const noParentsChild = new Person([]);
+      noParentsChild.age = 10;
+      noParentsChild.resources = 5;
+
+      // Both use own resources since no living parents — should score the same
+      expect(orphan.happiness).toBe(noParentsChild.happiness);
+    });
+
+    it('elderly use higher resource thresholds (critical >= 20, comfortable >= 100)', () => {
+      const adultBorderline = new Person([]);
+      adultBorderline.hasJob = true;
+      adultBorderline.age = 40;
+      adultBorderline.resources = 15; // above adult critical (10), below elder critical (20)
+
+      const elderBorderline = new Person([]);
+      elderBorderline.hasJob = true;
+      elderBorderline.age = 70;
+      elderBorderline.resources = 15; // below elder critical (20), so penalised -5
+
+      // Elder hits critical threshold at 15 resources; adult only hits low threshold
+      expect(adultBorderline.happiness).toBeGreaterThan(elderBorderline.happiness);
     });
 
     it('reduces happiness proportionally to illness', () => {

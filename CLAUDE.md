@@ -108,7 +108,7 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 ## What's implemented
 
-- `Person` data model — all properties, mutable primitives, readonly collections, `happiness` getter (job + resources + relationship + age + health, floor 0), `ageMortalityModifier` getter (U-shaped curve, ARD 008)
+- `Person` data model — all properties, mutable primitives, readonly collections, `happiness` getter (ARD 014: job+5/−3 for working-age only, age-group resource thresholds, children use living-parents avg, floor 0), `livingParents` getter, `ageMortalityModifier` getter (U-shaped curve, ARD 008)
 - `Simulation` — `living`, `deceased`, `history`; `getLiving()`, `getRandomOther()`, `kill()`, `add()`, `seed()`, `snapshot()`, `regenerate()`; Gini coefficient computed per tick; `naturalResources`, `naturalResourceCeiling`, `extractionEfficiency` resource pool fields (ARD 007)
 - `LooperSingleton.start(n, ticks, seed)` — full tick loop: seeds simulation, calls `regenerate()` then runs EventFactory per person per tick, calls `snapshot()` each tick
 - `IEvent` interface
@@ -120,7 +120,7 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - `LearnEvent` — intent-gated; `intelligence++`. Wired in `EventFactory` with learning age profile.
 - `EventFactory` — unconditional `[AgeEvent, GatherResourcesEvent, MisfortuneEvent]` plus intent-gated `ExerciseEvent` and `LearnEvent` via `rng() < intent * ageModifier(...)`. See ARD 010.
 - `DeathRecord`, `KillingRecord`, `StealingRecord` data classes
-- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, disaster constants, and per-event age profile constants for all planned events)
+- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `HAPPINESS_BASELINE`, `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, disaster constants, and per-event age profile constants for all planned events)
 - `AgeModifier.ts` — `ageModifier(age, peakAge, scale, floor)` bell-curve helper (ARD 008)
 - `TickSnapshot` observability: population, death counts by cause, `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`
 - Tests for all of the above

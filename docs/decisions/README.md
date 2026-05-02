@@ -58,11 +58,11 @@ What does this decision make easier, harder, or impossible? What must be true fo
 | [006](./006-dead-person-handling.md) | Dead Person Handling | Accepted |
 | [007](./007-resource-cap-and-invention.md) | Resource Cap and Invention | Accepted |
 | [008](./008-age-modifiers.md) | Age-Based Modifiers | Accepted |
-| [009](./009-happiness-model.md) | Happiness Model | Accepted |
+| [009](./009-happiness-model.md) | Happiness Model | Superseded by ARD 014 |
 | [010](./010-eventfactory-routing.md) | EventFactory Routing | Accepted |
 | [011](./011-gather-resources-event.md) | GatherResourcesEvent | Accepted |
 | [012](./012-disaster-event.md) | Disaster | Accepted |
 | [013](./013-misfortune-event.md) | MisfortuneEvent | Accepted |
-| [014](./014-happiness-model-revision.md) | Happiness Model Revision | Proposed |
+| [014](./014-happiness-model-revision.md) | Happiness Model Revision | Accepted |
 | [015](./015-progress-reporting.md) | Progress Reporting and Ten-Year Summary | Proposed |
 | [016](./016-end-of-simulation-report.md) | End-of-Simulation Report | Proposed |
