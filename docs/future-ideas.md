@@ -108,6 +108,12 @@ The starting distribution of stats and intents is the independent variable in th
 **Profile-based population seeding**
 Compose starting populations from named archetype profiles, each defined as a range of starting stats and intents — e.g., `killer` (high `killingIntent`, low `charisma`), `unhappy` (low resources, low constitution, high `lyingIntent`), `scholar` (high `learningIntent`, high `intelligence`, high `isWorkingOnEd` rate), `drifter` (low experience, low intents across the board). Experiments are then specified as mixes: "80% baseline, 10% killers, 10% unhappy" or "50/50 scholars/drifters." More expressive than tuning per-stat distributions globally — lets you ask "above what fraction of killers does Gini collapse?" or "do scholars stabilize an otherwise-collapsing mix?" Refines the broader "Seeding strategy as experimental variable" idea above; depends on it being implemented first.
 
+**Extinction as a distinct outcome label**
+Total extinction (population reaches 0) is classified as COLLAPSE via the population-fraction check. The end report still prints "Trend: falling" for Gini — technically true (Gini is 0 with no population), but it reads like inequality improved rather than everyone dying. An EXTINCTION label above COLLAPSE, or a specific callout in `formatEndReport` when `endPopulation === 0`, would make the result unambiguous and prevent the misleading narrative. Observed in seed 42 default run.
+
+**Partial-decade summary at run end**
+When `ticks` is not a multiple of 10, the final N ticks (N < 10) have no `TenYearSummary`. `formatEndReport` uses the last full decade as the "final" state, which may be stale by up to 9 ticks. A partial-window summary built at the actual end tick would make the reported end-state (Gini, happiness, population) match what actually happened. Affects `LooperSingleton.start()` and `formatEndReport`.
+
 ---
 
 ## Might be droppable

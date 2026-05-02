@@ -70,6 +70,20 @@ export default class Variables {
   static LYING_AGE_SCALE = 40;
   static LYING_AGE_FLOOR = 0.1;
 
+  // Outcome classification thresholds (ARD 016)
+  /** Final-decade avg Gini at or above this → COLLAPSE. */
+  static COLLAPSE_GINI_THRESHOLD = 0.60;
+  /** Final population below this fraction of start → COLLAPSE. */
+  static COLLAPSE_POPULATION_FRACTION = 0.20;
+  /** Final-decade avg Gini at or above this → at least STRUGGLING (unless COLLAPSE). */
+  static STRUGGLING_GINI_THRESHOLD = 0.45;
+  /** Final-decade avg happiness below this → at least STRUGGLING (unless COLLAPSE). */
+  static STRUGGLING_HAPPINESS_THRESHOLD = 3.0;
+  /** Final-decade avg Gini below this AND happiness at or above THRIVING_HAPPINESS_THRESHOLD → THRIVING. */
+  static THRIVING_GINI_THRESHOLD = 0.30;
+  /** Final-decade avg happiness at or above this (with Gini below threshold) → THRIVING. */
+  static THRIVING_HAPPINESS_THRESHOLD = 6.0;
+
   // Disaster event constants (ARD 012)
   /** Probability that a disaster fires in any given tick (~1 in 10 ticks). */
   static DISASTER_PROBABILITY = 0.1;

@@ -3,7 +3,7 @@ import DeathRecord from '../Records/DeathRecord';
 import KillingRecord from '../Records/KillingRecord';
 import Constants from '../Helpers/Constants';
 import Variables from '../Helpers/Variables';
-import { RNG } from '../Helpers/Types';
+import { RNG, TenYearSummary } from '../Helpers/Types';
 
 /** Per-tick aggregate state captured at the end of each tick. */
 export interface TickSnapshot {
@@ -21,6 +21,20 @@ export interface TickSnapshot {
   deathsByDisaster: number;
   /** Deaths caused by suicide this tick. */
   deathsBySuicide: number;
+  /** Deaths caused by old age this tick. */
+  deathsByOldAge: number;
+  /** Cumulative total deaths up to and including this tick. */
+  cumulativeDeaths: number;
+  /** Cumulative murder deaths up to and including this tick. */
+  cumulativeDeathsByMurder: number;
+  /** Cumulative illness deaths up to and including this tick. */
+  cumulativeDeathsByIllness: number;
+  /** Cumulative disaster deaths up to and including this tick. */
+  cumulativeDeathsByDisaster: number;
+  /** Cumulative suicide deaths up to and including this tick. */
+  cumulativeDeathsBySuicide: number;
+  /** Cumulative old-age deaths up to and including this tick. */
+  cumulativeDeathsByOldAge: number;
   /** Mean resources across living population. */
   averageResources: number;
   /** Gini coefficient of resource distribution (0 = perfect equality, 1 = perfect inequality). */
@@ -40,6 +54,8 @@ export default class Simulation {
   private deceased: Person[] = [];
   /** Accumulated snapshot history — one entry per completed tick. */
   readonly history: TickSnapshot[] = [];
+  /** One summary per completed decade; appended by LooperSingleton every 10 ticks. */
+  readonly decadeHistory: TenYearSummary[] = [];
 
   /** Current available natural resource pool; depleted by gathering. */
   naturalResources: number = Variables.NATURAL_RESOURCE_CEILING_INITIAL;
@@ -163,6 +179,15 @@ export default class Simulation {
     const deathsByIllness = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.ILLNESS).length;
     const deathsByDisaster = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.DISASTER).length;
     const deathsBySuicide = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.SUICIDE).length;
+    const deathsByOldAge = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.OLD_AGE).length;
+
+    const prev = this.history.length > 0 ? this.history[this.history.length - 1] : null;
+    const cumulativeDeaths = (prev?.cumulativeDeaths ?? 0) + deaths;
+    const cumulativeDeathsByMurder = (prev?.cumulativeDeathsByMurder ?? 0) + deathsByMurder;
+    const cumulativeDeathsByIllness = (prev?.cumulativeDeathsByIllness ?? 0) + deathsByIllness;
+    const cumulativeDeathsByDisaster = (prev?.cumulativeDeathsByDisaster ?? 0) + deathsByDisaster;
+    const cumulativeDeathsBySuicide = (prev?.cumulativeDeathsBySuicide ?? 0) + deathsBySuicide;
+    const cumulativeDeathsByOldAge = (prev?.cumulativeDeathsByOldAge ?? 0) + deathsByOldAge;
 
     const snap: TickSnapshot = {
       tick,
@@ -172,6 +197,13 @@ export default class Simulation {
       deathsByIllness,
       deathsByDisaster,
       deathsBySuicide,
+      deathsByOldAge,
+      cumulativeDeaths,
+      cumulativeDeathsByMurder,
+      cumulativeDeathsByIllness,
+      cumulativeDeathsByDisaster,
+      cumulativeDeathsBySuicide,
+      cumulativeDeathsByOldAge,
       averageResources,
       resourceGini,
       averageHappiness,
