@@ -66,3 +66,4 @@ What does this decision make easier, harder, or impossible? What must be true fo
 | [014](./014-happiness-model-revision.md) | Happiness Model Revision | Accepted |
 | [015](./015-progress-reporting.md) | Progress Reporting and Ten-Year Summary | Proposed |
 | [016](./016-end-of-simulation-report.md) | End-of-Simulation Report | Proposed |
+| [017](./017-experience-growth-and-decay.md) | Experience Growth and Decay | Proposed |
