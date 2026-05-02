@@ -7,25 +7,27 @@
     "test": "npx jest --config src/jest.config.js",
     "build": "rimraf ./build && tsgo",
     "lint": "eslint src/",
-    "start:dev": "nodemon"
+    "start:dev": "nodemon",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "Jason Suttles <jasonssuttles@gmail.com>",
   "license": "ISC",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@swc/core": "^1.15.30",
     "@swc/jest": "^0.2.39",
     "@types/jest": "^26.0.13",
     "@types/node": "^14.10.0",
-    "@eslint/js": "^10.0.1",
     "@typescript/native-preview": "^7.0.0-dev.20260421.2",
     "eslint": "^10.3.0",
     "eslint-plugin-jsdoc": "^62.9.0",
     "globals": "^17.6.0",
-    "typescript-eslint": "^8.59.1",
+    "husky": "^9.1.7",
     "jest": "^26.4.2",
     "nodemon": "^2.0.4",
     "rimraf": "^3.0.2",
-    "ts-node": "^9.0.0"
+    "ts-node": "^9.0.0",
+    "typescript-eslint": "^8.59.1"
   }
 }
