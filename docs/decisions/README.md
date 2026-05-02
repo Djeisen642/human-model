@@ -64,5 +64,5 @@ What does this decision make easier, harder, or impossible? What must be true fo
 | [012](./012-disaster-event.md) | Disaster | Accepted |
 | [013](./013-misfortune-event.md) | MisfortuneEvent | Accepted |
 | [014](./014-happiness-model-revision.md) | Happiness Model Revision | Accepted |
-| [015](./015-progress-reporting.md) | Progress Reporting and Ten-Year Summary | Proposed |
-| [016](./016-end-of-simulation-report.md) | End-of-Simulation Report | Proposed |
+| [015](./015-progress-reporting.md) | Progress Reporting and Ten-Year Summary | Accepted |
+| [016](./016-end-of-simulation-report.md) | End-of-Simulation Report | Accepted |

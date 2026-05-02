@@ -1,6 +1,6 @@
 # ARD 015: End-of-Simulation Report
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-05-01
 
 ## Context
