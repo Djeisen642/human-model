@@ -128,4 +128,4 @@ When in doubt:
 | [017](./017-experience-growth-and-decay.md) | Experience Growth and Decay | Accepted |
 | [018](./018-illness-live-state.md) | Illness as Live State | Accepted |
 | [019](./019-misfortune-illness-death-revision.md) | MisfortuneEvent Revision | Accepted |
-| [020](./020-job-event.md) | Job Gain and Loss | Proposed |
+| [020](./020-job-event.md) | Job Gain and Loss | Accepted |

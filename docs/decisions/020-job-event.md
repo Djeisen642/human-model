@@ -1,6 +1,6 @@
 # ARD 020: Job Gain and Loss
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-03
 
 ## Context
