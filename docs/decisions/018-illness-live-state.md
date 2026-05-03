@@ -1,6 +1,6 @@
 # ARD 018: Illness as Live State
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-02
 
 ## Context

@@ -29,6 +29,18 @@ export default class Variables {
   /** Scales inventor's intelligence into the magnitude of any invention effect. */
   static INVENTION_MAGNITUDE_SCALAR = 0.05;
 
+  // IllnessEvent constants (ARD 018)
+  /** Onset probability at ageRisk=1, constitution=1. */
+  static BASE_ILLNESS_ONSET = 0.05;
+  /** Recovery probability at ageRisk=1, constitution=1. Most minor illnesses heal in a year. */
+  static BASE_ILLNESS_RECOVERY = 0.4;
+  /** Severity increase per onset event. Five onsets = fully ill. */
+  static ILLNESS_ONSET_AMOUNT = 0.2;
+  /** Severity decrease per recovery event. */
+  static ILLNESS_RECOVERY_AMOUNT = 0.3;
+  /** Divisor for the linear age risk scaler: ageRisk = 1 + age/divisor. Doubles at 30, triples at 60. */
+  static ILLNESS_AGE_RISK_DIVISOR = 30;
+
   // ExperienceEvent constants (ARD 017)
   /** Base experience gained per tick regardless of other factors. */
   static BASE_EXPERIENCE_GROWTH = 1.0;

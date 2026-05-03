@@ -121,5 +121,5 @@ When in doubt:
 | [015](./015-progress-reporting.md) | Progress Reporting and Ten-Year Summary | Accepted |
 | [016](./016-end-of-simulation-report.md) | End-of-Simulation Report | Accepted |
 | [017](./017-experience-growth-and-decay.md) | Experience Growth and Decay | Accepted |
-| [018](./018-illness-live-state.md) | Illness as Live State | Proposed |
+| [018](./018-illness-live-state.md) | Illness as Live State | Accepted |
 | [019](./019-misfortune-illness-death-revision.md) | MisfortuneEvent Revision | Proposed |
