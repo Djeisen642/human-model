@@ -87,12 +87,17 @@ When in doubt:
 - **[ARD 014](./014-happiness-model-revision.md)** — supersedes ARD 009. Pattern for revising a previous decision.
 - **[ARD 008](./008-age-modifiers.md)** — reusable helper (`ageModifier`) with a profile table. Pattern for cross-cutting infrastructure.
 
+## Approval
+
+**An ARD must be discussed with and approved by the project owner before its status moves from Proposed to Accepted.** Write the ARD, present it, and wait for explicit sign-off. Do not begin implementation against a Proposed ARD.
+
 ## After writing
 
-1. Add to the Index below.
-2. Reference in `CLAUDE.md` under "Key design decisions" (if it changes a project-level invariant) and "What's implemented" (when the code lands).
-3. Update `docs/future-ideas.md` — move subsumed items to Discarded; delete obsolete ones with a note in the ARD.
-4. Same commit as implementation when possible; otherwise cross-reference in commit messages.
+1. Add to the Index below (as **Proposed**).
+2. Discuss with project owner; update status to **Accepted** only after approval.
+3. Reference in `CLAUDE.md` under "Key design decisions" (if it changes a project-level invariant) and "What's implemented" (when the code lands).
+4. Update `docs/future-ideas.md` — move subsumed items to Discarded; delete obsolete ones with a note in the ARD.
+5. Same commit as implementation when possible; otherwise cross-reference in commit messages.
 
 ## Statuses
 
