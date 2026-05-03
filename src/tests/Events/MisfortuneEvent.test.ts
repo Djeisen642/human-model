@@ -18,12 +18,53 @@ describe('MisfortuneEvent', () => {
     const person = new Person([]);
     person.hasJob = true;
     person.resources = 100;
+    person.illness = 1; // fully ill so illnessDeathProb > 0
     simulation.add(person);
 
     event.execute(person, simulation);
 
     expect(person.causeOfDeath?.cause).toBe(Constants.CAUSE_OF_DEATH.ILLNESS);
     expect(simulation.getLiving()).not.toContain(person);
+  });
+
+  it('never kills by illness when illness is 0', () => {
+    // rng always returns 0 (would pass any check), but illness=0 → illnessDeathProb=0
+    const event = new MisfortuneEvent(() => 1); // fail all checks so person survives
+    const person = new Person([]);
+    person.illness = 0;
+    simulation.add(person);
+
+    event.execute(person, simulation);
+
+    expect(person.causeOfDeath).toBeNull();
+  });
+
+  it('illness death probability scales with severity', () => {
+    // At illness=0.5, illnessDeathProb = 0.5 * ILLNESS_DEATH_SCALAR * ageMortalityModifier
+    // With rng just below that threshold the person dies; just above they survive
+    const person = new Person([]);
+    person.illness = 0.5;
+    person.age = 28; // prime age → ageMortalityModifier near its minimum
+    simulation.add(person);
+
+    const illnessDeathProb = person.illness * 0.08 * person.ageMortalityModifier;
+
+    // rng just below threshold → dies of illness
+    const eventKill = new MisfortuneEvent(() => illnessDeathProb - 0.001);
+    eventKill.execute(person, simulation);
+    expect(person.causeOfDeath?.cause).toBe(Constants.CAUSE_OF_DEATH.ILLNESS);
+
+    // Reset for survival check
+    const person2 = new Person([]);
+    person2.illness = 0.5;
+    person2.age = 28;
+    const sim2 = new Simulation();
+    sim2.add(person2);
+
+    // rng above threshold → survives illness, also above suicide threshold
+    const eventSurvive = new MisfortuneEvent(() => 1);
+    eventSurvive.execute(person2, sim2);
+    expect(person2.causeOfDeath).toBeNull();
   });
 
   it('skips suicide check when illness kills', () => {
@@ -33,6 +74,7 @@ describe('MisfortuneEvent', () => {
       return 0; // always passes every check
     });
     const person = new Person([]);
+    person.illness = 1; // fully ill so illness check can fire
     simulation.add(person);
 
     event.execute(person, simulation);

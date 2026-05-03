@@ -64,7 +64,7 @@ src/
     StealingRecord.ts      # Victim reference + amount stolen + thief's age
   Helpers/
     Constants.ts           # CAUSE_OF_DEATH, EDUCATION, TYPE_OF_HELP enums
-    Variables.ts           # ILLNESS, age curve constants, per-event age profiles
+    Variables.ts           # ILLNESS_DEATH_SCALAR, age curve constants, per-event age profiles
     SeededRandom.ts        # LCG seeded RNG; asRNG() returns an RNG-typed function
     AgeModifier.ts         # ageModifier(age, peakAge, scale, floor) — bell curve helper
     Types.ts               # RNG = () => number; TenYearSummary interface
@@ -110,7 +110,7 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - **Global natural resource pool**: `Simulation` owns `naturalResources` (current pool), `naturalResourceCeiling` (max accessible), and `extractionEfficiency` (pool cost per unit gathered, starts at 1.0). Pool regenerates by `NATURAL_RESOURCE_REGEN_RATE` each tick (capped at ceiling) via `simulation.regenerate()`, called at the start of each tick in `LooperSingleton`. `GatherResourcesEvent` depletes the pool; `InventionEvent` randomly shifts efficiency or ceiling. See ARD 007.
 - **Age modifiers**: mortality uses a U-shaped curve (`ageMortalityModifier` getter on `Person`); all event probabilities are multiplied by a per-event bell curve via `ageModifier()` in `Helpers/AgeModifier.ts`. See ARD 008.
 - **Experience grows and decays each tick**: `ExperienceEvent` (unconditional) computes `BASE_EXPERIENCE_GROWTH + intelligence * INTELLIGENCE_EXPERIENCE_SCALAR * learningFade ± activity modifier`, clamped to `[0, EXPERIENCE_CAP]`. Childhood attenuates growth; education and employment accelerate; adult/elderly idleness decays. Intelligence fade reuses the learning age curve. See ARD 017.
-- **`illness` is live continuous severity `[0, 1]`**: `IllnessEvent` (unconditional, fires before `GatherResourcesEvent`) rolls onset (`BASE_ILLNESS_ONSET * ageRisk / constitution`) and recovery (`BASE_ILLNESS_RECOVERY * constitution / ageRisk`) independently each tick; severity clamped after both rolls. `ageRisk = 1 + age / ILLNESS_AGE_RISK_DIVISOR` (linear, not bell-shaped — onset is monotonically increasing). `MisfortuneEvent` still uses the fixed `ILLNESS` constant until ARD 019 lands. See ARD 018.
+- **`illness` is live continuous severity `[0, 1]`**: `IllnessEvent` (unconditional, fires before `GatherResourcesEvent`) rolls onset (`BASE_ILLNESS_ONSET * ageRisk / constitution`) and recovery (`BASE_ILLNESS_RECOVERY * constitution / ageRisk`) independently each tick; severity clamped after both rolls. `ageRisk = 1 + age / ILLNESS_AGE_RISK_DIVISOR` (linear, not bell-shaped — onset is monotonically increasing). See ARD 018.
 - **10-year summary and progress reporting**: Every 10 ticks, `LooperSingleton` builds a `TenYearSummary` (averaged Gini/resources/happiness/naturalResources, peak Gini, delta death counts by cause, population delta), appends it to `Simulation.decadeHistory`, and prints a one-line console summary. `TenYearSummary` is defined in `Types.ts`. Formatting lives in `src/Helpers/Reporters.ts` (pure functions). See ARD 015.
 - **End-of-simulation report**: After the tick loop, `index.ts` calls `formatEndReport` (console summary with outcome verdict) and `writeReportHTML` (writes `output/report-<seed>-<timestamp>.html` — self-contained HTML with Chart.js charts loaded from CDN). Outcome classification (`COLLAPSE`/`STRUGGLING`/`STABLE`/`THRIVING`) uses named threshold constants in `Variables.ts`. I/O in `src/Helpers/ReportWriter.ts`, pure formatting in `Reporters.ts`. See ARD 016.
 
@@ -124,13 +124,13 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - `ExperienceEvent` — unconditional; experience growth/decay each tick with childhood attenuation, intelligence fade via learning curve, and activity bonuses/penalties. Clamped to `[0, EXPERIENCE_CAP]`. See ARD 017.
 - `IllnessEvent` — unconditional; independent onset and recovery rolls each tick; severity clamped to `[0, 1]`. Onset scales with age and falls with constitution; recovery the inverse. See ARD 018.
 - `GatherResourcesEvent` — unconditional; `extracted = min(experience * (BASE_GATHER_AMOUNT + intelligence * INTELLIGENCE_GATHER_SCALAR), pool / extractionEfficiency)`; pool loses `extracted * extractionEfficiency`. See ARD 011.
-- `MisfortuneEvent` — unconditional; illness death (`ILLNESS * ageMortalityModifier`) then suicide (`SUICIDE_PROBABILITY_SCALE / (happiness + 1)`); first cause wins. See ARD 013 (current), superseded by ARD 019 when it lands.
+- `MisfortuneEvent` — unconditional; illness death (`illness * ILLNESS_DEATH_SCALAR * ageMortalityModifier`, zero when illness=0) then suicide (`SUICIDE_PROBABILITY_SCALE / (happiness + 1)`); first cause wins. See ARD 019 (supersedes ARD 013).
 - `DisasterEvent` — population-level, run once per tick in `LooperSingleton` (does not implement `IEvent`); probabilistic trigger (`DISASTER_PROBABILITY`), random subset of living up to `DISASTER_MAX_AFFECTED_FRACTION`, kill check (`DISASTER_KILL_BASE * ageMortalityModifier / constitution`), resource loss fraction in `[DISASTER_MIN_LOSS_FRACTION, DISASTER_MAX_LOSS_FRACTION]`. See ARD 012.
 - `ExerciseEvent` — intent-gated; `constitution++`. Wired in `EventFactory` with exercise age profile.
 - `LearnEvent` — intent-gated; `intelligence++`. Wired in `EventFactory` with learning age profile.
 - `EventFactory` — unconditional `[AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, MisfortuneEvent]` plus intent-gated `ExerciseEvent` and `LearnEvent` via `rng() < intent * ageModifier(...)`. See ARD 010.
 - `DeathRecord`, `KillingRecord`, `StealingRecord` data classes
-- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `HAPPINESS_BASELINE`, `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, disaster constants, experience constants (`BASE_EXPERIENCE_GROWTH`, `EXPERIENCE_CAP`, idleness/activity bonuses, etc.), illness constants (`BASE_ILLNESS_ONSET`, `BASE_ILLNESS_RECOVERY`, `ILLNESS_ONSET_AMOUNT`, `ILLNESS_RECOVERY_AMOUNT`, `ILLNESS_AGE_RISK_DIVISOR`), and per-event age profile constants for all planned events)
+- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `HAPPINESS_BASELINE`, `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, `ILLNESS_DEATH_SCALAR`, disaster constants, experience constants (`BASE_EXPERIENCE_GROWTH`, `EXPERIENCE_CAP`, idleness/activity bonuses, etc.), illness constants (`BASE_ILLNESS_ONSET`, `BASE_ILLNESS_RECOVERY`, `ILLNESS_ONSET_AMOUNT`, `ILLNESS_RECOVERY_AMOUNT`, `ILLNESS_AGE_RISK_DIVISOR`), and per-event age profile constants for all planned events)
 - `AgeModifier.ts` — `ageModifier(age, peakAge, scale, floor)` bell-curve helper (ARD 008)
 - `TickSnapshot` observability: population, per-tick and cumulative death counts by cause (murder/illness/disaster/suicide/old age), `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`
 - `Reporters.ts` — `buildTenYearSummary(window, endTick, startPopulation)`, `formatDecadeSummary`, `formatSimulationHeader`, `formatEndReport`, `classifyOutcome`. All pure; no I/O. See ARD 015, ARD 016.
@@ -143,10 +143,7 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 Pick up here, roughly in dependency order:
 
-1. **Proposed ARDs not yet implemented** (do these first — they revise existing code):
-   - ARD 019 — `MisfortuneEvent` revision: illness death uses `person.illness * ILLNESS_DEATH_SCALAR * ageMortalityModifier` (requires ARD 018 ✓); renames `Variables.ILLNESS` → `ILLNESS_DEATH_SCALAR`
-
-2. **Events** (implement roughly in this order):
+1. **Events** (implement roughly in this order):
    - Job gain/loss event
    - Graduation event — `isWorkingOnEd` → `education`
    - Relationship event — sets `isInRelationshipWith`

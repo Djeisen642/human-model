@@ -12,13 +12,15 @@ export default class MisfortuneEvent implements IEvent {
 
   /**
    * Run illness and suicide checks in sequence; first cause of death wins.
+   * Illness probability is zero when illness=0 (severity-gated per ARD 019).
    * Disaster is handled at the tick level by LooperSingleton, not here.
    *
    * @param person - the person at risk
    * @param simulation - current simulation state
    */
   execute(person: Person, simulation: Simulation): void {
-    if (this.rng() < Variables.ILLNESS * person.ageMortalityModifier) {
+    const illnessDeathProb = person.illness * Variables.ILLNESS_DEATH_SCALAR * person.ageMortalityModifier;
+    if (this.rng() < illnessDeathProb) {
       simulation.kill(person, Constants.CAUSE_OF_DEATH.ILLNESS);
       return;
     }
