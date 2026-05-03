@@ -89,7 +89,7 @@ When in doubt:
 
 ## Approval
 
-**An ARD must be discussed with and approved by the project owner before its status moves from Proposed to Accepted.** Write the ARD, present it, and wait for explicit sign-off. Do not begin implementation against a Proposed ARD.
+**Discuss the decision with the project owner before writing the ARD.** The ARD captures what was agreed in that discussion — it is not a proposal to be reviewed after the fact. Once written, the project owner gives final sign-off to move the status to Accepted. Do not begin implementation until Accepted.
 
 ## After writing
 
