@@ -1,6 +1,7 @@
 import EventFactory from '../../Events/EventFactory';
 import AgeEvent from '../../Events/AgeEvent';
 import ExperienceEvent from '../../Events/ExperienceEvent';
+import IllnessEvent from '../../Events/IllnessEvent';
 import GatherResourcesEvent from '../../Events/GatherResourcesEvent';
 import MisfortuneEvent from '../../Events/MisfortuneEvent';
 import ExerciseEvent from '../../Events/ExerciseEvent';
@@ -17,14 +18,15 @@ describe('EventFactory', () => {
     expect(events[0]).toBeInstanceOf(AgeEvent);
   });
 
-  it('places ExperienceEvent second (after AgeEvent, before GatherResourcesEvent)', () => {
+  it('places ExperienceEvent second, IllnessEvent third, GatherResourcesEvent fourth', () => {
     const factory = new EventFactory(() => 0.5);
     const person = new Person([]);
 
     const events = factory.getEventsFor(person);
 
     expect(events[1]).toBeInstanceOf(ExperienceEvent);
-    expect(events[2]).toBeInstanceOf(GatherResourcesEvent);
+    expect(events[2]).toBeInstanceOf(IllnessEvent);
+    expect(events[3]).toBeInstanceOf(GatherResourcesEvent);
   });
 
   it('always includes GatherResourcesEvent', () => {
@@ -50,7 +52,7 @@ describe('EventFactory', () => {
     const factory = new EventFactory(() => 0.5);
     const person = new Person([]);
 
-    expect(factory.getEventsFor(person).length).toBe(4);
+    expect(factory.getEventsFor(person).length).toBe(5);
   });
 
   it('appends ExerciseEvent when exerciseIntent gate passes', () => {
@@ -107,6 +109,6 @@ describe('EventFactory', () => {
 
     expect(events.some(e => e instanceof ExerciseEvent)).toBe(true);
     expect(events.some(e => e instanceof LearnEvent)).toBe(true);
-    expect(events.length).toBe(6);
+    expect(events.length).toBe(7);
   });
 });
