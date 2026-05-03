@@ -87,12 +87,17 @@ When in doubt:
 - **[ARD 014](./014-happiness-model-revision.md)** — supersedes ARD 009. Pattern for revising a previous decision.
 - **[ARD 008](./008-age-modifiers.md)** — reusable helper (`ageModifier`) with a profile table. Pattern for cross-cutting infrastructure.
 
+## Approval
+
+**Discuss the decision with the project owner before writing the ARD.** The ARD captures what was agreed in that discussion — it is not a proposal to be reviewed after the fact. Once written, the project owner gives final sign-off to move the status to Accepted. Do not begin implementation until Accepted.
+
 ## After writing
 
-1. Add to the Index below.
-2. Reference in `CLAUDE.md` under "Key design decisions" (if it changes a project-level invariant) and "What's implemented" (when the code lands).
-3. Update `docs/future-ideas.md` — move subsumed items to Discarded; delete obsolete ones with a note in the ARD.
-4. Same commit as implementation when possible; otherwise cross-reference in commit messages.
+1. Add to the Index below (as **Proposed**).
+2. Discuss with project owner; update status to **Accepted** only after approval.
+3. Reference in `CLAUDE.md` under "Key design decisions" (if it changes a project-level invariant) and "What's implemented" (when the code lands).
+4. Update `docs/future-ideas.md` — move subsumed items to Discarded; delete obsolete ones with a note in the ARD.
+5. Same commit as implementation when possible; otherwise cross-reference in commit messages.
 
 ## Statuses
 
@@ -122,4 +127,5 @@ When in doubt:
 | [016](./016-end-of-simulation-report.md) | End-of-Simulation Report | Accepted |
 | [017](./017-experience-growth-and-decay.md) | Experience Growth and Decay | Accepted |
 | [018](./018-illness-live-state.md) | Illness as Live State | Accepted |
-| [019](./019-misfortune-illness-death-revision.md) | MisfortuneEvent Revision | Proposed |
+| [019](./019-misfortune-illness-death-revision.md) | MisfortuneEvent Revision | Accepted |
+| [020](./020-job-event.md) | Job Gain and Loss | Accepted |
