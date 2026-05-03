@@ -1,6 +1,6 @@
 # ARD 019: MisfortuneEvent Revision
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-02
 **Supersedes:** ARD 013
 
