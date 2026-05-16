@@ -100,6 +100,14 @@ export default class Variables {
   /** Conditional probability of completing a PhD, given master's, for seeded adults. */
   static GRADUATION_ADULT_PHD_RATE = 0.20;
 
+  // StealEvent constants (ARD 026)
+  /** Scales charisma into steal probability; small so zero-charisma persons can still steal. Charisma range 1–10 adds 5–50% above intent alone. */
+  static STEAL_CHARISMA_SCALAR = 0.05;
+  /** Fraction of victim's current resources taken per theft. */
+  static STEAL_FRACTION = 0.1;
+  /** Hard ceiling on a single theft; prevents large resource transfers from destabilising the simulation. */
+  static STEAL_MAX_AMOUNT = 10;
+
   // ConsumptionEvent constants (ARD 024)
   /** Resources consumed per tick by a working-age adult. Calibrated so a median gatherer covers costs without long-term depletion. */
   static CONSUMPTION_BASE = 1.0;
