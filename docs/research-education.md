@@ -1,6 +1,6 @@
 # Research: Education Rates and Effects
 
-Gathered to calibrate ARD 021 (GraduationEvent) and ARD 022 (job education multiplier). Sources: NCES, BLS, Census Bureau, peer-reviewed meta-analyses.
+Gathered to calibrate ARD 021 (GraduationEvent), ARD 022 (job education multiplier), and ARD 023 (EnrollmentEvent). Sources: NCES, BLS, Census Bureau, Georgetown CEW, peer-reviewed meta-analyses.
 
 ## Enrollment rates by age
 
@@ -10,7 +10,37 @@ Gathered to calibrate ARD 021 (GraduationEvent) and ARD 022 (job education multi
 | 18–24 | ~39% | College/graduate school (NCES 2022) |
 | 25+ | Drops sharply | Most post-24 enrollment is part-time or professional |
 
-Sim calibration: seed HIGH_SCHOOL at 70% for ages ≤17 (conservative vs. 86%, accounting for early dropouts), BACHELORS at 40% for ages 18–24.
+Sim calibration (ARD 021): seed HIGH_SCHOOL at 70% for ages ≤17 (conservative vs. 86%, accounting for early dropouts), BACHELORS at 40% for ages 18–24.
+
+## Adult enrollment rates by age (mid-simulation re-enrollment)
+
+Adults 25+ are **32% of total US college enrollment**. Enrollment by age as a share of that age group (estimated from NCES and Census):
+
+| Age | ~% of group enrolled | Implied per-tick flow (÷ 5-yr degree) |
+|---|---|---|
+| 25–29 | ~10–12% | ~2–2.5% per tick |
+| 30–34 | ~5–6% | ~1–1.2% per tick |
+| 35–44 | ~2–3% | ~0.4–0.6% per tick |
+| 45–54 | ~1–2% | ~0.2–0.4% per tick |
+| 55+ | <1% | <0.2% per tick |
+
+Projections show ages 35+ growing 18% between 2019 and 2030 — adult enrollment is rising, not niche.
+
+Sim calibration (ARD 023): `BASE_ENROLLMENT_RATE` scaled by `learningIntent` (avg ~0.5) and `ageModifier` should land near 2–3% per tick at peak age, falling to <0.5% by age 50.
+
+## Motivations for adult enrollment
+
+Top reasons adults re-enroll (EAB/Sage Journals research):
+- Career advancement: ~38–39%
+- Pursuing passions / personal growth: ~two-thirds cite this
+
+Adult learners "demonstrate stronger learning motivation and autonomy" than traditional-age students. High `learningIntent` gating on enrollment is well-supported — self-initiated enrollment is driven by the same disposition the sim already tracks.
+
+## Work and school simultaneously
+
+**70%+ of college students work while enrolled** (Georgetown CEW, 25-year trend). 40% of full-time undergrads are employed; 76% of part-time students work 30+ hours/week.
+
+Sim calibration (ARD 023): employment does not block enrollment. `ExperienceEvent` already handles the overlap correctly (education bonus takes precedence when both apply).
 
 ## Time to complete a degree
 

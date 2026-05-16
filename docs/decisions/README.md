@@ -59,8 +59,9 @@ Why is this decision needed now? Ground it in code state — name the
 file or field that's incomplete. Skip generic framing.
 
 ## Decision
-What was chosen. Code example if non-obvious. New constants listed with
-initial value and one-line rationale; mark calibration placeholders.
+What was chosen. Code example if non-obvious. New constants listed by name
+with one-line rationale. Do not include initial values — values are
+calibration placeholders that live in `Variables.ts`, not in the ARD.
 
 ## Reasoning
 At least one named rejected alternative with one paragraph on why it
@@ -75,7 +76,7 @@ weaknesses. Make it concrete enough that an implementer doesn't guess.
 
 1. **Context grounds in code state.** A reader returning months later can tell from Context why the decision is needed.
 2. **Reasoning names a rejected alternative.** "We chose X over Y because Y would have done Z" — not "X works."
-3. **Constants have rationale.** Why 0.05? Even "placeholder pending calibration" counts.
+3. **Constants have rationale.** Explain what the constant controls and how it relates to the decision's intent — not its specific value. Values belong in `Variables.ts`.
 4. **Cross-references are explicit.** Name the ARDs you depend on, modify, or defer to.
 5. **Consequences are testable.** "Tests must cover X, Y, Z" — not "should be tested."
 
@@ -131,3 +132,4 @@ When in doubt:
 | [020](./020-job-event.md) | Job Gain and Loss | Accepted |
 | [021](./021-graduation-event.md) | Graduation Event | Accepted |
 | [022](./022-job-education-multiplier.md) | Job Event Education Multiplier | Accepted |
+| [023](./023-enrollment-event.md) | Enrollment Event | Proposed |
