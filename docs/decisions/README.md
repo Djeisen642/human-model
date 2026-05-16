@@ -136,3 +136,4 @@ When in doubt:
 | [024](./024-consumption-event.md) | Resource Consumption | Accepted |
 | [025](./025-relationship-event.md) | RelationshipEvent | Accepted |
 | [026](./026-steal-event.md) | StealEvent | Proposed |
+| [027](./027-kill-event.md) | KillEvent | Accepted |
