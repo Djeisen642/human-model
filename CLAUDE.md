@@ -37,6 +37,15 @@ npm run lint         # eslint over .ts files
 npm run start:dev    # nodemon (watches src/, runs ts-node src/index.ts)
 ```
 
+### CLI flags (entry point)
+
+```bash
+npx ts-node src/App/index.ts [--config path/to/config.json] [--output path/to/dir]
+```
+
+- `--config` — JSON file that deep-merges over defaults; only changed keys needed. See `config.default.json` for all available keys (`simulation.persons/ticks/seed` + every `Variables` constant).
+- `--output` — directory to write HTML reports into (default: `./output`). Created if absent. Kept separate from `--config` so batch/concurrent tooling can vary the output dir without touching the variable config.
+
 ## Architecture
 
 ```
