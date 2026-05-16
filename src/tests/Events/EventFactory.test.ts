@@ -3,6 +3,7 @@ import AgeEvent from '../../Events/AgeEvent';
 import ExperienceEvent from '../../Events/ExperienceEvent';
 import IllnessEvent from '../../Events/IllnessEvent';
 import GatherResourcesEvent from '../../Events/GatherResourcesEvent';
+import ConsumptionEvent from '../../Events/ConsumptionEvent';
 import MisfortuneEvent from '../../Events/MisfortuneEvent';
 import JobEvent from '../../Events/JobEvent';
 import ExerciseEvent from '../../Events/ExerciseEvent';
@@ -19,7 +20,7 @@ describe('EventFactory', () => {
     expect(events[0]).toBeInstanceOf(AgeEvent);
   });
 
-  it('places ExperienceEvent second, IllnessEvent third, GatherResourcesEvent fourth', () => {
+  it('places ExperienceEvent second, IllnessEvent third, GatherResourcesEvent fourth, ConsumptionEvent fifth', () => {
     const factory = new EventFactory(() => 0.5);
     const person = new Person([]);
 
@@ -28,6 +29,7 @@ describe('EventFactory', () => {
     expect(events[1]).toBeInstanceOf(ExperienceEvent);
     expect(events[2]).toBeInstanceOf(IllnessEvent);
     expect(events[3]).toBeInstanceOf(GatherResourcesEvent);
+    expect(events[4]).toBeInstanceOf(ConsumptionEvent);
   });
 
   it('always includes GatherResourcesEvent', () => {
@@ -59,11 +61,11 @@ describe('EventFactory', () => {
 
   it('returns only unconditional events when all intents are zero', () => {
     // new Person has exerciseIntent=0 and learningIntent=0; gates always fail
-    // Unconditional list: AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, JobEvent, MisfortuneEvent
+    // Unconditional list: AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, ConsumptionEvent, JobEvent, MisfortuneEvent
     const factory = new EventFactory(() => 0.5);
     const person = new Person([]);
 
-    expect(factory.getEventsFor(person).length).toBe(6);
+    expect(factory.getEventsFor(person).length).toBe(7);
   });
 
   it('appends ExerciseEvent when exerciseIntent gate passes', () => {
@@ -120,6 +122,6 @@ describe('EventFactory', () => {
 
     expect(events.some(e => e instanceof ExerciseEvent)).toBe(true);
     expect(events.some(e => e instanceof LearnEvent)).toBe(true);
-    expect(events.length).toBe(9); // 6 unconditional + ExerciseEvent + LearnEvent + EnrollmentEvent
+    expect(events.length).toBe(10); // 7 unconditional + ExerciseEvent + LearnEvent + EnrollmentEvent
   });
 });

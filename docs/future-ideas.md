@@ -49,6 +49,9 @@ Sharpens the collapse/thrive signal or experimental setup, but the model can pro
 **Resource inheritance on death**
 Dead persons' `resources` vanish. Inheritance (heirs receive a fraction) or estate taxes (a portion to a shared pool) gives accumulated wealth a second-order effect on Gini — concentrated wealth steepens inequality, redistribution dampens it.
 
+**Redistribution pool (tax + estate)**
+A per-tick flat tax on all living persons funds a shared pool; a fraction of each deceased person's resources enters the same pool on death (estate contribution). Pool distributes equally to all living persons each tick (or only to those below a threshold). Creates a tunable Gini-dampening lever and fixes the resources-vanish-on-death gap. Design after consumption + theft dynamics are observable so calibration is grounded in actual Gini data rather than intuition. Two funding sources (living tax + death estate) can share one pool and one ARD.
+
 **Illness reduces gathering capacity**
 Illness currently affects only mortality and happiness. Adding `potential *= (1 - person.illness)` makes illness a resource drain too, strengthening the collapse loop.
 

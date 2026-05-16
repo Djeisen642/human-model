@@ -4,6 +4,7 @@ import AgeEvent from './AgeEvent';
 import ExperienceEvent from './ExperienceEvent';
 import IllnessEvent from './IllnessEvent';
 import GatherResourcesEvent from './GatherResourcesEvent';
+import ConsumptionEvent from './ConsumptionEvent';
 import MisfortuneEvent from './MisfortuneEvent';
 import JobEvent from './JobEvent';
 import ExerciseEvent from './ExerciseEvent';
@@ -26,7 +27,7 @@ export default class EventFactory {
 
   /**
    * Returns the ordered list of events this person participates in this tick.
-   * Unconditional order: AgeEvent → ExperienceEvent → IllnessEvent → GatherResourcesEvent → JobEvent → MisfortuneEvent.
+   * Unconditional order: AgeEvent → ExperienceEvent → IllnessEvent → GatherResourcesEvent → ConsumptionEvent → JobEvent → MisfortuneEvent.
    * Intent-gated events are appended based on intent × age modifier.
    *
    * @param person - person whose intents determine event selection
@@ -38,6 +39,7 @@ export default class EventFactory {
       new ExperienceEvent(),
       new IllnessEvent(this.rng),
       new GatherResourcesEvent(),
+      new ConsumptionEvent(),
       new JobEvent(this.rng),
       new MisfortuneEvent(this.rng),
     ];
