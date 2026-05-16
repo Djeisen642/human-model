@@ -1,6 +1,6 @@
 # Research: Relationship Formation and Dissolution
 
-Gathered to calibrate ARD 024 (RelationshipEvent). Sources: CDC/NCHS, Our World in Data, Harvard T.H. Chan School of Public Health, NIH/PMC, Springer ABM literature.
+Gathered to calibrate ARD 025 (RelationshipEvent). Sources: CDC/NCHS, Our World in Data, Harvard T.H. Chan School of Public Health, NIH/PMC, Springer ABM literature.
 
 ## Partnership formation rates by age
 
