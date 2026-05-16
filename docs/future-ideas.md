@@ -134,6 +134,12 @@ A prior attempt is the strongest empirical predictor of future suicide. Persons 
 **Strain theory: aspiration–means gap (Agnew)**
 A person whose `resources` falls short of their age/education cohort median gets a `stealingIntent` boost. Distinct from loss aversion (reference class, not personal trajectory). Substantially overlaps with relative deprivation in `happiness` — if that's in, the marginal signal here is small.
 
+**Relative deprivation in steal probability (Blau & Blau; World Bank)**
+Cross-national data shows a one-decile Gini rise associates with ~4% more property crime; the mechanism is relative deprivation, not absolute poverty. The StealEvent formula could include a `(victim.resources - thief.resources)` gap term so stealing scales with visible inequality rather than thief intent alone. This would create a direct feedback loop — high Gini → more theft → more Gini — that the current formula (intent × ageModifier) can't produce. Requires deciding whether gap-scaling belongs in the formula or in an intent-update mechanism like strain theory above; they are distinct intervention points.
+
+**Tolerated theft equilibrium (Blurton Jones; MIT Artificial Life)**
+Primate and multi-agent research shows theft naturally gives way to reciprocal exchange when resource variance is high and groups are small. Packets of intermediate resource size are most targeted; very rich and very poor targets are both avoided (high risk vs. low reward). If StealEvent runs long enough, a stable reciprocal-exchange norm could emerge without any explicit cooperation mechanic — worth measuring in simulation runs to see if it appears. Depends on StealEvent and relationship event both being live.
+
 **Threshold heterogeneity for cascades (Granovetter)**
 Per-person threshold for joining antisocial behavior based on observed prevalence. Captures riots / norm collapse tipping points. At ~100-person populations the dynamics may not be visible; arguably interesting only at larger scale.
 
