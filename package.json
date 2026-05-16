@@ -7,6 +7,7 @@
     "test": "npx jest --config src/jest.config.js",
     "build": "rimraf ./build && tsgo",
     "lint": "eslint src/",
+    "generate-config": "ts-node scripts/generate-config.ts",
     "start:dev": "nodemon",
     "prepare": "husky"
   },
