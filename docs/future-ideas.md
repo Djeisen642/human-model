@@ -38,9 +38,6 @@ Resources only move up (gather) or down (disaster); no subsistence drain. A non-
 **Stat caps and age-based decay**
 `constitution` and `intelligence` only increment. A 90-year-old who exercised yearly has runaway constitution, and `DisasterEvent` divides by it — making lifelong exercisers near-immortal. Need caps and probably age-based decay reinforcing the U-shaped mortality curve.
 
-**Job income mechanics**
-The planned `Job` event's resource flow is unspecified — additive to gather, replacement, or multiplicative? A design decision required before Job can be implemented; flagging here so it isn't answered ad hoc.
-
 ### Research / Output
 
 **Termination conditions**
