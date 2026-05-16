@@ -1,6 +1,6 @@
 # ARD 022: Job Event Education Multiplier
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-16
 
 ## Context

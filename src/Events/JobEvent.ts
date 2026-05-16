@@ -21,9 +21,11 @@ export default class JobEvent implements IEvent {
   execute(person: Person, simulation: Simulation): void {
     void simulation;
     if (!person.hasJob) {
+      const educationMultiplier = 1 + person.education * Variables.EDUCATION_JOB_GAIN_SCALAR;
       const gainProb = Math.min(1, (person.experience * Variables.JOB_GAIN_EXPERIENCE_SCALAR
         + person.charisma * Variables.JOB_GAIN_CHARISMA_SCALAR)
-        * ageModifier(person.age, Variables.WORK_PEAK_AGE, Variables.WORK_AGE_SCALE, Variables.WORK_AGE_FLOOR));
+        * ageModifier(person.age, Variables.WORK_PEAK_AGE, Variables.WORK_AGE_SCALE, Variables.WORK_AGE_FLOOR)
+        * educationMultiplier);
       if (this.rng() < gainProb) {
         person.hasJob = true;
       }

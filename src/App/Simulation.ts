@@ -132,6 +132,15 @@ export default class Simulation {
     for (let i = 0; i < n; i++) {
       const person = new Person([]);
       person.age = randomInt(rng, 15, 50);
+      if (person.age <= Variables.GRADUATION_HS_MAX_AGE) {
+        if (rng() < Variables.GRADUATION_HS_SEED_RATE) {
+          person.isWorkingOnEd = Constants.EDUCATION.HIGH_SCHOOL;
+        }
+      } else if (person.age <= Variables.GRADUATION_COLLEGE_MAX_AGE) {
+        if (rng() < Variables.GRADUATION_COLLEGE_SEED_RATE) {
+          person.isWorkingOnEd = Constants.EDUCATION.BACHELORS;
+        }
+      }
       person.resources = randomInt(rng, 0, 100);
       person.experience = randomInt(rng, 0, Math.min(person.age, Variables.EXPERIENCE_CAP) + 1);
       person.intelligence = randomInt(rng, 1, 11);

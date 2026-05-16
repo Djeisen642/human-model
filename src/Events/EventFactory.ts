@@ -8,8 +8,10 @@ import MisfortuneEvent from './MisfortuneEvent';
 import JobEvent from './JobEvent';
 import ExerciseEvent from './ExerciseEvent';
 import LearnEvent from './LearnEvent';
+import GraduationEvent from './GraduationEvent';
 import { ageModifier } from '../Helpers/AgeModifier';
 import Variables from '../Helpers/Variables';
+import Constants from '../Helpers/Constants';
 import { RNG } from '../Helpers/Types';
 
 /**
@@ -45,6 +47,12 @@ export default class EventFactory {
 
     if (this.rng() < person.learningIntent * ageModifier(person.age, Variables.LEARNING_PEAK_AGE, Variables.LEARNING_AGE_SCALE, Variables.LEARNING_AGE_FLOOR)) {
       events.push(new LearnEvent());
+    }
+
+    if (person.isWorkingOnEd !== Constants.EDUCATION.NONE
+      && this.rng() < Variables.BASE_GRADUATION_RATE
+        * ageModifier(person.age, Variables.GRADUATION_PEAK_AGE, Variables.GRADUATION_AGE_SCALE, Variables.GRADUATION_AGE_FLOOR)) {
+      events.push(new GraduationEvent());
     }
 
     return events;

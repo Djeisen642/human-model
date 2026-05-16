@@ -2,6 +2,7 @@ import JobEvent from '../../Events/JobEvent';
 import Person from '../../App/Person';
 import Simulation from '../../App/Simulation';
 import Variables from '../../Helpers/Variables';
+import Constants from '../../Helpers/Constants';
 import { ageModifier } from '../../Helpers/AgeModifier';
 
 describe('JobEvent', () => {
@@ -219,6 +220,74 @@ describe('JobEvent', () => {
 
       new JobEvent(() => lossMax - 0.0001).execute(person, simulation);
 
+      expect(person.hasJob).toBe(false);
+    });
+  });
+
+  describe('education multiplier on gain (ARD 022)', () => {
+    it('higher education produces a higher gain probability than no education, all else equal', () => {
+      const age = 35;
+      // Low enough stats so probBachelors stays below 1.0 and doesn't hit the Math.min cap
+      const experience = 5;
+      const charisma = 3;
+
+      const probNone = (experience * Variables.JOB_GAIN_EXPERIENCE_SCALAR + charisma * Variables.JOB_GAIN_CHARISMA_SCALAR)
+        * ageModifier(age, Variables.WORK_PEAK_AGE, Variables.WORK_AGE_SCALE, Variables.WORK_AGE_FLOOR)
+        * (1 + Constants.EDUCATION.NONE * Variables.EDUCATION_JOB_GAIN_SCALAR);
+      const probBachelors = (experience * Variables.JOB_GAIN_EXPERIENCE_SCALAR + charisma * Variables.JOB_GAIN_CHARISMA_SCALAR)
+        * ageModifier(age, Variables.WORK_PEAK_AGE, Variables.WORK_AGE_SCALE, Variables.WORK_AGE_FLOOR)
+        * (1 + Constants.EDUCATION.BACHELORS * Variables.EDUCATION_JOB_GAIN_SCALAR);
+
+      const rngValue = (probNone + probBachelors) / 2;
+
+      const personNone = new Person([]);
+      personNone.age = age;
+      personNone.experience = experience;
+      personNone.charisma = charisma;
+      personNone.education = Constants.EDUCATION.NONE;
+      simulation.add(personNone);
+      new JobEvent(() => rngValue).execute(personNone, simulation);
+
+      const personBachelors = new Person([]);
+      personBachelors.age = age;
+      personBachelors.experience = experience;
+      personBachelors.charisma = charisma;
+      personBachelors.education = Constants.EDUCATION.BACHELORS;
+      simulation.add(personBachelors);
+      new JobEvent(() => rngValue).execute(personBachelors, simulation);
+
+      expect(personNone.hasJob).toBe(false);
+      expect(personBachelors.hasJob).toBe(true);
+    });
+
+    it('education = NONE produces a multiplier of 1.0 (no change from pre-ARD 022 formula)', () => {
+      const person = new Person([]);
+      person.age = 35;
+      person.experience = 20;
+      person.charisma = 5;
+      person.education = Constants.EDUCATION.NONE;
+      simulation.add(person);
+
+      const expectedProb = (20 * Variables.JOB_GAIN_EXPERIENCE_SCALAR + 5 * Variables.JOB_GAIN_CHARISMA_SCALAR)
+        * ageModifier(35, Variables.WORK_PEAK_AGE, Variables.WORK_AGE_SCALE, Variables.WORK_AGE_FLOOR);
+
+      new JobEvent(() => expectedProb - 0.001).execute(person, simulation);
+      expect(person.hasJob).toBe(true);
+    });
+
+    it('education multiplier does not affect job loss', () => {
+      const person = new Person([]);
+      person.age = 35;
+      person.experience = 5;
+      person.charisma = 2;
+      person.education = Constants.EDUCATION.PHD;
+      person.hasJob = true;
+      simulation.add(person);
+
+      const lossProb = Variables.JOB_LOSS_BASE
+        + Variables.JOB_LOSS_STAT_SCALAR * (1 / (5 + 1)) * (1 / (2 + 1));
+
+      new JobEvent(() => lossProb - 0.001).execute(person, simulation);
       expect(person.hasJob).toBe(false);
     });
   });
