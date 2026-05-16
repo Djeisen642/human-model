@@ -263,6 +263,46 @@ describe('Simulation', () => {
       sim.seed(1, alwaysFirst);
       expect(sim.getLiving()[0].age).toBe(15);
     });
+
+    it('persons aged <= GRADUATION_HS_MAX_AGE are seeded with isWorkingOnEd = HIGH_SCHOOL when rng passes', () => {
+      // alwaysFirst returns 0: age = 15 (≤17), enrollment check 0 < 0.7 → enrolled
+      const sim = new Simulation();
+      sim.seed(5, alwaysFirst);
+      sim.getLiving().forEach(p => {
+        expect(p.age).toBe(15);
+        expect(p.isWorkingOnEd).toBe(Constants.EDUCATION.HIGH_SCHOOL);
+      });
+    });
+
+    it('persons aged > GRADUATION_COLLEGE_MAX_AGE always have isWorkingOnEd = NONE', () => {
+      const sim = new Simulation();
+      sim.seed(200, Math.random);
+      sim.getLiving()
+        .filter(p => p.age > Variables.GRADUATION_COLLEGE_MAX_AGE)
+        .forEach(p => {
+          expect(p.isWorkingOnEd).toBe(Constants.EDUCATION.NONE);
+        });
+    });
+
+    it('persons aged <= GRADUATION_HS_MAX_AGE are never seeded with BACHELORS enrollment', () => {
+      const sim = new Simulation();
+      sim.seed(200, Math.random);
+      sim.getLiving()
+        .filter(p => p.age <= Variables.GRADUATION_HS_MAX_AGE)
+        .forEach(p => {
+          expect(p.isWorkingOnEd).not.toBe(Constants.EDUCATION.BACHELORS);
+        });
+    });
+
+    it('persons aged 18–GRADUATION_COLLEGE_MAX_AGE are never seeded with HIGH_SCHOOL enrollment', () => {
+      const sim = new Simulation();
+      sim.seed(200, Math.random);
+      sim.getLiving()
+        .filter(p => p.age > Variables.GRADUATION_HS_MAX_AGE && p.age <= Variables.GRADUATION_COLLEGE_MAX_AGE)
+        .forEach(p => {
+          expect(p.isWorkingOnEd).not.toBe(Constants.EDUCATION.HIGH_SCHOOL);
+        });
+    });
   });
 
   describe('resource pool', () => {

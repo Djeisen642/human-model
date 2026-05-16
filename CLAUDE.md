@@ -106,7 +106,7 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 - **Person stats are mutable, collections are not reassignable**: primitive fields (`age`, `resources`, etc.) are mutable so events can update them in place. Collection fields (`killed`, `hasChildren`, etc.) are `readonly` to prevent accidental replacement — but their contents remain mutable. See ARD 002.
 - **Object references as identity**: `Person` objects have no ID field. Reference equality (`===`) is identity. See ARD 001.
-- **Stats and intents start at 0** in the constructor, but `Simulation.seed(n, rng)` randomizes them on startup: age [15,50), resources [0,100), experience [0, min(age, EXPERIENCE_CAP)], intelligence/constitution/charisma [1,10], learningIntent/exerciseIntent [0,1), stealingIntent/lyingIntent [0,0.3), killingIntent [0,0.1).
+- **Stats and intents start at 0** in the constructor, but `Simulation.seed(n, rng)` randomizes them on startup: age [15,50), resources [0,100), experience [0, min(age, EXPERIENCE_CAP)], intelligence/constitution/charisma [1,10], learningIntent/exerciseIntent [0,1), stealingIntent/lyingIntent [0,0.3), killingIntent [0,0.1). Enrollment is also seeded: ages ≤17 → HIGH_SCHOOL at 70%; ages 18–24 → BACHELORS at 40%. See ARD 021.
 - **`happiness` is a computed getter** (not a stored stat). Factors: job (+5 if employed; −3 if unemployed and working-age 18–65 only), resources (critical/low/comfortable thresholds vary by age group), relationship (+3), age (>65: −1), illness (−round(illness×5)). Children use average living parents' resources instead of their own. Floor 0. See ARD 009 (original), ARD 014 (revision).
 - **Records are plain data classes** — they record that an event happened, they don't trigger anything.
 - **Global natural resource pool**: `Simulation` owns `naturalResources` (current pool), `naturalResourceCeiling` (max accessible), and `extractionEfficiency` (pool cost per unit gathered, starts at 1.0). Pool regenerates by `NATURAL_RESOURCE_REGEN_RATE` each tick (capped at ceiling) via `simulation.regenerate()`, called at the start of each tick in `LooperSingleton`. `GatherResourcesEvent` depletes the pool; `InventionEvent` randomly shifts efficiency or ceiling. See ARD 007.
@@ -126,14 +126,15 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - `ExperienceEvent` — unconditional; experience growth/decay each tick with childhood attenuation, intelligence fade via learning curve, and activity bonuses/penalties. Clamped to `[0, EXPERIENCE_CAP]`. See ARD 017.
 - `IllnessEvent` — unconditional; independent onset and recovery rolls each tick; severity clamped to `[0, 1]`. Onset scales with age and falls with constitution; recovery the inverse. See ARD 018.
 - `GatherResourcesEvent` — unconditional; `extracted = min(experience * (BASE_GATHER_AMOUNT + intelligence * INTELLIGENCE_GATHER_SCALAR), pool / extractionEfficiency)`; pool loses `extracted * extractionEfficiency`. See ARD 011.
-- `JobEvent` — unconditional; gain branch fires when unemployed (`gainProb = (experience * JOB_GAIN_EXPERIENCE_SCALAR + charisma * JOB_GAIN_CHARISMA_SCALAR) * ageModifier(...)`); loss branch fires when employed (`lossProb = JOB_LOSS_BASE + JOB_LOSS_STAT_SCALAR / (experience+1) / (charisma+1)`). Uses work age profile. See ARD 020.
+- `JobEvent` — unconditional; gain branch fires when unemployed (`gainProb = (experience * JOB_GAIN_EXPERIENCE_SCALAR + charisma * JOB_GAIN_CHARISMA_SCALAR) * ageModifier(...) * (1 + education * EDUCATION_JOB_GAIN_SCALAR)`); loss branch fires when employed (`lossProb = JOB_LOSS_BASE + JOB_LOSS_STAT_SCALAR / (experience+1) / (charisma+1)`). Uses work age profile. See ARD 020, ARD 022.
+- `GraduationEvent` — enrollment-gated; fires when `isWorkingOnEd !== NONE` and `rng() < BASE_GRADUATION_RATE * ageModifier(age, 22, 30, 0.15)`; sets `education = isWorkingOnEd`, resets `isWorkingOnEd = NONE`, increments `intelligence` by 1. See ARD 021.
 - `MisfortuneEvent` — unconditional; illness death (`illness * ILLNESS_DEATH_SCALAR * ageMortalityModifier`, zero when illness=0) then suicide (`SUICIDE_PROBABILITY_SCALE / (happiness + 1)`); first cause wins. See ARD 019 (supersedes ARD 013).
 - `DisasterEvent` — population-level, run once per tick in `LooperSingleton` (does not implement `IEvent`); probabilistic trigger (`DISASTER_PROBABILITY`), random subset of living up to `DISASTER_MAX_AFFECTED_FRACTION`, kill check (`DISASTER_KILL_BASE * ageMortalityModifier / constitution`), resource loss fraction in `[DISASTER_MIN_LOSS_FRACTION, DISASTER_MAX_LOSS_FRACTION]`. See ARD 012.
 - `ExerciseEvent` — intent-gated; `constitution++`. Wired in `EventFactory` with exercise age profile.
 - `LearnEvent` — intent-gated; `intelligence++`. Wired in `EventFactory` with learning age profile.
-- `EventFactory` — unconditional `[AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, JobEvent, MisfortuneEvent]` plus intent-gated `ExerciseEvent` and `LearnEvent` via `rng() < intent * ageModifier(...)`. See ARD 010.
+- `EventFactory` — unconditional `[AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, JobEvent, MisfortuneEvent]` plus intent-gated `ExerciseEvent` and `LearnEvent` via `rng() < intent * ageModifier(...)`, plus enrollment-gated `GraduationEvent`. See ARD 010, ARD 021.
 - `DeathRecord`, `KillingRecord`, `StealingRecord` data classes
-- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `HAPPINESS_BASELINE`, `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, `ILLNESS_DEATH_SCALAR`, disaster constants, experience constants, illness constants, job constants (`JOB_GAIN_EXPERIENCE_SCALAR`, `JOB_GAIN_CHARISMA_SCALAR`, `JOB_LOSS_BASE`, `JOB_LOSS_STAT_SCALAR`), and per-event age profile constants for all planned events)
+- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `HAPPINESS_BASELINE`, `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, `ILLNESS_DEATH_SCALAR`, disaster constants, experience constants, illness constants, job constants (`JOB_GAIN_EXPERIENCE_SCALAR`, `JOB_GAIN_CHARISMA_SCALAR`, `JOB_LOSS_BASE`, `JOB_LOSS_STAT_SCALAR`, `EDUCATION_JOB_GAIN_SCALAR`), graduation constants (`BASE_GRADUATION_RATE`, `GRADUATION_HS_MAX_AGE`, `GRADUATION_COLLEGE_MAX_AGE`, `GRADUATION_HS_SEED_RATE`, `GRADUATION_COLLEGE_SEED_RATE`), and per-event age profile constants for all planned events including graduation)
 - `AgeModifier.ts` — `ageModifier(age, peakAge, scale, floor)` bell-curve helper (ARD 008)
 - `TickSnapshot` observability: population, per-tick and cumulative death counts by cause (murder/illness/disaster/suicide/old age), `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`
 - `Reporters.ts` — `buildTenYearSummary(window, endTick, startPopulation)`, `formatDecadeSummary`, `formatSimulationHeader`, `formatEndReport`, `classifyOutcome`. All pure; no I/O. See ARD 015, ARD 016.
@@ -147,7 +148,6 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 Pick up here, roughly in dependency order:
 
 1. **Events** (implement roughly in this order):
-   - Graduation event — `isWorkingOnEd` → `education`
    - Relationship event — sets `isInRelationshipWith`
    - `StealEvent` — resource transfer; creates `StealingRecord`
    - `KillEvent` — creates `KillingRecord` + `DeathRecord`; calls `simulation.kill()`
@@ -177,6 +177,7 @@ Reference profiles (from ARD 008):
 | Relationships | 26 | 35 | 0.1 |
 | Invention | 40 | 45 | 0.1 |
 | Lying | 32 | 40 | 0.1 |
+| Graduation | 22 | 30 | 0.15 |
 
 ## Keeping CLAUDE.md current
 

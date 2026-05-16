@@ -64,7 +64,7 @@ export default class Variables {
   /** Maximum experience a person can hold; prevents centenarian extraction dominance. */
   static EXPERIENCE_CAP = 50;
 
-  // JobEvent constants (ARD 020)
+  // JobEvent constants (ARD 020, ARD 022)
   /** Contribution of each point of experience to the per-tick job-gain probability. */
   static JOB_GAIN_EXPERIENCE_SCALAR = 0.03;
   /** Contribution of each point of charisma to the per-tick job-gain probability. */
@@ -73,6 +73,20 @@ export default class Variables {
   static JOB_LOSS_BASE = 0.02;
   /** Scales the stat-inverse term added to the flat job-loss rate; penalises low experience and charisma. */
   static JOB_LOSS_STAT_SCALAR = 0.5;
+  /** Multiplicative bonus per education tier on job-gain probability. At BACHELORS (3): ×1.45. Calibration placeholder. */
+  static EDUCATION_JOB_GAIN_SCALAR = 0.15;
+
+  // GraduationEvent constants (ARD 021)
+  /** Per-tick graduation probability for an enrolled person at peak age. Yields a 5-tick average completion time. */
+  static BASE_GRADUATION_RATE = 0.2;
+  /** Maximum age for high-school enrollment seeding in Simulation.seed(). */
+  static GRADUATION_HS_MAX_AGE = 17;
+  /** Maximum age for college enrollment seeding in Simulation.seed(). */
+  static GRADUATION_COLLEGE_MAX_AGE = 24;
+  /** Probability that a seeded person aged ≤ GRADUATION_HS_MAX_AGE is enrolled in high school. */
+  static GRADUATION_HS_SEED_RATE = 0.7;
+  /** Probability that a seeded person aged 18–GRADUATION_COLLEGE_MAX_AGE is enrolled in college. */
+  static GRADUATION_COLLEGE_SEED_RATE = 0.4;
 
   // Per-event age profile constants — used by EventFactory via ageModifier()
   static CHILDBIRTH_PEAK_AGE = 26;
@@ -114,6 +128,10 @@ export default class Variables {
   static LYING_PEAK_AGE = 32;
   static LYING_AGE_SCALE = 40;
   static LYING_AGE_FLOOR = 0.1;
+
+  static GRADUATION_PEAK_AGE = 22;
+  static GRADUATION_AGE_SCALE = 30;
+  static GRADUATION_AGE_FLOOR = 0.15;
 
   // Outcome classification thresholds (ARD 016)
   /** Final-decade avg Gini at or above this → COLLAPSE. */

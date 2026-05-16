@@ -20,11 +20,12 @@ The model can't answer collapse vs. thriving without these, or has a known bug s
 **Voluntary cooperation / helping event**
 The current event set is extractive or destructive. `helpsPeople` exists but no event uses it. Without positive-sum interactions, the model can only show decline, not thriving.
 
-**Education payoff on stats**
-Graduation flips `isWorkingOnEd` → `education` but changes no stats. Without a payoff (e.g., `intelligence` boost or job unlock), education is inert.
 
 **Reputation / trust effects**
 Victimization is recorded but has no behavioral consequence on the victim. Without a feedback loop, antisocial behavior can't degrade social cohesion. (The "Generalized trust" version below subsumes this — pick one.)
+
+**Seed `education` for persons over 24**
+`Simulation.seed()` only seeds `isWorkingOnEd` for ages ≤24; older persons start with `education = NONE` even though ~40% of 25–39 year-olds have a degree. This suppresses the job-education multiplier (ARD 022) during the warmup decade, understating education's effect on early Gini.
 
 **Randomize extraction order each tick**
 Persons extract from the shared pool in `living` array order, giving a structural advantage to those seeded first. Shuffle each tick using the seeded RNG. This is a live bias polluting Gini today.
@@ -147,4 +148,4 @@ Cognitive cap on stable relationships (~150 in the original argument). Distinct 
 
 Considered and rejected without rising to ARD-level discussion. Each entry: name, date dropped, one-sentence reason. Decisions formal enough to merit an ARD belong in `docs/decisions/` instead.
 
-_(none yet)_
+**Education payoff on stats** — 2026-05-16 — Implemented: ARD 021 (intelligence +1 at graduation) and ARD 022 (education multiplier on job-gain probability).
