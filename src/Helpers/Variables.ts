@@ -100,6 +100,12 @@ export default class Variables {
   /** Conditional probability of completing a PhD, given master's, for seeded adults. */
   static GRADUATION_ADULT_PHD_RATE = 0.20;
 
+  // KillEvent constants (ARD 027)
+  /** Amplifies kill-attempt probability with inequality. At Gini=0.6 (collapse threshold) with this value, attempt rate roughly doubles compared to Gini=0. */
+  static KILL_GINI_SCALAR = 1.5;
+  /** Probability of a fatal outcome when victim has constitution=1; divided by victim.constitution at execution time. */
+  static KILL_SUCCESS_BASE = 0.5;
+
   // StealEvent constants (ARD 026)
   /** Scales charisma into steal probability; small so zero-charisma persons can still steal. Charisma range 1–10 adds 5–50% above intent alone. */
   static STEAL_CHARISMA_SCALAR = 0.05;

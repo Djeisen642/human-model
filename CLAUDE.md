@@ -67,7 +67,7 @@ src/
     DisasterEvent.ts       # Population-level; run once per tick by LooperSingleton (not via IEvent)
     ExerciseEvent.ts       # Intent-gated; constitution++
     LearnEvent.ts          # Intent-gated; intelligence++
-    (one file per event)   # KillEvent, etc. — not yet implemented
+    KillEvent.ts           # Intent-gated; attempt prob = killingIntent × ageModifier × (1 + Gini × scalar); success = KILL_SUCCESS_BASE / victim.constitution
   Records/
     DeathRecord.ts         # Cause of death + optional killer reference
     KillingRecord.ts       # Victim reference + murderer's age at time of killing
@@ -148,7 +148,8 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - `ConsumptionEvent` — unconditional; children with living parents pay `resources * CONSUMPTION_CHILD_RESOURCE_RATE` (starvation cannot fire at zero while parents live); orphaned children and adults pay `CONSUMPTION_BASE * ageMultiplier` (1.0 adult, `CONSUMPTION_ELDER_MULTIPLIER` at `CONSUMPTION_ELDER_MIN_AGE`+); zero resources triggers `+STARVATION_ILLNESS_RATE` to illness, feeding `MisfortuneEvent` mortality. See ARD 024.
 - `RelationshipEvent` — unconditional; formation branch fires when unpartnered (`BASE_RELATIONSHIP_RATE * (1 + charisma * RELATIONSHIP_CHARISMA_SCALAR) * ageModifier(26, 35, 0.1)`), draws `getRandomOther()` and checks target also unpartnered, mutually assigns both fields; dissolution branch fires when partnered (`BASE_BREAKUP_RATE` flat probability), mutually clears both fields. `Simulation.kill()` also clears surviving partner's field on death. See ARD 025.
 - `StealEvent` — intent-gated; gate: `stealingIntent * (1 + charisma * STEAL_CHARISMA_SCALAR) * ageModifier(age, STEALING_PEAK_AGE, STEALING_AGE_SCALE, STEALING_AGE_FLOOR)`; selects random victim via `getRandomOther()`; no-ops if victim null or has zero resources; transfers `min(victim.resources * STEAL_FRACTION, STEAL_MAX_AMOUNT)` from victim to thief; pushes `StealingRecord`. No detection mechanic — `amountStolen` is the hook for future altruistic punishment / trust mechanics. See ARD 026.
-- `EventFactory` — unconditional `[AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, ConsumptionEvent, JobEvent, RelationshipEvent, MisfortuneEvent]` plus intent-gated `ExerciseEvent`, `LearnEvent`, and `StealEvent` via `rng() < intent * ageModifier(...)`, plus `EnrollmentEvent` and `GraduationEvent` (mutually exclusive by condition). See ARD 010, ARD 021, ARD 023, ARD 024, ARD 025, ARD 026.
+- `KillEvent` — unconditional in EventFactory (intent gate is inside `execute()` because Gini requires simulation access); attempt prob = `killingIntent * ageModifier(age, 24, 30, 0.05) * (1 + currentGini * KILL_GINI_SCALAR)`; if attempt fires, success prob = `KILL_SUCCESS_BASE / max(1, victim.constitution)`; on success calls `simulation.kill()` which creates `DeathRecord` (MURDER) and `KillingRecord`. Gini modulator is the primary collapse feedback: inequality → elevated killing → population loss → further inequality. See ARD 027.
+- `EventFactory` — unconditional `[AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, ConsumptionEvent, JobEvent, RelationshipEvent, KillEvent, MisfortuneEvent]` plus intent-gated `ExerciseEvent`, `LearnEvent`, and `StealEvent` via `rng() < intent * ageModifier(...)`, plus `EnrollmentEvent` and `GraduationEvent` (mutually exclusive by condition). See ARD 010, ARD 021, ARD 023, ARD 024, ARD 025, ARD 026, ARD 027.
 - `DeathRecord`, `KillingRecord`, `StealingRecord` data classes
 - `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `HAPPINESS_BASELINE`, `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, `ILLNESS_DEATH_SCALAR`, disaster constants, experience constants, illness constants, job constants (`JOB_GAIN_EXPERIENCE_SCALAR`, `JOB_GAIN_CHARISMA_SCALAR`, `JOB_LOSS_BASE`, `JOB_LOSS_STAT_SCALAR`, `EDUCATION_JOB_GAIN_SCALAR`), graduation constants (`BASE_GRADUATION_RATE`, `GRADUATION_HS_MAX_AGE`, `GRADUATION_COLLEGE_MAX_AGE`, `GRADUATION_HS_SEED_RATE`, `GRADUATION_COLLEGE_SEED_RATE`), enrollment constants (`BASE_ENROLLMENT_RATE`), and per-event age profile constants for all planned events including graduation and enrollment)
 - `AgeModifier.ts` — `ageModifier(age, peakAge, scale, floor)` bell-curve helper (ARD 008)
@@ -164,7 +165,6 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 Pick up here, roughly in dependency order:
 
 1. **Events** (implement roughly in this order):
-   - `KillEvent` — creates `KillingRecord` + `DeathRecord`; calls `simulation.kill()`
    - Windfall event — resource bump
    - Childbirth event — `simulation.add(new Person([p1, p2]))`; costs parents resources
    - Lying event — modifies targets' intent fields; effectiveness scaled by `charisma`

@@ -13,6 +13,7 @@ import GraduationEvent from './GraduationEvent';
 import EnrollmentEvent from './EnrollmentEvent';
 import RelationshipEvent from './RelationshipEvent';
 import StealEvent from './StealEvent';
+import KillEvent from './KillEvent';
 import { ageModifier } from '../Helpers/AgeModifier';
 import Variables from '../Helpers/Variables';
 import Constants from '../Helpers/Constants';
@@ -29,7 +30,7 @@ export default class EventFactory {
 
   /**
    * Returns the ordered list of events this person participates in this tick.
-   * Unconditional order: AgeEvent → ExperienceEvent → IllnessEvent → GatherResourcesEvent → ConsumptionEvent → JobEvent → RelationshipEvent → MisfortuneEvent.
+   * Unconditional order: AgeEvent → ExperienceEvent → IllnessEvent → GatherResourcesEvent → ConsumptionEvent → JobEvent → RelationshipEvent → KillEvent → MisfortuneEvent.
    * Intent-gated events are appended based on intent × age modifier.
    *
    * @param person - person whose intents determine event selection
@@ -44,6 +45,7 @@ export default class EventFactory {
       new ConsumptionEvent(),
       new JobEvent(this.rng),
       new RelationshipEvent(this.rng),
+      new KillEvent(this.rng),
       new MisfortuneEvent(this.rng),
     ];
 

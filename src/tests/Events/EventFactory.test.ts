@@ -9,6 +9,7 @@ import JobEvent from '../../Events/JobEvent';
 import ExerciseEvent from '../../Events/ExerciseEvent';
 import LearnEvent from '../../Events/LearnEvent';
 import StealEvent from '../../Events/StealEvent';
+import KillEvent from '../../Events/KillEvent';
 import Person from '../../App/Person';
 
 describe('EventFactory', () => {
@@ -61,12 +62,12 @@ describe('EventFactory', () => {
   });
 
   it('returns only unconditional events when all intents are zero', () => {
-    // new Person has exerciseIntent=0 and learningIntent=0; gates always fail
-    // Unconditional list: AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, ConsumptionEvent, JobEvent, RelationshipEvent, MisfortuneEvent
+    // new Person has all intents=0; intent-gated events never fire
+    // Unconditional list: AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, ConsumptionEvent, JobEvent, RelationshipEvent, KillEvent, MisfortuneEvent
     const factory = new EventFactory(() => 0.5);
     const person = new Person([]);
 
-    expect(factory.getEventsFor(person).length).toBe(8);
+    expect(factory.getEventsFor(person).length).toBe(9);
   });
 
   it('appends ExerciseEvent when exerciseIntent gate passes', () => {
@@ -123,7 +124,16 @@ describe('EventFactory', () => {
 
     expect(events.some(e => e instanceof ExerciseEvent)).toBe(true);
     expect(events.some(e => e instanceof LearnEvent)).toBe(true);
-    expect(events.length).toBe(11); // 8 unconditional + ExerciseEvent + LearnEvent + EnrollmentEvent
+    expect(events.length).toBe(12); // 9 unconditional + ExerciseEvent + LearnEvent + EnrollmentEvent
+  });
+
+  it('always includes KillEvent', () => {
+    const factory = new EventFactory(() => 0.5);
+    const person = new Person([]);
+
+    const events = factory.getEventsFor(person);
+
+    expect(events.some(e => e instanceof KillEvent)).toBe(true);
   });
 
   describe('StealEvent gate', () => {
