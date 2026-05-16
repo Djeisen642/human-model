@@ -126,13 +126,14 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - `ExperienceEvent` — unconditional; experience growth/decay each tick with childhood attenuation, intelligence fade via learning curve, and activity bonuses/penalties. Clamped to `[0, EXPERIENCE_CAP]`. See ARD 017.
 - `IllnessEvent` — unconditional; independent onset and recovery rolls each tick; severity clamped to `[0, 1]`. Onset scales with age and falls with constitution; recovery the inverse. See ARD 018.
 - `GatherResourcesEvent` — unconditional; `extracted = min(experience * (BASE_GATHER_AMOUNT + intelligence * INTELLIGENCE_GATHER_SCALAR), pool / extractionEfficiency)`; pool loses `extracted * extractionEfficiency`. See ARD 011.
+- `JobEvent` — unconditional; gain branch fires when unemployed (`gainProb = (experience * JOB_GAIN_EXPERIENCE_SCALAR + charisma * JOB_GAIN_CHARISMA_SCALAR) * ageModifier(...)`); loss branch fires when employed (`lossProb = JOB_LOSS_BASE + JOB_LOSS_STAT_SCALAR / (experience+1) / (charisma+1)`). Uses work age profile. See ARD 020.
 - `MisfortuneEvent` — unconditional; illness death (`illness * ILLNESS_DEATH_SCALAR * ageMortalityModifier`, zero when illness=0) then suicide (`SUICIDE_PROBABILITY_SCALE / (happiness + 1)`); first cause wins. See ARD 019 (supersedes ARD 013).
 - `DisasterEvent` — population-level, run once per tick in `LooperSingleton` (does not implement `IEvent`); probabilistic trigger (`DISASTER_PROBABILITY`), random subset of living up to `DISASTER_MAX_AFFECTED_FRACTION`, kill check (`DISASTER_KILL_BASE * ageMortalityModifier / constitution`), resource loss fraction in `[DISASTER_MIN_LOSS_FRACTION, DISASTER_MAX_LOSS_FRACTION]`. See ARD 012.
 - `ExerciseEvent` — intent-gated; `constitution++`. Wired in `EventFactory` with exercise age profile.
 - `LearnEvent` — intent-gated; `intelligence++`. Wired in `EventFactory` with learning age profile.
-- `EventFactory` — unconditional `[AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, MisfortuneEvent]` plus intent-gated `ExerciseEvent` and `LearnEvent` via `rng() < intent * ageModifier(...)`. See ARD 010.
+- `EventFactory` — unconditional `[AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, JobEvent, MisfortuneEvent]` plus intent-gated `ExerciseEvent` and `LearnEvent` via `rng() < intent * ageModifier(...)`. See ARD 010.
 - `DeathRecord`, `KillingRecord`, `StealingRecord` data classes
-- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `HAPPINESS_BASELINE`, `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, `ILLNESS_DEATH_SCALAR`, disaster constants, experience constants (`BASE_EXPERIENCE_GROWTH`, `EXPERIENCE_CAP`, idleness/activity bonuses, etc.), illness constants (`BASE_ILLNESS_ONSET`, `BASE_ILLNESS_RECOVERY`, `ILLNESS_ONSET_AMOUNT`, `ILLNESS_RECOVERY_AMOUNT`, `ILLNESS_AGE_RISK_DIVISOR`), and per-event age profile constants for all planned events)
+- `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `HAPPINESS_BASELINE`, `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, `ILLNESS_DEATH_SCALAR`, disaster constants, experience constants, illness constants, job constants (`JOB_GAIN_EXPERIENCE_SCALAR`, `JOB_GAIN_CHARISMA_SCALAR`, `JOB_LOSS_BASE`, `JOB_LOSS_STAT_SCALAR`), and per-event age profile constants for all planned events)
 - `AgeModifier.ts` — `ageModifier(age, peakAge, scale, floor)` bell-curve helper (ARD 008)
 - `TickSnapshot` observability: population, per-tick and cumulative death counts by cause (murder/illness/disaster/suicide/old age), `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`
 - `Reporters.ts` — `buildTenYearSummary(window, endTick, startPopulation)`, `formatDecadeSummary`, `formatSimulationHeader`, `formatEndReport`, `classifyOutcome`. All pure; no I/O. See ARD 015, ARD 016.
@@ -146,7 +147,6 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 Pick up here, roughly in dependency order:
 
 1. **Events** (implement roughly in this order):
-   - Job gain/loss event
    - Graduation event — `isWorkingOnEd` → `education`
    - Relationship event — sets `isInRelationshipWith`
    - `StealEvent` — resource transfer; creates `StealingRecord`

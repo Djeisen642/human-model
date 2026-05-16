@@ -64,6 +64,16 @@ export default class Variables {
   /** Maximum experience a person can hold; prevents centenarian extraction dominance. */
   static EXPERIENCE_CAP = 50;
 
+  // JobEvent constants (ARD 020)
+  /** Contribution of each point of experience to the per-tick job-gain probability. */
+  static JOB_GAIN_EXPERIENCE_SCALAR = 0.03;
+  /** Contribution of each point of charisma to the per-tick job-gain probability. */
+  static JOB_GAIN_CHARISMA_SCALAR = 0.05;
+  /** Flat per-tick probability of losing a job regardless of stats. */
+  static JOB_LOSS_BASE = 0.02;
+  /** Scales the stat-inverse term added to the flat job-loss rate; penalises low experience and charisma. */
+  static JOB_LOSS_STAT_SCALAR = 0.5;
+
   // Per-event age profile constants — used by EventFactory via ageModifier()
   static CHILDBIRTH_PEAK_AGE = 26;
   static CHILDBIRTH_AGE_SCALE = 12;
