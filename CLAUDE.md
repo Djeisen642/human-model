@@ -30,12 +30,22 @@ git push origin master
 ## Commands
 
 ```bash
-npm install          # install deps (node_modules not committed)
-npm test             # run jest suite (npx jest, config at src/jest.config.js)
-npm run build        # rimraf ./build && tsc
-npm run lint         # eslint over .ts files
-npm run start:dev    # nodemon (watches src/, runs ts-node src/index.ts)
+npm install              # install deps (node_modules not committed)
+npm test                 # run jest suite (npx jest, config at src/jest.config.js)
+npm run build            # rimraf ./build && tsc
+npm run lint             # eslint over .ts files
+npm run start:dev        # nodemon (watches src/, runs ts-node src/index.ts)
+npm run generate-config  # writes config.default.json from Variables.ts (gitignored)
 ```
+
+### CLI flags (entry point)
+
+```bash
+npx ts-node src/App/index.ts [--config path/to/config.json] [--output path/to/dir]
+```
+
+- `--config` — JSON file that deep-merges over defaults; only changed keys needed. Run `npm run generate-config` to get a full reference file (`config.default.json`) with all available keys (`simulation.persons/ticks/seed` + every `Variables` constant). That file is gitignored — it's generated, not maintained.
+- `--output` — directory to write HTML reports into (default: `./output`). Created if absent. Kept separate from `--config` so batch/concurrent tooling can vary the output dir without touching the variable config.
 
 ## Architecture
 
