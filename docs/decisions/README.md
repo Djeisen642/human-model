@@ -129,3 +129,5 @@ When in doubt:
 | [018](./018-illness-live-state.md) | Illness as Live State | Accepted |
 | [019](./019-misfortune-illness-death-revision.md) | MisfortuneEvent Revision | Accepted |
 | [020](./020-job-event.md) | Job Gain and Loss | Accepted |
+| [021](./021-graduation-event.md) | Graduation Event | Proposed |
+| [022](./022-job-education-multiplier.md) | Job Event Education Multiplier | Proposed |
