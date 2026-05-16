@@ -123,3 +123,4 @@ dist
 # custom
 build/
 output/
+config.default.json
