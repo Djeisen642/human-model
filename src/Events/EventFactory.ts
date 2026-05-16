@@ -9,6 +9,7 @@ import JobEvent from './JobEvent';
 import ExerciseEvent from './ExerciseEvent';
 import LearnEvent from './LearnEvent';
 import GraduationEvent from './GraduationEvent';
+import EnrollmentEvent from './EnrollmentEvent';
 import { ageModifier } from '../Helpers/AgeModifier';
 import Variables from '../Helpers/Variables';
 import Constants from '../Helpers/Constants';
@@ -47,6 +48,14 @@ export default class EventFactory {
 
     if (this.rng() < person.learningIntent * ageModifier(person.age, Variables.LEARNING_PEAK_AGE, Variables.LEARNING_AGE_SCALE, Variables.LEARNING_AGE_FLOOR)) {
       events.push(new LearnEvent());
+    }
+
+    if (person.isWorkingOnEd === Constants.EDUCATION.NONE
+      && person.education < Constants.EDUCATION.PHD
+      && this.rng() < Variables.BASE_ENROLLMENT_RATE
+        * person.learningIntent
+        * ageModifier(person.age, Variables.ENROLLMENT_PEAK_AGE, Variables.ENROLLMENT_AGE_SCALE, Variables.ENROLLMENT_AGE_FLOOR)) {
+      events.push(new EnrollmentEvent());
     }
 
     if (person.isWorkingOnEd !== Constants.EDUCATION.NONE

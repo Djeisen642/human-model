@@ -76,6 +76,10 @@ export default class Variables {
   /** Multiplicative bonus per education tier on job-gain probability. At BACHELORS (3): ×1.45. Calibration placeholder. */
   static EDUCATION_JOB_GAIN_SCALAR = 0.15;
 
+  // EnrollmentEvent constants (ARD 023)
+  /** Per-tick probability ceiling for a person to enroll in the next education level; scaled by learningIntent and ageModifier. Calibrated so peak-age adults enroll at ~2–3% per tick, matching empirical adult enrollment flow. */
+  static BASE_ENROLLMENT_RATE = 0.05;
+
   // GraduationEvent constants (ARD 021)
   /** Per-tick graduation probability for an enrolled person at peak age. Yields a 5-tick average completion time. */
   static BASE_GRADUATION_RATE = 0.2;
@@ -132,6 +136,10 @@ export default class Variables {
   static GRADUATION_PEAK_AGE = 22;
   static GRADUATION_AGE_SCALE = 30;
   static GRADUATION_AGE_FLOOR = 0.15;
+
+  static ENROLLMENT_PEAK_AGE = 22;
+  static ENROLLMENT_AGE_SCALE = 40;
+  static ENROLLMENT_AGE_FLOOR = 0.05;
 
   // Outcome classification thresholds (ARD 016)
   /** Final-decade avg Gini at or above this → COLLAPSE. */
