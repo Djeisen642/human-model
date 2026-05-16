@@ -63,6 +63,9 @@ Illness currently affects only mortality and happiness. Adding `potential *= (1 
 
 ### Behavioral feedback (research-grounded)
 
+**Stress-weighted dissolution**
+`BASE_BREAKUP_RATE` in ARD 025 is flat because there is no calibration anchor for how much of the empirical 3%/yr rate is baseline vs. economically-driven. Economic stress and financial disagreement are the strongest documented predictors of real-world partnership dissolution. A Gini- or resource-relative term would create a direct feedback loop: high inequality → more breakups → lower happiness → higher MisfortuneEvent mortality. Add once the flat-rate model produces enough sim data to observe whether dissolution rates actually correlate with Gini runs.
+
 **Loss aversion in intent updates (Kahneman & Tversky)**
 Losses weigh ~2× gains of equal size. When `resources` drops, antisocial intents should rise faster than they fall when resources recover. The model has no stat→intent feedback today — adding it asymmetrically is empirically right and a strong collapse driver.
 
