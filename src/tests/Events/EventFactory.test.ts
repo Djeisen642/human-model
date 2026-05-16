@@ -8,6 +8,7 @@ import MisfortuneEvent from '../../Events/MisfortuneEvent';
 import JobEvent from '../../Events/JobEvent';
 import ExerciseEvent from '../../Events/ExerciseEvent';
 import LearnEvent from '../../Events/LearnEvent';
+import StealEvent from '../../Events/StealEvent';
 import Person from '../../App/Person';
 
 describe('EventFactory', () => {
@@ -123,5 +124,30 @@ describe('EventFactory', () => {
     expect(events.some(e => e instanceof ExerciseEvent)).toBe(true);
     expect(events.some(e => e instanceof LearnEvent)).toBe(true);
     expect(events.length).toBe(11); // 8 unconditional + ExerciseEvent + LearnEvent + EnrollmentEvent
+  });
+
+  describe('StealEvent gate', () => {
+    it('does not append StealEvent when stealingIntent is zero', () => {
+      const factory = new EventFactory(() => 0);
+      const person = new Person([]);
+      // stealingIntent defaults to 0; gate: 0 < 0 * ... = false regardless of rng
+
+      const events = factory.getEventsFor(person);
+
+      expect(events.some(e => e instanceof StealEvent)).toBe(false);
+    });
+
+    it('appends StealEvent at high frequency when stealingIntent is 1 and charisma is 10 at peak age', () => {
+      // rng=0 always passes the gate; verify StealEvent is included
+      const factory = new EventFactory(() => 0);
+      const person = new Person([]);
+      person.stealingIntent = 1.0;
+      person.charisma = 10;
+      person.age = 24; // STEALING_PEAK_AGE → ageModifier near 1.0
+
+      const events = factory.getEventsFor(person);
+
+      expect(events.some(e => e instanceof StealEvent)).toBe(true);
+    });
   });
 });

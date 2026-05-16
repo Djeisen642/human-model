@@ -12,6 +12,7 @@ import LearnEvent from './LearnEvent';
 import GraduationEvent from './GraduationEvent';
 import EnrollmentEvent from './EnrollmentEvent';
 import RelationshipEvent from './RelationshipEvent';
+import StealEvent from './StealEvent';
 import { ageModifier } from '../Helpers/AgeModifier';
 import Variables from '../Helpers/Variables';
 import Constants from '../Helpers/Constants';
@@ -66,6 +67,13 @@ export default class EventFactory {
       && this.rng() < Variables.BASE_GRADUATION_RATE
         * ageModifier(person.age, Variables.GRADUATION_PEAK_AGE, Variables.GRADUATION_AGE_SCALE, Variables.GRADUATION_AGE_FLOOR)) {
       events.push(new GraduationEvent());
+    }
+
+    const stealProb = person.stealingIntent
+      * (1 + person.charisma * Variables.STEAL_CHARISMA_SCALAR)
+      * ageModifier(person.age, Variables.STEALING_PEAK_AGE, Variables.STEALING_AGE_SCALE, Variables.STEALING_AGE_FLOOR);
+    if (this.rng() < stealProb) {
+      events.push(new StealEvent(this.rng));
     }
 
     return events;

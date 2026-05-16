@@ -135,3 +135,4 @@ When in doubt:
 | [023](./023-enrollment-event.md) | Enrollment Event | Accepted |
 | [024](./024-consumption-event.md) | Resource Consumption | Accepted |
 | [025](./025-relationship-event.md) | RelationshipEvent | Accepted |
+| [026](./026-steal-event.md) | StealEvent | Proposed |
