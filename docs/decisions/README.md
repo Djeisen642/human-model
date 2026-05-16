@@ -134,3 +134,4 @@ When in doubt:
 | [022](./022-job-education-multiplier.md) | Job Event Education Multiplier | Accepted |
 | [023](./023-enrollment-event.md) | Enrollment Event | Accepted |
 | [024](./024-consumption-event.md) | Resource Consumption | Accepted |
+| [025](./025-relationship-event.md) | RelationshipEvent | Proposed |
