@@ -33,8 +33,8 @@ New constants in `Variables.ts` (all calibration placeholders):
 
 | Constant | Value | Rationale |
 |---|---|---|
-| `JOB_GAIN_EXPERIENCE_SCALAR` | `0.01` | At experience=25 contributes 0.25 to gain prob; high baseline |
-| `JOB_GAIN_CHARISMA_SCALAR` | `0.02` | At charisma=5 contributes 0.10; social skill matters more per unit |
+| `JOB_GAIN_EXPERIENCE_SCALAR` | `0.03` | At experience=20 contributes 0.60 to gain prob; calibrated so typical working-age adults find a job within 1–5 ticks |
+| `JOB_GAIN_CHARISMA_SCALAR` | `0.05` | At charisma=5 contributes 0.25; social skill matters more per unit |
 | `JOB_LOSS_BASE` | `0.02` | ~2% flat loss rate per tick; models random economic shocks |
 | `JOB_LOSS_STAT_SCALAR` | `0.5` | At avg stats (~25 exp, ~5 cha) adds ~0.003; at low stats (1,1) adds ~0.125 |
 
