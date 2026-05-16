@@ -284,6 +284,31 @@ describe('Simulation', () => {
         });
     });
 
+    it('most persons aged > GRADUATION_COLLEGE_MAX_AGE have non-NONE education', () => {
+      const sim = new Simulation();
+      sim.seed(500, new SeededRandom(99).asRNG());
+      const adults = sim.getLiving().filter(p => p.age > Variables.GRADUATION_COLLEGE_MAX_AGE);
+      const educated = adults.filter(p => p.education !== Constants.EDUCATION.NONE);
+      expect(educated.length).toBeGreaterThan(adults.length * 0.5);
+    });
+
+    it('persons aged > GRADUATION_COLLEGE_MAX_AGE only have valid completed education levels', () => {
+      const sim = new Simulation();
+      sim.seed(500, new SeededRandom(99).asRNG());
+      const validLevels = [
+        Constants.EDUCATION.NONE,
+        Constants.EDUCATION.HIGH_SCHOOL,
+        Constants.EDUCATION.BACHELORS,
+        Constants.EDUCATION.MASTERS,
+        Constants.EDUCATION.PHD,
+      ];
+      sim.getLiving()
+        .filter(p => p.age > Variables.GRADUATION_COLLEGE_MAX_AGE)
+        .forEach(p => {
+          expect(validLevels).toContain(p.education);
+        });
+    });
+
     it('persons aged <= GRADUATION_HS_MAX_AGE are never seeded with BACHELORS enrollment', () => {
       const sim = new Simulation();
       sim.seed(200, Math.random);
