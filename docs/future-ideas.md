@@ -24,6 +24,9 @@ The current event set is extractive or destructive. `helpsPeople` exists but no 
 **Reputation / trust effects**
 Victimization is recorded but has no behavioral consequence on the victim. Without a feedback loop, antisocial behavior can't degrade social cohesion. (The "Generalized trust" version below subsumes this — pick one.)
 
+**Seed `education` for persons over 24**
+`Simulation.seed()` only seeds `isWorkingOnEd` for ages ≤24; older persons start with `education = NONE` even though ~40% of 25–39 year-olds have a degree. This suppresses the job-education multiplier (ARD 022) during the warmup decade, understating education's effect on early Gini.
+
 **Randomize extraction order each tick**
 Persons extract from the shared pool in `living` array order, giving a structural advantage to those seeded first. Shuffle each tick using the seeded RNG. This is a live bias polluting Gini today.
 
