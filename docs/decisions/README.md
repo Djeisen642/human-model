@@ -133,3 +133,4 @@ When in doubt:
 | [021](./021-graduation-event.md) | Graduation Event | Accepted |
 | [022](./022-job-education-multiplier.md) | Job Event Education Multiplier | Accepted |
 | [023](./023-enrollment-event.md) | Enrollment Event | Accepted |
+| [024](./024-consumption-event.md) | Resource Consumption | Proposed |
