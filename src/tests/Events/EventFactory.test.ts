@@ -124,7 +124,7 @@ describe('EventFactory', () => {
 
     expect(events.some(e => e instanceof ExerciseEvent)).toBe(true);
     expect(events.some(e => e instanceof LearnEvent)).toBe(true);
-    expect(events.length).toBe(12); // 9 unconditional + ExerciseEvent + LearnEvent + EnrollmentEvent
+    expect(events.length).toBe(13); // 9 unconditional + ExerciseEvent + LearnEvent + EnrollmentEvent + WindfallEvent
   });
 
   it('always includes KillEvent', () => {

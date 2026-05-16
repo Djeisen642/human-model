@@ -14,6 +14,7 @@ import EnrollmentEvent from './EnrollmentEvent';
 import RelationshipEvent from './RelationshipEvent';
 import StealEvent from './StealEvent';
 import KillEvent from './KillEvent';
+import WindfallEvent from './WindfallEvent';
 import { ageModifier } from '../Helpers/AgeModifier';
 import Variables from '../Helpers/Variables';
 import Constants from '../Helpers/Constants';
@@ -69,6 +70,11 @@ export default class EventFactory {
       && this.rng() < Variables.BASE_GRADUATION_RATE
         * ageModifier(person.age, Variables.GRADUATION_PEAK_AGE, Variables.GRADUATION_AGE_SCALE, Variables.GRADUATION_AGE_FLOOR)) {
       events.push(new GraduationEvent());
+    }
+
+    if (this.rng() < Variables.BASE_WINDFALL_RATE
+      * ageModifier(person.age, Variables.WINDFALL_PEAK_AGE, Variables.WINDFALL_AGE_SCALE, Variables.WINDFALL_AGE_FLOOR)) {
+      events.push(new WindfallEvent(this.rng));
     }
 
     const stealProb = person.stealingIntent
