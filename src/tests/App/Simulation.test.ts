@@ -90,6 +90,21 @@ describe('Simulation', () => {
       expect(killer.killed.get(victim)?.person).toBe(victim);
     });
 
+    it('should clear the surviving partner\'s isInRelationshipWith when a partnered person is killed', () => {
+      const sim = new Simulation();
+      const person = new Person([]);
+      const partner = new Person([]);
+      person.isInRelationshipWith = partner;
+      partner.isInRelationshipWith = person;
+      sim.add(person);
+      sim.add(partner);
+
+      sim.kill(person, Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      expect(partner.isInRelationshipWith).toBeNull();
+      expect(person.isInRelationshipWith).toBeNull();
+    });
+
     it('should record the death cause for snapshot', () => {
       const sim = new Simulation();
       const p1 = new Person([]);

@@ -147,6 +147,14 @@ export default class Variables {
   static RELATIONSHIP_AGE_SCALE = 35;
   static RELATIONSHIP_AGE_FLOOR = 0.1;
 
+  // RelationshipEvent constants (ARD 025)
+  /** Base per-tick formation probability before charisma and age scaling. At peak age with median charisma (5), yields ~8% formation rate. */
+  static BASE_RELATIONSHIP_RATE = 0.12;
+  /** Multiplies charisma (1–10) into formation probability; range 1.06–1.60. */
+  static RELATIONSHIP_CHARISMA_SCALAR = 0.06;
+  /** Flat per-tick probability that an existing relationship dissolves. Calibrated to ~40% lifetime dissolution at ~8yr average. */
+  static BASE_BREAKUP_RATE = 0.03;
+
   static INVENTION_PEAK_AGE = 40;
   static INVENTION_AGE_SCALE = 45;
   static INVENTION_AGE_FLOOR = 0.1;

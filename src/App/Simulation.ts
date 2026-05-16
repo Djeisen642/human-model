@@ -98,6 +98,10 @@ export default class Simulation {
    * @param killer - murderer, required when cause is MURDER
    */
   kill(person: Person, cause: number, killer?: Person): void {
+    if (person.isInRelationshipWith !== null) {
+      person.isInRelationshipWith.isInRelationshipWith = null;
+      person.isInRelationshipWith = null;
+    }
     person.causeOfDeath = new DeathRecord(cause, killer);
     if (cause === Constants.CAUSE_OF_DEATH.MURDER && killer) {
       killer.killed.set(person, new KillingRecord(person, killer.age));
