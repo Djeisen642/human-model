@@ -137,3 +137,4 @@ When in doubt:
 | [025](./025-relationship-event.md) | RelationshipEvent | Accepted |
 | [026](./026-steal-event.md) | StealEvent | Proposed |
 | [027](./027-kill-event.md) | KillEvent | Accepted |
+| [028](./028-windfall-event.md) | WindfallEvent | Accepted |

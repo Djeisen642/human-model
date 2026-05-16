@@ -100,6 +100,14 @@ export default class Variables {
   /** Conditional probability of completing a PhD, given master's, for seeded adults. */
   static GRADUATION_ADULT_PHD_RATE = 0.20;
 
+  // WindfallEvent constants (ARD 028)
+  /** Per-tick base probability of a windfall at peak age; ~3% annually, consistent with SCF/HRS inheritance prevalence. */
+  static BASE_WINDFALL_RATE = 0.03;
+  /** Minimum resources added per windfall; floor of the uniform draw. */
+  static WINDFALL_BASE_AMOUNT = 5;
+  /** Width of the uniform draw above the base; controls spread of windfall sizes. */
+  static WINDFALL_VARIANCE = 15;
+
   // KillEvent constants (ARD 027)
   /** Amplifies kill-attempt probability with inequality. At Gini=0.6 (collapse threshold) with this value, attempt rate roughly doubles compared to Gini=0. */
   static KILL_GINI_SCALAR = 1.5;
@@ -168,6 +176,10 @@ export default class Variables {
   static RELATIONSHIP_CHARISMA_SCALAR = 0.06;
   /** Flat per-tick probability that an existing relationship dissolves. Calibrated to ~40% lifetime dissolution at ~8yr average. */
   static BASE_BREAKUP_RATE = 0.03;
+
+  static WINDFALL_PEAK_AGE = 58;
+  static WINDFALL_AGE_SCALE = 20;
+  static WINDFALL_AGE_FLOOR = 0.05;
 
   static INVENTION_PEAK_AGE = 40;
   static INVENTION_AGE_SCALE = 45;
