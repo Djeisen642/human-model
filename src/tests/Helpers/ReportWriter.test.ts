@@ -16,56 +16,32 @@ describe('writeReportHTML', () => {
   });
 
   it('writes an HTML file to the output directory', () => {
-    const originalCwd = process.cwd;
-    process.cwd = () => tmpDir;
+    const simulation = LooperSingleton.getInstance().start(10, 10, 1, () => {});
+    writeReportHTML(simulation, 10, 10, 1, tmpDir);
 
-    try {
-      const simulation = LooperSingleton.getInstance().start(10, 10, 1, () => {});
-      writeReportHTML(simulation, 10, 10, 1);
-
-      const outputDir = path.join(tmpDir, 'output');
-      expect(fs.existsSync(outputDir)).toBe(true);
-
-      const files = fs.readdirSync(outputDir);
-      expect(files.length).toBe(1);
-      expect(files[0]).toMatch(/^report-1-.+\.html$/);
-    } finally {
-      process.cwd = originalCwd;
-    }
+    const files = fs.readdirSync(tmpDir);
+    expect(files.length).toBe(1);
+    expect(files[0]).toMatch(/^report-1-.+\.html$/);
   });
 
   it('creates a self-contained HTML file with Chart.js script tag and embedded data', () => {
-    const originalCwd = process.cwd;
-    process.cwd = () => tmpDir;
+    const simulation = LooperSingleton.getInstance().start(10, 10, 1, () => {});
+    writeReportHTML(simulation, 10, 10, 1, tmpDir);
 
-    try {
-      const simulation = LooperSingleton.getInstance().start(10, 10, 1, () => {});
-      writeReportHTML(simulation, 10, 10, 1);
+    const filename = fs.readdirSync(tmpDir)[0];
+    const content = fs.readFileSync(path.join(tmpDir, filename), 'utf8');
 
-      const outputDir = path.join(tmpDir, 'output');
-      const filename = fs.readdirSync(outputDir)[0];
-      const content = fs.readFileSync(path.join(outputDir, filename), 'utf8');
-
-      expect(content).toContain('<!DOCTYPE html>');
-      expect(content).toContain('chart.js');
-      expect(content).toContain('"seed":1');
-      expect(content).toContain('<canvas');
-    } finally {
-      process.cwd = originalCwd;
-    }
+    expect(content).toContain('<!DOCTYPE html>');
+    expect(content).toContain('chart.js');
+    expect(content).toContain('"seed":1');
+    expect(content).toContain('<canvas');
   });
 
   it('creates the output directory if it does not exist', () => {
-    const originalCwd = process.cwd;
-    process.cwd = () => tmpDir;
+    const nestedDir = path.join(tmpDir, 'nested', 'output');
+    const simulation = LooperSingleton.getInstance().start(10, 10, 2, () => {});
+    writeReportHTML(simulation, 10, 10, 2, nestedDir);
 
-    try {
-      const simulation = LooperSingleton.getInstance().start(10, 10, 2, () => {});
-      writeReportHTML(simulation, 10, 10, 2);
-
-      expect(fs.existsSync(path.join(tmpDir, 'output'))).toBe(true);
-    } finally {
-      process.cwd = originalCwd;
-    }
+    expect(fs.existsSync(nestedDir)).toBe(true);
   });
 });

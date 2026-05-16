@@ -4,7 +4,7 @@ import Simulation from '../App/Simulation';
 import { classifyOutcome, formatEndReport } from './Reporters';
 
 /**
- * Writes a self-contained HTML report to ./output/report-<seed>-<outcome>-<timestamp>.html.
+ * Writes a self-contained HTML report to <outputDir>/report-<seed>-<outcome>-<timestamp>.html.
  * Creates the output directory if it does not exist.
  * All chart data is embedded inline; Chart.js is loaded from CDN at view time.
  *
@@ -12,11 +12,12 @@ import { classifyOutcome, formatEndReport } from './Reporters';
  * @param n - initial population size
  * @param ticks - total ticks simulated
  * @param seed - PRNG seed
+ * @param outputDir - directory to write the report into; defaults to ./output
  */
-export function writeReportHTML(simulation: Simulation, n: number, ticks: number, seed: number): void {
-  const outputDir = path.resolve(process.cwd(), 'output');
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+export function writeReportHTML(simulation: Simulation, n: number, ticks: number, seed: number, outputDir?: string): void {
+  const resolvedOutputDir = outputDir ?? path.resolve(process.cwd(), 'output');
+  if (!fs.existsSync(resolvedOutputDir)) {
+    fs.mkdirSync(resolvedOutputDir, { recursive: true });
   }
 
   const decadeHistory = simulation.decadeHistory;
@@ -26,7 +27,7 @@ export function writeReportHTML(simulation: Simulation, n: number, ticks: number
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const filename = `report-${seed}-${outcome}-${timestamp}.html`;
-  const filepath = path.join(outputDir, filename);
+  const filepath = path.join(resolvedOutputDir, filename);
 
   const html = buildHTML(simulation, n, ticks, seed, outcome);
   fs.writeFileSync(filepath, html, 'utf8');
