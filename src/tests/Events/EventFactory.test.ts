@@ -120,6 +120,6 @@ describe('EventFactory', () => {
 
     expect(events.some(e => e instanceof ExerciseEvent)).toBe(true);
     expect(events.some(e => e instanceof LearnEvent)).toBe(true);
-    expect(events.length).toBe(8);
+    expect(events.length).toBe(9); // 6 unconditional + ExerciseEvent + LearnEvent + EnrollmentEvent
   });
 });
