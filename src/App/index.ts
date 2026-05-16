@@ -45,7 +45,7 @@ if (config.variables) {
       console.warn(`Config: variable "${key}" must be a number, got ${typeof value}, skipping.`);
       continue;
     }
-    (Variables as unknown as Record<string, number>)[key] = value;
+    Object.assign(Variables, { [key]: value });
   }
 }
 
