@@ -100,6 +100,20 @@ export default class Variables {
   /** Conditional probability of completing a PhD, given master's, for seeded adults. */
   static GRADUATION_ADULT_PHD_RATE = 0.20;
 
+  // ConsumptionEvent constants (ARD 024)
+  /** Resources consumed per tick by a working-age adult. Calibrated so a median gatherer covers costs without long-term depletion. */
+  static CONSUMPTION_BASE = 1.0;
+  /** Age below which a person is treated as a child for consumption purposes (exclusive). */
+  static CONSUMPTION_CHILD_MAX_AGE = 15;
+  /** Fraction of own resources consumed per tick by a child with at least one living parent. */
+  static CONSUMPTION_CHILD_RESOURCE_RATE = 0.02;
+  /** Age at or above which the elder multiplier applies. */
+  static CONSUMPTION_ELDER_MIN_AGE = 65;
+  /** Scalar on CONSUMPTION_BASE for elderly persons. */
+  static CONSUMPTION_ELDER_MULTIPLIER = 1.5;
+  /** Illness severity added per tick when resources reach 0 after deduction. */
+  static STARVATION_ILLNESS_RATE = 0.25;
+
   // Per-event age profile constants — used by EventFactory via ageModifier()
   static CHILDBIRTH_PEAK_AGE = 26;
   static CHILDBIRTH_AGE_SCALE = 12;
