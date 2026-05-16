@@ -3,6 +3,7 @@ import SeededRandom from '../Helpers/SeededRandom';
 import EventFactory from '../Events/EventFactory';
 import DisasterEvent from '../Events/DisasterEvent';
 import { buildTenYearSummary, formatDecadeSummary, formatSimulationHeader } from '../Helpers/Reporters';
+import { RNG } from '../Helpers/Types';
 
 export default class LooperSingleton {
   private static instance: LooperSingleton;
@@ -31,6 +32,7 @@ export default class LooperSingleton {
       simulation.regenerate();
       disaster.execute(simulation);
       const living = simulation.getLiving();
+      shuffleInPlace(living, rng);
       for (const person of living) {
         for (const event of factory.getEventsFor(person)) {
           if (person.causeOfDeath !== null) break;
@@ -62,5 +64,19 @@ export default class LooperSingleton {
     }
 
     return LooperSingleton.instance;
+  }
+}
+
+/**
+ * Fisher-Yates in-place shuffle using the seeded RNG so extraction order
+ * doesn't systematically favour persons added earliest to the population.
+ *
+ * @param arr - array to shuffle in place
+ * @param rng - seeded random number source
+ */
+function shuffleInPlace<T>(arr: T[], rng: RNG): void {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
 }

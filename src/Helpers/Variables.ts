@@ -91,6 +91,14 @@ export default class Variables {
   static GRADUATION_HS_SEED_RATE = 0.7;
   /** Probability that a seeded person aged 18–GRADUATION_COLLEGE_MAX_AGE is enrolled in college. */
   static GRADUATION_COLLEGE_SEED_RATE = 0.4;
+  /** Probability that a seeded adult (age > GRADUATION_COLLEGE_MAX_AGE) has completed high school. */
+  static GRADUATION_ADULT_HS_RATE = 0.85;
+  /** Conditional probability of completing a bachelor's degree, given high school, for seeded adults. */
+  static GRADUATION_ADULT_BACHELORS_RATE = 0.40;
+  /** Conditional probability of completing a master's degree, given bachelor's, for seeded adults. */
+  static GRADUATION_ADULT_MASTERS_RATE = 0.25;
+  /** Conditional probability of completing a PhD, given master's, for seeded adults. */
+  static GRADUATION_ADULT_PHD_RATE = 0.20;
 
   // Per-event age profile constants — used by EventFactory via ageModifier()
   static CHILDBIRTH_PEAK_AGE = 26;

@@ -140,6 +140,19 @@ export default class Simulation {
         if (rng() < Variables.GRADUATION_COLLEGE_SEED_RATE) {
           person.isWorkingOnEd = Constants.EDUCATION.BACHELORS;
         }
+      } else {
+        if (rng() < Variables.GRADUATION_ADULT_HS_RATE) {
+          person.education = Constants.EDUCATION.HIGH_SCHOOL;
+          if (rng() < Variables.GRADUATION_ADULT_BACHELORS_RATE) {
+            person.education = Constants.EDUCATION.BACHELORS;
+            if (rng() < Variables.GRADUATION_ADULT_MASTERS_RATE) {
+              person.education = Constants.EDUCATION.MASTERS;
+              if (rng() < Variables.GRADUATION_ADULT_PHD_RATE) {
+                person.education = Constants.EDUCATION.PHD;
+              }
+            }
+          }
+        }
       }
       person.resources = randomInt(rng, 0, 100);
       person.experience = randomInt(rng, 0, Math.min(person.age, Variables.EXPERIENCE_CAP) + 1);
