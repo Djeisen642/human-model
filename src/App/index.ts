@@ -10,6 +10,7 @@ interface SimConfig {
   variables?: Record<string, unknown>;
 }
 
+/** Parses --config and --output from process.argv. */
 function parseArgs(): { configPath?: string; outputDir?: string } {
   const args = process.argv.slice(2);
   let configPath: string | undefined;
