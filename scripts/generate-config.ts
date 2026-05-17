@@ -17,5 +17,4 @@ const config = {
 
 const outPath = path.resolve(__dirname, '..', 'config.default.json');
 fs.writeFileSync(outPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
-// eslint-disable-next-line no-console
 console.log(`Written: ${outPath}`);
