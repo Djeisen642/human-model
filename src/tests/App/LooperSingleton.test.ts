@@ -47,10 +47,39 @@ describe('LooperSingleton', () => {
     expect(sim.decadeHistory[2].endTick).toBe(30);
   });
 
-  it('produces no decadeHistory for runs shorter than 10 ticks', () => {
+  it('produces a single partial-decade summary for runs shorter than 10 ticks (ARD 031)', () => {
     const looper = LooperSingleton.getInstance();
 
     const sim = looper.start(10, 9, 1, silent);
+
+    expect(sim.decadeHistory).toHaveLength(1);
+    expect(sim.decadeHistory[0].endTick).toBe(9);
+  });
+
+  it('appends a partial-decade summary when ticks is not a multiple of 10 (ARD 031)', () => {
+    const looper = LooperSingleton.getInstance();
+
+    const sim = looper.start(20, 25, 1, silent);
+
+    expect(sim.decadeHistory).toHaveLength(3);
+    expect(sim.decadeHistory[0].endTick).toBe(10);
+    expect(sim.decadeHistory[1].endTick).toBe(20);
+    expect(sim.decadeHistory[2].endTick).toBe(25);
+  });
+
+  it('does not append a partial-decade summary when ticks is a multiple of 10', () => {
+    const looper = LooperSingleton.getInstance();
+
+    const sim = looper.start(20, 20, 1, silent);
+
+    expect(sim.decadeHistory).toHaveLength(2);
+    expect(sim.decadeHistory[1].endTick).toBe(20);
+  });
+
+  it('produces no decadeHistory for 0-tick runs', () => {
+    const looper = LooperSingleton.getInstance();
+
+    const sim = looper.start(10, 0, 1, silent);
 
     expect(sim.decadeHistory).toHaveLength(0);
   });

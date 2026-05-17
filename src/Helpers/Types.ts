@@ -68,4 +68,36 @@ export interface TenYearSummary {
   avgNaturalResources: number;
   /** Worst single-year Gini observed in the decade. */
   peakResourceGini: number;
+  /** Births over the decade (delta, not cumulative). */
+  births: number;
+}
+
+/** Aggregate composition of the living population at end of simulation. ARD 031. */
+export interface SurvivorSummary {
+  /** Living population count. */
+  total: number;
+  /** Children (age < 18). */
+  children: number;
+  /** Working-age (18 ≤ age ≤ 65). */
+  working: number;
+  /** Elderly (age > 65). */
+  elderly: number;
+  /** Count of survivors at each education level, keyed by EDUCATION constant value. */
+  educationCounts: Record<number, number>;
+  /** Persons currently enrolled (`isWorkingOnEd !== NONE`). */
+  enrolled: number;
+  /** Working-age persons with `hasJob`. */
+  employed: number;
+  /** Healthy: illness < 0.1. */
+  healthWell: number;
+  /** Mild illness: illness in [0.1, 0.5). */
+  healthMild: number;
+  /** Severe illness: illness ≥ 0.5. */
+  healthSevere: number;
+  /** Mean illness across survivors. */
+  avgIllness: number;
+  /** Persons with `isInRelationshipWith !== null`. */
+  partnered: number;
+  /** Persons whose `hasChildren.length > 0`. */
+  withChildren: number;
 }

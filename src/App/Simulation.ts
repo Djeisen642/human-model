@@ -54,6 +54,14 @@ export interface TickSnapshot {
   aggregateStealingIntent: number;
   /** Remaining natural resource pool at end of tick (after this tick's regen and extraction). */
   naturalResources: number;
+  /** Pool cost per unit gathered at end of tick; modified by InventionEvent. ARD 032. */
+  extractionEfficiency: number;
+  /** Maximum accessible resources at end of tick; grown by InventionEvent. ARD 032. */
+  naturalResourceCeiling: number;
+  /** Births this tick. ARD 033. */
+  births: number;
+  /** Cumulative births up to and including this tick. ARD 033. */
+  cumulativeBirths: number;
 }
 
 export default class Simulation {
@@ -76,7 +84,15 @@ export default class Simulation {
   /** Seeded count per type, captured at seed time. Used to compute survival deltas. */
   seededTypeCounts: Record<string, number> = {};
 
+  /** Cumulative count of InventionEvent firings that accelerated depletion. ARD 032. */
+  inventionFasterCount = 0;
+  /** Cumulative count of InventionEvent firings that slowed depletion. ARD 032. */
+  inventionSlowerCount = 0;
+  /** Cumulative count of InventionEvent firings that grew the resource ceiling. ARD 032. */
+  inventionCeilingCount = 0;
+
   private tickDeathCauses: number[] = [];
+  private tickBirths = 0;
 
   /**
    * Returns a shallow copy of the living population.
@@ -142,6 +158,14 @@ export default class Simulation {
    */
   add(person: Person): void {
     this.living.push(person);
+  }
+
+  /**
+   * Increments the per-tick birth counter. Called by ChildbirthEvent only;
+   * the initial seed loop does not call this. ARD 033.
+   */
+  recordBirth(): void {
+    this.tickBirths++;
   }
 
   /**
@@ -266,6 +290,9 @@ export default class Simulation {
     const cumulativeDeathsBySuicide = (prev?.cumulativeDeathsBySuicide ?? 0) + deathsBySuicide;
     const cumulativeDeathsByOldAge = (prev?.cumulativeDeathsByOldAge ?? 0) + deathsByOldAge;
 
+    const births = this.tickBirths;
+    const cumulativeBirths = (prev?.cumulativeBirths ?? 0) + births;
+
     const snap: TickSnapshot = {
       tick,
       population,
@@ -287,10 +314,15 @@ export default class Simulation {
       aggregateKillingIntent,
       aggregateStealingIntent,
       naturalResources: this.naturalResources,
+      extractionEfficiency: this.extractionEfficiency,
+      naturalResourceCeiling: this.naturalResourceCeiling,
+      births,
+      cumulativeBirths,
     };
 
     this.history.push(snap);
     this.tickDeathCauses = [];
+    this.tickBirths = 0;
     return snap;
   }
 }

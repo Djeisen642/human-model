@@ -57,6 +57,18 @@ export default class LooperSingleton {
       }
     }
 
+    // Partial-decade summary at run end: when ticks isn't a multiple of 10, the
+    // trailing N (<10) snapshots are unsummarized. Append one summary over the
+    // remaining window so the end report's "final decade" reflects actual end state.
+    // ARD 031.
+    const remainder = ticks % 10;
+    if (remainder !== 0) {
+      const window = simulation.history.slice(ticks - remainder, ticks);
+      const partial = buildTenYearSummary(window, ticks, startPopulation);
+      simulation.decadeHistory.push(partial);
+      logger(formatDecadeSummary(partial));
+    }
+
     return simulation;
   }
 

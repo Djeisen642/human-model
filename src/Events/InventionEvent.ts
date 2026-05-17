@@ -38,13 +38,16 @@ export default class InventionEvent implements IEvent {
         0.01,
         simulation.extractionEfficiency * (1 + delta),
       );
+      simulation.inventionFasterCount++;
     } else if (roll < Variables.INVENTION_DEPLETION_FASTER_WEIGHT + Variables.INVENTION_DEPLETION_SLOWER_WEIGHT) {
       simulation.extractionEfficiency = Math.max(
         0.01,
         simulation.extractionEfficiency * (1 - delta),
       );
+      simulation.inventionSlowerCount++;
     } else {
       simulation.naturalResourceCeiling += delta * simulation.naturalResourceCeiling;
+      simulation.inventionCeilingCount++;
     }
   }
 }

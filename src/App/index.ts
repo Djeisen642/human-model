@@ -64,6 +64,8 @@ const looper = LooperSingleton.getInstance();
 // eslint-disable-next-line no-console
 const simulation = looper.start(N, TICKS, SEED, console.log, PERSON_TYPES);
 
+const extinctionTick = simulation.history.find(s => s.population === 0)?.tick;
+
 // eslint-disable-next-line no-console
 console.log(formatEndReport(
   simulation.decadeHistory,
@@ -75,6 +77,13 @@ console.log(formatEndReport(
   simulation.personTypes,
   simulation.seededTypeCounts,
   simulation.getLiving(),
+  extinctionTick !== undefined ? extinctionTick + 1 : undefined,
+  simulation.extractionEfficiency,
+  {
+    faster: simulation.inventionFasterCount,
+    slower: simulation.inventionSlowerCount,
+    ceiling: simulation.inventionCeilingCount,
+  },
 ));
 
 writeReportHTML(simulation, N, TICKS, SEED, outputDir);

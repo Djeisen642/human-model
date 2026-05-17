@@ -56,9 +56,18 @@ function buildHTML(
   const ticks_ = history.map(s => s.tick);
   const giniSeries = history.map(s => s.resourceGini.toFixed(4));
   const populationSeries = history.map(s => s.population);
+  const birthsSeries = history.map(s => s.births);
   const avgResourceSeries = history.map(s => s.averageResources.toFixed(2));
   const naturalResourceSeries = history.map(s => s.naturalResources.toFixed(2));
+  const ceilingSeries = history.map(s => s.naturalResourceCeiling.toFixed(2));
+  const efficiencySeries = history.map(s => s.extractionEfficiency.toFixed(4));
   const happinessSeries = history.map(s => s.averageHappiness.toFixed(4));
+  const killingIntentSeries = history.map(s =>
+    (s.population > 0 ? s.aggregateKillingIntent / s.population : 0).toFixed(5),
+  );
+  const stealingIntentSeries = history.map(s =>
+    (s.population > 0 ? s.aggregateStealingIntent / s.population : 0).toFixed(5),
+  );
 
   const decadeLabels = decadeHistory.map(d => `Yr ${d.endTick}`);
   const illnessSeries = decadeHistory.map(d => d.deathsByIllness);
@@ -76,10 +85,14 @@ function buildHTML(
       resourceGini: s.resourceGini,
       averageResources: s.averageResources,
       naturalResources: s.naturalResources,
+      naturalResourceCeiling: s.naturalResourceCeiling,
+      extractionEfficiency: s.extractionEfficiency,
+      births: s.births,
       averageHappiness: s.averageHappiness,
     })),
   });
 
+  const extinctionTick = simulation.history.find(s => s.population === 0)?.tick;
   const consoleReport = formatEndReport(
     decadeHistory,
     ticks,
@@ -90,9 +103,17 @@ function buildHTML(
     simulation.personTypes,
     simulation.seededTypeCounts,
     simulation.getLiving(),
+    extinctionTick !== undefined ? extinctionTick + 1 : undefined,
+    simulation.extractionEfficiency,
+    {
+      faster: simulation.inventionFasterCount,
+      slower: simulation.inventionSlowerCount,
+      ceiling: simulation.inventionCeilingCount,
+    },
   ).replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const outcomeColors: Record<string, string> = {
+    EXTINCTION: '#7b241c',
     COLLAPSE: '#c0392b',
     STRUGGLING: '#d35400',
     STABLE: '#2471a3',
@@ -213,6 +234,8 @@ function buildHTML(
       <div class="card"><canvas id="populationChart"></canvas></div>
       <div class="card"><canvas id="resourcesChart"></canvas></div>
       <div class="card"><canvas id="happinessChart"></canvas></div>
+      <div class="card span-full"><canvas id="poolDynamicsChart"></canvas></div>
+      <div class="card span-full"><canvas id="intentChart"></canvas></div>
       <div class="card span-full"><canvas id="deathsChart"></canvas></div>
     </div>
 
@@ -240,11 +263,27 @@ function buildHTML(
       type: 'line',
       data: {
         labels: tickLabels,
-        datasets: [{ label: 'Population', data: ${JSON.stringify(populationSeries)},
-          borderColor: '#2980b9', backgroundColor: 'rgba(41,128,185,0.06)',
-          fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }]
+        datasets: [
+          { label: 'Population', data: ${JSON.stringify(populationSeries)},
+            borderColor: '#2980b9', backgroundColor: 'rgba(41,128,185,0.06)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Births per Tick', data: ${JSON.stringify(birthsSeries)},
+            borderColor: '#16a085', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [4,3], yAxisID: 'y2' }
+        ]
       },
-      options: ${chartOptions('Population Over Time')}
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Population & Births Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' } },
+          y: { position: 'left', grid: { color: '#f0f0f0' } },
+          y2: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true }
+        }
+      }
     });
 
     new Chart(document.getElementById('resourcesChart'), {
@@ -283,6 +322,52 @@ function buildHTML(
           fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }]
       },
       options: ${chartOptions('Happiness Over Time', ', y: { min: 0, grid: { color: "#f0f0f0" } }')}
+    });
+
+    new Chart(document.getElementById('poolDynamicsChart'), {
+      type: 'line',
+      data: {
+        labels: tickLabels,
+        datasets: [
+          { label: 'Natural Resources', data: ${JSON.stringify(naturalResourceSeries)},
+            borderColor: '#8e44ad', backgroundColor: 'rgba(142,68,173,0.06)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Resource Ceiling', data: ${JSON.stringify(ceilingSeries)},
+            borderColor: '#34495e', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [5,3] },
+          { label: 'Extraction Efficiency', data: ${JSON.stringify(efficiencySeries)},
+            borderColor: '#e67e22', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, yAxisID: 'y2' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Resource Pool Dynamics', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' } },
+          y: { position: 'left', grid: { color: '#f0f0f0' } },
+          y2: { position: 'right', grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('intentChart'), {
+      type: 'line',
+      data: {
+        labels: tickLabels,
+        datasets: [
+          { label: 'Avg Killing Intent', data: ${JSON.stringify(killingIntentSeries)},
+            borderColor: '#c0392b', backgroundColor: 'rgba(192,57,43,0.06)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Avg Stealing Intent', data: ${JSON.stringify(stealingIntentSeries)},
+            borderColor: '#7d3c98', backgroundColor: 'rgba(125,60,152,0.06)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }
+        ]
+      },
+      options: ${chartOptions('Antisocial Intent Per Capita', ', y: { min: 0, grid: { color: "#f0f0f0" } }')}
     });
 
     new Chart(document.getElementById('deathsChart'), {

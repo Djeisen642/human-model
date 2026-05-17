@@ -100,6 +100,35 @@ describe('ChildbirthEvent', () => {
       expect(sim.getLiving().length).toBe(3);
     });
 
+    it('successful birth records the birth on the simulation (ARD 033)', () => {
+      const sim = new Simulation();
+      const a = new Person([]);
+      const b = new Person([]);
+      a.resources = 50; b.resources = 50;
+      a.age = 26; b.age = 26;
+      sim.add(a); sim.add(b);
+      partner(a, b);
+
+      new ChildbirthEvent(alwaysPass).execute(a, sim);
+      const snap = sim.snapshot();
+
+      expect(snap.births).toBe(1);
+      expect(snap.cumulativeBirths).toBe(1);
+    });
+
+    it('no-op execute does not record a birth (ARD 033)', () => {
+      const sim = new Simulation();
+      const lonely = new Person([]);
+      lonely.resources = 50;
+      lonely.age = 26;
+      sim.add(lonely);
+
+      new ChildbirthEvent(alwaysPass).execute(lonely, sim);
+      const snap = sim.snapshot();
+
+      expect(snap.births).toBe(0);
+    });
+
     it('higher-index partner alone does not create a child', () => {
       const sim = new Simulation();
       const a = new Person([]);
