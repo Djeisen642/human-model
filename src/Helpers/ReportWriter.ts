@@ -53,33 +53,61 @@ function buildHTML(
   const history = simulation.history;
   const decadeHistory = simulation.decadeHistory;
 
-  const ticks_ = history.map(s => s.tick);
-  const giniSeries = history.map(s => s.resourceGini.toFixed(4));
-  const populationSeries = history.map(s => s.population);
-  const birthsSeries = history.map(s => s.births);
-  const avgResourceSeries = history.map(s => s.averageResources.toFixed(2));
-  const naturalResourceSeries = history.map(s => s.naturalResources.toFixed(2));
-  const ceilingSeries = history.map(s => s.naturalResourceCeiling.toFixed(2));
-  const communityPoolSeries = history.map(s => s.communityPool.toFixed(2));
-  const happinessSeries = history.map(s => s.averageHappiness.toFixed(4));
-  const illnessSeries_ = history.map(s => s.averageIllness.toFixed(4));
-  const employmentSeries = history.map(s => s.employmentRate.toFixed(4));
-  const killingIntentSeries = history.map(s =>
-    (s.population > 0 ? s.aggregateKillingIntent / s.population : 0).toFixed(5),
-  );
-  const stealingIntentSeries = history.map(s =>
-    (s.population > 0 ? s.aggregateStealingIntent / s.population : 0).toFixed(5),
-  );
-  const jailedSeries = history.map(s => s.jailedPopulation);
-  const murdersPerTickSeries = history.map(s => s.deathsByMurder);
-  const stealsPerTickSeries = history.map(s => s.stealsCommitted);
-  const deathsIllnessTickSeries = history.map(s => s.deathsByIllness);
-  const deathsSuicideTickSeries = history.map(s => s.deathsBySuicide);
-  const deathsMurderTickSeries = history.map(s => s.deathsByMurder);
-  const deathsDisasterTickSeries = history.map(s => s.deathsByDisaster);
-  const deathsOldAgeTickSeries = history.map(s => s.deathsByOldAge);
-
   const decadeLabels = decadeHistory.map(d => `Yr ${d.endTick}`);
+
+  const aggregatedHistory = decadeHistory.map((d, i) => {
+    const startTick = i === 0 ? 0 : decadeHistory[i - 1].endTick;
+    const endTick = d.endTick;
+    const chunk = history.slice(startTick, endTick);
+    
+    const mean = (arr: number[]) => arr.length === 0 ? 0 : arr.reduce((a, b) => a + b, 0) / arr.length;
+
+    return {
+      gini: d.avgResourceGini.toFixed(4),
+      population: d.endPopulation,
+      births: d.births,
+      avgResources: d.avgResources.toFixed(2),
+      naturalResources: d.avgNaturalResources.toFixed(2),
+      ceiling: mean(chunk.map(c => c.naturalResourceCeiling)).toFixed(2),
+      communityPool: d.avgCommunityPool.toFixed(2),
+      happiness: d.avgHappiness.toFixed(4),
+      illness: mean(chunk.map(c => c.averageIllness)).toFixed(4),
+      employmentRate: mean(chunk.map(c => c.employmentRate)).toFixed(4),
+      killingIntent: mean(chunk.map(c => c.population > 0 ? c.aggregateKillingIntent / c.population : 0)).toFixed(5),
+      stealingIntent: mean(chunk.map(c => c.population > 0 ? c.aggregateStealingIntent / c.population : 0)).toFixed(5),
+      jailed: mean(chunk.map(c => c.jailedPopulation)).toFixed(1),
+      murders: chunk.reduce((sum, c) => sum + c.deathsByMurder, 0),
+      steals: chunk.reduce((sum, c) => sum + c.stealsCommitted, 0),
+      deathsIllness: d.deathsByIllness,
+      deathsSuicide: d.deathsBySuicide,
+      deathsMurder: d.deathsByKilling,
+      deathsDisaster: d.deathsByDisaster,
+      deathsOldAge: d.deathsByOldAge
+    };
+  });
+
+  const ticks_ = decadeLabels;
+  const giniSeries = aggregatedHistory.map(a => a.gini);
+  const populationSeries = aggregatedHistory.map(a => a.population);
+  const birthsSeries = aggregatedHistory.map(a => a.births);
+  const avgResourceSeries = aggregatedHistory.map(a => a.avgResources);
+  const naturalResourceSeries = aggregatedHistory.map(a => a.naturalResources);
+  const ceilingSeries = aggregatedHistory.map(a => a.ceiling);
+  const communityPoolSeries = aggregatedHistory.map(a => a.communityPool);
+  const happinessSeries = aggregatedHistory.map(a => a.happiness);
+  const illnessSeries_ = aggregatedHistory.map(a => a.illness);
+  const employmentSeries = aggregatedHistory.map(a => a.employmentRate);
+  const killingIntentSeries = aggregatedHistory.map(a => a.killingIntent);
+  const stealingIntentSeries = aggregatedHistory.map(a => a.stealingIntent);
+  const jailedSeries = aggregatedHistory.map(a => a.jailed);
+  const murdersPerTickSeries = aggregatedHistory.map(a => a.murders);
+  const stealsPerTickSeries = aggregatedHistory.map(a => a.steals);
+  const deathsIllnessTickSeries = aggregatedHistory.map(a => a.deathsIllness);
+  const deathsSuicideTickSeries = aggregatedHistory.map(a => a.deathsSuicide);
+  const deathsMurderTickSeries = aggregatedHistory.map(a => a.deathsMurder);
+  const deathsDisasterTickSeries = aggregatedHistory.map(a => a.deathsDisaster);
+  const deathsOldAgeTickSeries = aggregatedHistory.map(a => a.deathsOldAge);
+
   const illnessSeries = decadeHistory.map(d => d.deathsByIllness);
   const suicideSeries = decadeHistory.map(d => d.deathsBySuicide);
   const killingSeries = decadeHistory.map(d => d.deathsByKilling);
@@ -291,7 +319,7 @@ function buildHTML(
           { label: 'Population', data: ${JSON.stringify(populationSeries)},
             borderColor: '#2980b9', backgroundColor: 'rgba(41,128,185,0.06)',
             fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
-          { label: 'Births per Tick', data: ${JSON.stringify(birthsSeries)},
+          { label: 'Births per Decade', data: ${JSON.stringify(birthsSeries)},
             borderColor: '#16a085', backgroundColor: 'transparent',
             tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [4,3], yAxisID: 'y2' }
         ]
@@ -413,7 +441,7 @@ function buildHTML(
       options: {
         responsive: true,
         plugins: {
-          title: { display: true, text: 'Crime Activity Per Tick', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          title: { display: true, text: 'Crime Activity Per Decade', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
           legend: { position: 'bottom' }
         },
         scales: {
@@ -462,7 +490,7 @@ function buildHTML(
       options: {
         responsive: true,
         plugins: {
-          title: { display: true, text: 'Deaths by Cause Per Tick', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          title: { display: true, text: 'Deaths by Cause Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
           legend: { position: 'bottom' }
         },
         scales: {
