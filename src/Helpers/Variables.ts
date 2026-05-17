@@ -100,6 +100,20 @@ export default class Variables {
   /** Conditional probability of completing a PhD, given master's, for seeded adults. */
   static GRADUATION_ADULT_PHD_RATE = 0.20;
 
+  // ChildbirthEvent constants (ARD 029)
+  /** Per-tick ceiling probability for a healthy, well-resourced, partnered couple at peak age. Calibrated to Hutterite natural fertility (~40–55% at ages 20–30). */
+  static BASE_CHILDBIRTH_RATE = 0.40;
+  /** Illness suppressor: at 0.8, full illness (1.0) eliminates fertility; 0.5 illness halves it. */
+  static CHILDBIRTH_ILLNESS_SCALAR = 0.8;
+  /** Resource floor below which fertility is zero; models famine-threshold amenorrhea. */
+  static CHILDBIRTH_RESOURCE_MIN = 10;
+  /** Resource level at which full fertility is restored; linear ramp between MIN and SCALE. */
+  static CHILDBIRTH_RESOURCE_SCALE = 30;
+  /** Happiness multiplier on birth probability; small but real signal (0.05 → +50% at happiness=10). */
+  static CHILDBIRTH_HAPPINESS_SCALAR = 0.05;
+  /** One-time resource deduction per parent at birth; ~25% of median resources. */
+  static CHILDBIRTH_BIRTH_COST = 12;
+
   // WindfallEvent constants (ARD 028)
   /** Per-tick base probability of a windfall at peak age; ~3% annually, consistent with SCF/HRS inheritance prevalence. */
   static BASE_WINDFALL_RATE = 0.03;

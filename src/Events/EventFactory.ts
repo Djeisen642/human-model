@@ -12,6 +12,7 @@ import LearnEvent from './LearnEvent';
 import GraduationEvent from './GraduationEvent';
 import EnrollmentEvent from './EnrollmentEvent';
 import RelationshipEvent from './RelationshipEvent';
+import ChildbirthEvent from './ChildbirthEvent';
 import StealEvent from './StealEvent';
 import KillEvent from './KillEvent';
 import WindfallEvent from './WindfallEvent';
@@ -46,6 +47,7 @@ export default class EventFactory {
       new ConsumptionEvent(),
       new JobEvent(this.rng),
       new RelationshipEvent(this.rng),
+      new ChildbirthEvent(this.rng),
       new KillEvent(this.rng),
       new MisfortuneEvent(this.rng),
     ];

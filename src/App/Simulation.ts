@@ -76,6 +76,18 @@ export default class Simulation {
   }
 
   /**
+   * Index of `person` in the living array, or -1 if not living.
+   * Reads the internal array directly so callers that only need ordering don't
+   * pay for getLiving's shallow-copy allocation.
+   *
+   * @param person - person to locate
+   * @returns index in the living array, or -1 if not present
+   */
+  indexOfLiving(person: Person): number {
+    return this.living.indexOf(person);
+  }
+
+  /**
    * Returns a random living person other than `exclude`, or null if no other living person exists.
    *
    * @param exclude - person to exclude from selection
