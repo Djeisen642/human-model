@@ -28,6 +28,8 @@ export default class Person {
   stealingIntent = 0;
   lyingIntent = 0;
   killingIntent = 0;
+  /** Ticks remaining in current jail sentence; 0 means free. Decremented by LooperSingleton each tick before EventFactory. See ARD 035. */
+  jailedTicksRemaining = 0;
 
   /**
    * Person Constructor

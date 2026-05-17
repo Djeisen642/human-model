@@ -17,6 +17,7 @@ import StealEvent from './StealEvent';
 import KillEvent from './KillEvent';
 import WindfallEvent from './WindfallEvent';
 import InventionEvent from './InventionEvent';
+import JailEvent from './JailEvent';
 import { ageModifier } from '../Helpers/AgeModifier';
 import Variables from '../Helpers/Variables';
 import Constants from '../Helpers/Constants';
@@ -26,6 +27,8 @@ import { RNG } from '../Helpers/Types';
  * Maps a person's intent values to the events they participate in each tick.
  * Unconditional events always fire; intent-gated events are appended when
  * rng() < intent * ageModifier(...) passes.
+ * While jailed (jailedTicksRemaining > 0), only AgeEvent, IllnessEvent, and JailEvent run.
+ * See ARD 035.
  */
 export default class EventFactory {
   /** @param rng - random number source injected at construction */
@@ -33,13 +36,24 @@ export default class EventFactory {
 
   /**
    * Returns the ordered list of events this person participates in this tick.
-   * Unconditional order: AgeEvent → ExperienceEvent → IllnessEvent → GatherResourcesEvent → ConsumptionEvent → JobEvent → RelationshipEvent → KillEvent → MisfortuneEvent.
-   * Intent-gated events are appended based on intent × age modifier.
+   * Jailed persons receive only [AgeEvent, IllnessEvent, JailEvent].
+   * Free persons: unconditional order AgeEvent → ExperienceEvent → IllnessEvent →
+   * GatherResourcesEvent → ConsumptionEvent → JobEvent → RelationshipEvent →
+   * KillEvent → MisfortuneEvent, plus intent-gated events appended after.
    *
    * @param person - person whose intents determine event selection
    * @returns events to execute for this tick
    */
   getEventsFor(person: Person): IEvent[] {
+    if (person.jailedTicksRemaining > 0) {
+      return [
+        new AgeEvent(),
+        new IllnessEvent(this.rng),
+        new JailEvent(),
+        new MisfortuneEvent(this.rng),
+      ];
+    }
+
     const events: IEvent[] = [
       new AgeEvent(),
       new ExperienceEvent(),
@@ -86,9 +100,14 @@ export default class EventFactory {
       events.push(new InventionEvent(this.rng));
     }
 
+    const resourcePressure = Math.max(
+      0,
+      1 - person.resources / Variables.SITUATIONAL_STEAL_RESOURCE_THRESHOLD,
+    );
     const stealProb = person.stealingIntent
       * (1 + person.charisma * Variables.STEAL_CHARISMA_SCALAR)
-      * ageModifier(person.age, Variables.STEALING_PEAK_AGE, Variables.STEALING_AGE_SCALE, Variables.STEALING_AGE_FLOOR);
+      * ageModifier(person.age, Variables.STEALING_PEAK_AGE, Variables.STEALING_AGE_SCALE, Variables.STEALING_AGE_FLOOR)
+      * (1 + resourcePressure * Variables.SITUATIONAL_STEAL_SCALAR);
     if (this.rng() < stealProb) {
       events.push(new StealEvent(this.rng));
     }

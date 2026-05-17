@@ -57,6 +57,7 @@ function makeSnapshot(
     naturalResourceCeiling: overrides.naturalResourceCeiling ?? 10000,
     births,
     cumulativeBirths: (prev?.cumulativeBirths ?? 0) + births,
+    communityPool: overrides.communityPool ?? 0,
   };
 }
 
@@ -237,6 +238,7 @@ describe('formatDecadeSummary', () => {
     avgNaturalResources: 7500,
     peakResourceGini: 0.51,
     births: 2,
+    avgCommunityPool: 0,
   };
 
   it('includes formatted year', () => {
@@ -287,6 +289,7 @@ describe('classifyOutcome', () => {
     avgNaturalResources: 5000,
     peakResourceGini: 0.40,
     births: 0,
+    avgCommunityPool: 0,
   };
 
   it('returns COLLAPSE when Gini >= 0.60', () => {
@@ -354,6 +357,7 @@ describe('explainOutcome', () => {
     deathsByKilling: 1, deathsByDisaster: 1,
     avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
     avgNaturalResources: 5000, peakResourceGini: 0.40, births: 0,
+    avgCommunityPool: 0,
   };
 
   it('EXTINCTION cites population 0', () => {
@@ -502,6 +506,7 @@ describe('formatEndReport', () => {
       avgNaturalResources: 5000,
       peakResourceGini: 0.40,
       births: 0,
+      avgCommunityPool: 0,
     };
     const report = formatEndReport([decade], 10, 42, 100, 9000, 10000);
     expect(report).toContain('OUTCOME:');
@@ -519,6 +524,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 1, deathsByDisaster: 1,
       avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 5000, peakResourceGini: 0.40, births: 0,
+      avgCommunityPool: 0,
     };
     const report = formatEndReport([decade], 10, 42, 100, 9000, 10000);
     expect(report).not.toContain('COHORT SURVIVAL');
@@ -531,6 +537,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 1, deathsByDisaster: 1,
       avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 5000, peakResourceGini: 0.40, births: 5,
+      avgCommunityPool: 0,
     };
     const report = formatEndReport([decade], 100, 42, 100, 9000, 10000);
     expect(report).toMatch(/Reason: /);
@@ -543,6 +550,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 15, deathsByDisaster: 10,
       avgResourceGini: 0.40, avgResources: 5, avgHappiness: 1.0,
       avgNaturalResources: 8000, peakResourceGini: 0.55, births: 0,
+      avgCommunityPool: 0,
     };
     const report = formatEndReport(
       [decade], 50, 42, 100, 9000, 10000, {}, {}, [], 42,
@@ -558,6 +566,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 15, deathsByDisaster: 10,
       avgResourceGini: 0.40, avgResources: 5, avgHappiness: 1.0,
       avgNaturalResources: 8000, peakResourceGini: 0.55, births: 0,
+      avgCommunityPool: 0,
     };
     const report = formatEndReport([decade], 50, 42, 100, 9000, 10000, {}, {}, []);
     expect(report).not.toContain('SURVIVORS');
@@ -570,6 +579,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 19, deathsByDisaster: 10,
       avgResourceGini: 0.30, avgResources: 30, avgHappiness: 5.0,
       avgNaturalResources: 5000, peakResourceGini: 0.40, births: 0,
+      avgCommunityPool: 0,
     };
     const p = new Person([]);
     p.age = 30;
@@ -587,6 +597,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 2, deathsByDisaster: 1,
       avgResourceGini: 0.30, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 7000, peakResourceGini: 0.40, births: 5,
+      avgCommunityPool: 0,
     };
     const report = formatEndReport(
       [decade], 100, 42, 100, 7000, 10500, {}, {}, [], undefined, 0.85,
@@ -603,6 +614,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 3, deathsByDisaster: 2,
       avgResourceGini: 0.30, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 5000, peakResourceGini: 0.40, births: 20,
+      avgCommunityPool: 0,
     };
     const report = formatEndReport([decade], 100, 42, 100, 9000, 10000);
     expect(report).toContain('Births: 20');
@@ -617,6 +629,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 1, deathsByDisaster: 0,
       avgResourceGini: 0.30, avgResources: 50, avgHappiness: 5.0,
       avgNaturalResources: 8000, peakResourceGini: 0.35, births: 3,
+      avgCommunityPool: 0,
     };
     const report = formatEndReport([decade], 10, 42, 100, 9000, 10000);
     expect(report).toContain('Births');
@@ -629,6 +642,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 1, deathsByDisaster: 1,
       avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 5000, peakResourceGini: 0.40, births: 0,
+      avgCommunityPool: 0,
     };
     // 5 engineers seeded (intelligence in [7,11)), 3 alive at end
     /**

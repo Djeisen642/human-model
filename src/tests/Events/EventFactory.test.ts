@@ -10,6 +10,7 @@ import ExerciseEvent from '../../Events/ExerciseEvent';
 import LearnEvent from '../../Events/LearnEvent';
 import StealEvent from '../../Events/StealEvent';
 import KillEvent from '../../Events/KillEvent';
+import JailEvent from '../../Events/JailEvent';
 import Person from '../../App/Person';
 
 describe('EventFactory', () => {
@@ -158,6 +159,44 @@ describe('EventFactory', () => {
       const events = factory.getEventsFor(person);
 
       expect(events.some(e => e instanceof StealEvent)).toBe(true);
+    });
+  });
+
+  describe('jail gating (ARD 035)', () => {
+    it('jailed person receives only AgeEvent, IllnessEvent, JailEvent, MisfortuneEvent', () => {
+      const factory = new EventFactory(() => 0);
+      const person = new Person([]);
+      person.jailedTicksRemaining = 5;
+      person.stealingIntent = 1.0;
+      person.killingIntent = 1.0;
+      person.exerciseIntent = 1.0;
+      person.learningIntent = 1.0;
+
+      const events = factory.getEventsFor(person);
+
+      expect(events.some(e => e instanceof AgeEvent)).toBe(true);
+      expect(events.some(e => e instanceof IllnessEvent)).toBe(true);
+      expect(events.some(e => e instanceof JailEvent)).toBe(true);
+      expect(events.some(e => e instanceof MisfortuneEvent)).toBe(true);
+      expect(events.some(e => e instanceof GatherResourcesEvent)).toBe(false);
+      expect(events.some(e => e instanceof ConsumptionEvent)).toBe(false);
+      expect(events.some(e => e instanceof JobEvent)).toBe(false);
+      expect(events.some(e => e instanceof KillEvent)).toBe(false);
+      expect(events.some(e => e instanceof StealEvent)).toBe(false);
+      expect(events.some(e => e instanceof ExerciseEvent)).toBe(false);
+      expect(events.some(e => e instanceof LearnEvent)).toBe(false);
+    });
+
+    it('free person (jailedTicksRemaining=0) receives full event suite', () => {
+      const factory = new EventFactory(() => 0.5);
+      const person = new Person([]);
+      person.jailedTicksRemaining = 0;
+
+      const events = factory.getEventsFor(person);
+
+      expect(events.some(e => e instanceof GatherResourcesEvent)).toBe(true);
+      expect(events.some(e => e instanceof ConsumptionEvent)).toBe(true);
+      expect(events.some(e => e instanceof KillEvent)).toBe(true);
     });
   });
 });

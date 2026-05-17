@@ -42,6 +42,9 @@ export default class LooperSingleton {
       shuffleInPlace(living, rng);
       simulation.collectTax(living);
       for (const person of living) {
+        if (person.jailedTicksRemaining > 0) person.jailedTicksRemaining--;
+      }
+      for (const person of living) {
         for (const event of factory.getEventsFor(person)) {
           if (person.causeOfDeath !== null) break;
           event.execute(person, simulation);
