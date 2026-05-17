@@ -132,6 +132,9 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - **Survivor composition, EXTINCTION, and partial-decade summary**: `formatEndReport` renders a `SURVIVORS` section (age/education/employment/health/family buckets) whenever any persons live. `classifyOutcome` adds `EXTINCTION` (checked first, fires when `endPopulation === 0`); the report appends `Extinct as of Yr NNN` when that fires and the HTML report uses a distinct darker-red color. `LooperSingleton` appends one partial-decade `TenYearSummary` to `decadeHistory` after the loop when `ticks % 10 !== 0`, so the final-decade metrics reflect the actual end of the run instead of the last full decade. See ARD 031.
 - **Pool dynamics and invention counters in snapshots**: `TickSnapshot` captures `extractionEfficiency` and `naturalResourceCeiling` each tick; `Simulation` keeps cumulative `inventionFasterCount`/`inventionSlowerCount`/`inventionCeilingCount` incremented by `InventionEvent`. Surfaced as a one-line "Inventions:" entry in `RESOURCES` and a "Resource Pool Dynamics" chart in the HTML report. See ARD 032.
 - **Birth tracking symmetric with deaths**: `Simulation.recordBirth()` increments `tickBirths` (flushed on snapshot to per-tick `births` and `cumulativeBirths` fields, same lifecycle as `tickDeathCauses`); `ChildbirthEvent` calls it after `simulation.add(child)` (the seed loop does not). `TenYearSummary` gains `births`, derived from cumulative deltas; reports show Births in `POPULATION`, the decade summary line, the decade table, and the HTML population chart. See ARD 033.
+- **Community pool, taxation, and welfare**: `Simulation` owns a `communityPool` field. Each tick a flat `TAX_RATE` fraction is deducted from every living person's resources and added to the pool; jail forfeitures (ARD 035) are a second funding source. After consumption, persons with `resources < WELFARE_THRESHOLD` or orphaned children (`age < 18 && livingParents.length === 0`) share `communityPool * (1 - COMMUNITY_POOL_RESERVE_FRACTION)` equally; the remainder stays in reserve. See ARD 034.
+- **Jail and retribution**: `Person` gains `jailedTicksRemaining` (default 0). Detection is checked inside `StealEvent` and `KillEvent` after a crime; probability scales with cumulative prior crimes and crime severity. On detection, most resources are forfeited to `communityPool` and `jailedTicksRemaining` is set to a fixed sentence per crime type. `LooperSingleton` decrements the counter each tick before `EventFactory`. While jailed, only `AgeEvent`, `IllnessEvent`, and `JailEvent` run; `JailEvent` substitutes flat static gather and consume for the normal economy events. See ARD 035.
+- **Dynamic intent multipliers and theft emboldening**: `stealingIntent` can now increase permanently — each undetected theft bumps it by `STEALING_EMBOLDEN_INCREMENT`, capped at `STEALING_INTENT_CAP` (social learning / criminal career escalation). Situational pressure adds transient in-event multipliers without touching stored fields: low resources amplify steal probability in the `StealEvent` gate; low happiness amplifies kill attempt probability in `KillEvent`. See ARD 036.
 
 ## What's implemented
 
@@ -173,8 +176,10 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 Pick up here, roughly in dependency order:
 
-1. **Events** (implement roughly in this order):
-   - Lying event — modifies targets' intent fields; effectiveness scaled by `charisma`
+1. **Community pool, tax, and welfare** (ARD 034): `communityPool` field on `Simulation`; `collectTax()` and `distributeWelfare()` methods; `TickSnapshot` and report surfaces. Prerequisite for ARD 035.
+2. **Jail and retribution** (ARD 035): `jailedTicksRemaining` on `Person`; `JailEvent`; detection rolls inside `StealEvent` and `KillEvent`; `LooperSingleton` decrement and `EventFactory` gating while jailed. Depends on ARD 034.
+3. **Dynamic intent multipliers and emboldening** (ARD 036): emboldening bump in `StealEvent` on non-detection; resource-pressure multiplier in `StealEvent` gate; happiness-pressure multiplier in `KillEvent`. Depends on ARD 035 (detection precedes emboldening check).
+4. **Lying event** — modifies targets' intent fields; effectiveness scaled by `charisma`.
 
 ## Age profiles for new events
 

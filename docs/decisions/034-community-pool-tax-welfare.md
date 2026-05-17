@@ -1,6 +1,6 @@
 # ARD 034: Community Pool, Taxation, and Welfare Distribution
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-17
 
 ## Context

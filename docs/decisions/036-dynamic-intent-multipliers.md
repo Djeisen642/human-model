@@ -1,6 +1,6 @@
 # ARD 036: Dynamic Intent Multipliers and Theft Emboldening
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-17
 
 ## Context

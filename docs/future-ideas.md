@@ -58,9 +58,6 @@ Sharpens the collapse/thrive signal or experimental setup, but the model can pro
 **Resource inheritance on death**
 Dead persons' `resources` vanish. Inheritance (heirs receive a fraction) or estate taxes (a portion to a shared pool) gives accumulated wealth a second-order effect on Gini — concentrated wealth steepens inequality, redistribution dampens it.
 
-**Redistribution pool (tax + estate)**
-A per-tick flat tax on all living persons funds a shared pool; a fraction of each deceased person's resources enters the same pool on death (estate contribution). Pool distributes equally to all living persons each tick (or only to those below a threshold). Creates a tunable Gini-dampening lever and fixes the resources-vanish-on-death gap. Design after consumption + theft dynamics are observable so calibration is grounded in actual Gini data rather than intuition. Two funding sources (living tax + death estate) can share one pool and one ARD.
-
 **Illness reduces gathering capacity**
 Illness currently affects only mortality and happiness. Adding `potential *= (1 - person.illness)` makes illness a resource drain too, strengthening the collapse loop.
 
@@ -75,8 +72,8 @@ Illness currently affects only mortality and happiness. Adding `potential *= (1 
 **Stress-weighted dissolution**
 `BASE_BREAKUP_RATE` in ARD 025 is flat because there is no calibration anchor for how much of the empirical 3%/yr rate is baseline vs. economically-driven. Economic stress and financial disagreement are the strongest documented predictors of real-world partnership dissolution. A Gini- or resource-relative term would create a direct feedback loop: high inequality → more breakups → lower happiness → higher MisfortuneEvent mortality. Add once the flat-rate model produces enough sim data to observe whether dissolution rates actually correlate with Gini runs.
 
-**Loss aversion in intent updates (Kahneman & Tversky)**
-Losses weigh ~2× gains of equal size. When `resources` drops, antisocial intents should rise faster than they fall when resources recover. The model has no stat→intent feedback today — adding it asymmetrically is empirically right and a strong collapse driver.
+**Desistance: intent decay from stable conditions (Sampson & Laub)**
+ARD 036 adds emboldening (permanent `stealingIntent` increase per undetected theft) but no counter-mechanism. Empirically, criminal careers peak and then decline as people age, form stable relationships, and gain employment. Intent decay tied to employment, partnership duration, or age would complete the arc and prevent emboldened persons from remaining at peak criminal propensity indefinitely.
 
 **Hedonic adaptation on resources (Easterlin; Kahneman-Deaton)**
 Happiness from resources should be log-shaped, not linear. Without diminishing returns, wealthy persons accumulate unbounded happiness — contradicts the empirical decoupling of wealth from life satisfaction.
@@ -86,9 +83,6 @@ Happiness depends on resources relative to peers. A `(myResources - localMedian)
 
 **Generalized trust as a per-person stat (Putnam)**
 Per-person trust score, damaged by appearing in others' StealingRecord/KillingRecord and slowly restored by neutral interactions. Gates positive-sum events. (Richer version of "Reputation / trust effects" above.)
-
-**Altruistic punishment (Fehr & Gächter)**
-A `punish` event where a person spends resources to harm someone in their KillingRecord/StealingRecord history — possibly gated by trust. Provides counter-pressure to antisocial intents that the current roadmap supplies only via death.
 
 **Intergenerational transmission of intents (Bandura)**
 `new Person([p1, p2])` ignores parents. Heritability for behavioral dispositions is 0.3–0.5 (twin/adoption studies); social learning adds parental influence. Children's starting intents drawn near a parental mean (with noise) is the minimal version. Without it, every generation re-rolls the cultural slate.
@@ -128,9 +122,6 @@ A prior attempt is the strongest empirical predictor of future suicide. Persons 
 
 ### Behavioral feedback (research-grounded)
 
-**Strain theory: aspiration–means gap (Agnew)**
-A person whose `resources` falls short of their age/education cohort median gets a `stealingIntent` boost. Distinct from loss aversion (reference class, not personal trajectory). Substantially overlaps with relative deprivation in `happiness` — if that's in, the marginal signal here is small.
-
 **Relative deprivation in steal probability (Blau & Blau; World Bank)**
 Cross-national data shows a one-decile Gini rise associates with ~4% more property crime; the mechanism is relative deprivation, not absolute poverty. The StealEvent formula could include a `(victim.resources - thief.resources)` gap term so stealing scales with visible inequality rather than thief intent alone. This would create a direct feedback loop — high Gini → more theft → more Gini — that the current formula (intent × ageModifier) can't produce. Requires deciding whether gap-scaling belongs in the formula or in an intent-update mechanism like strain theory above; they are distinct intervention points.
 
@@ -163,3 +154,11 @@ Considered and rejected without rising to ARD-level discussion. Each entry: name
 **Extinction as a distinct outcome label** — 2026-05-17 — Implemented: ARD 031 (`EXTINCTION` outcome added to `classifyOutcome`; `Extinct as of Yr NNN` callout in the end report).
 
 **Partial-decade summary at run end** — 2026-05-17 — Implemented: ARD 031 (`LooperSingleton` appends a partial `TenYearSummary` to `decadeHistory` after the loop when `ticks % 10 !== 0`).
+
+**Redistribution pool (tax + estate)** — 2026-05-17 — Tax + welfare distribution implemented as ARD 034 (flat `TAX_RATE`, orphan and poverty eligibility, 20% reserve); estate taxation remains a future idea under "Resource inheritance on death."
+
+**Altruistic punishment (Fehr & Gächter)** — 2026-05-17 — Superseded by ARD 035 jail system, which provides community-level retribution without requiring individual resource expenditure.
+
+**Strain theory: aspiration–means gap (Agnew)** — 2026-05-17 — Subsumed by ARD 036 resource-pressure situational multiplier on steal probability, which implements the core strain-theory mechanism (scarcity → elevated theft likelihood) without requiring a cohort-median reference class.
+
+**Loss aversion in intent updates (Kahneman & Tversky)** — 2026-05-17 — The core stat→intent feedback is addressed by ARD 036: permanent emboldening on undetected theft covers behavioral escalation; resource-pressure and happiness-pressure situational multipliers cover the circumstance-driven response. The asymmetric permanent update on resource loss specifically (losses raise intent faster than gains lower it) is not implemented; desistance (intent decay from stable conditions) is noted in future-ideas under behavioral feedback.

@@ -1,6 +1,6 @@
 # ARD 035: Jail and Retribution
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-17
 
 ## Context
