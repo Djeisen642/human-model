@@ -213,12 +213,7 @@ describe('formatSimulationHeader', () => {
     expect(header).toContain('seed 99');
   });
 
-  it('contains the column header line', () => {
-    const header = formatSimulationHeader(100, 100, 42);
-    expect(header).toContain('[Yr ---]');
-    expect(header).toContain('Gini');
-    expect(header).toContain('Deaths');
-  });
+
 });
 
 describe('formatDecadeSummary', () => {

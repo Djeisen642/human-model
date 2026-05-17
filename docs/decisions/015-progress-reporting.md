@@ -86,7 +86,6 @@ A header is printed once before the loop:
 
 ```
 === Simulation start: 100 persons, 100 ticks, seed 42 ===
-[Yr ---] Pop           Gini            Resources  Happiness  Deaths
 ```
 
 Then one line per decade:
