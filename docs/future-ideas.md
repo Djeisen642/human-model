@@ -30,6 +30,15 @@ Resources only move up (gather) or down (disaster); no subsistence drain. A non-
 **Long-term environmental drift**
 `naturalResourceCeiling` is fixed; the pool always regenerates back to it. Tainter/Diamond collapse hinges on declining carrying capacity (soil exhaustion, climate shift). Options: ceiling drifts down stochastically, decays with cumulative extraction, or `NATURAL_RESOURCE_REGEN_RATE` itself drifts.
 
+**InventionEvent: unbounded extractionEfficiency upper end**
+The depletion-faster branch multiplies `extractionEfficiency` with no cap. With `intelligence=10` (`delta=0.5`), a few sequential inventions push efficiency high enough to drain the pool in a handful of ticks, collapsing the simulation rapidly regardless of other factors. Needs a `MAX_EXTRACTION_EFFICIENCY` constant or a diminishing-returns multiplier.
+
+**InventionEvent: unbounded ceiling growth (thrive-lock)**
+Repeated ceiling-growth inventions compound — `ceiling *= (1 + delta)` effectively — and can grow the pool large enough that resource scarcity is permanently eliminated. Removes the collapse-via-depletion pathway from the model. A ceiling cap or per-tick regen cap (so a higher ceiling doesn't fully prevent scarcity dynamics) would restore balance.
+
+**InventionEvent: asymmetric faster/slower compounding**
+After N faster and N slower outcomes, `efficiency * (1+d)^N * (1-d)^N = efficiency * (1-d²)^N`. Paired outcomes don't cancel — efficiency drifts toward 0.01 over time. At equal weights this creates a slow resource-saving bias that wasn't in ARD 007. May be desirable (civilization learns to use less) or unintended; worth a deliberate decision.
+
 **Stat caps and age-based decay**
 `constitution` and `intelligence` only increment. A 90-year-old who exercised yearly has runaway constitution, and `DisasterEvent` divides by it — making lifelong exercisers near-immortal. Need caps and probably age-based decay reinforcing the U-shaped mortality curve.
 
