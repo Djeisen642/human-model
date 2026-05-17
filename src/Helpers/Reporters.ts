@@ -1,17 +1,19 @@
-import { PersonTypes, TenYearSummary } from './Types';
+import { PersonTypes, SurvivorSummary, TenYearSummary } from './Types';
 import { TickSnapshot } from '../App/Simulation';
 import Person from '../App/Person';
+import Constants from './Constants';
 import { countPerType } from './Classifier';
 import Variables from './Variables';
 
 /**
- * Builds a TenYearSummary from a 10-snapshot window.
- * Uses cumulative death counts stored on each snapshot to compute per-decade deltas.
+ * Builds a TenYearSummary from a consecutive snapshot window.
+ * Accepts any non-empty window length (10 for full decades; <10 for the partial
+ * trailing window when `ticks % 10 !== 0`, per ARD 031).
  *
- * @param window - exactly 10 consecutive TickSnapshots for the decade
- * @param endTick - the closing tick number (10, 20, 30, …)
- * @param startPopulation - population count immediately before the decade began
- * @returns aggregate summary for the decade
+ * @param window - consecutive TickSnapshots for the decade (or partial trailing window)
+ * @param endTick - the closing tick number
+ * @param startPopulation - population count immediately before the window began
+ * @returns aggregate summary for the window
  */
 export function buildTenYearSummary(
   window: TickSnapshot[],
@@ -21,13 +23,14 @@ export function buildTenYearSummary(
   const last = window[window.length - 1];
   const first = window[0];
 
-  // Cumulative totals at the end of the tick before the decade started.
+  // Cumulative totals at the end of the tick before the window started.
   const preCumulativeDeaths = first.cumulativeDeaths - first.deaths;
   const preCumulativeByMurder = first.cumulativeDeathsByMurder - first.deathsByMurder;
   const preCumulativeByIllness = first.cumulativeDeathsByIllness - first.deathsByIllness;
   const preCumulativeByDisaster = first.cumulativeDeathsByDisaster - first.deathsByDisaster;
   const preCumulativeBySuicide = first.cumulativeDeathsBySuicide - first.deathsBySuicide;
   const preCumulativeByOldAge = first.cumulativeDeathsByOldAge - first.deathsByOldAge;
+  const preCumulativeBirths = first.cumulativeBirths - first.births;
 
   const totalDeaths = last.cumulativeDeaths - preCumulativeDeaths;
   const deathsByKilling = last.cumulativeDeathsByMurder - preCumulativeByMurder;
@@ -35,6 +38,7 @@ export function buildTenYearSummary(
   const deathsByDisaster = last.cumulativeDeathsByDisaster - preCumulativeByDisaster;
   const deathsBySuicide = last.cumulativeDeathsBySuicide - preCumulativeBySuicide;
   const deathsByOldAge = last.cumulativeDeathsByOldAge - preCumulativeByOldAge;
+  const births = last.cumulativeBirths - preCumulativeBirths;
 
   const avgResourceGini = avg(window.map(s => s.resourceGini));
   const avgResources = avg(window.map(s => s.averageResources));
@@ -57,6 +61,7 @@ export function buildTenYearSummary(
     avgHappiness,
     avgNaturalResources,
     peakResourceGini,
+    births,
   };
 }
 
@@ -92,15 +97,19 @@ export function formatDecadeSummary(summary: TenYearSummary): string {
     `Gini: ${summary.avgResourceGini.toFixed(2)} (peak ${summary.peakResourceGini.toFixed(2)})  ` +
     `Resources: ${summary.avgResources.toFixed(1)}  ` +
     `Happiness: ${summary.avgHappiness.toFixed(1)}  ` +
+    `Births: ${summary.births}  ` +
     `Deaths: ${summary.totalDeaths} ` +
     `(ill:${summary.deathsByIllness} sui:${summary.deathsBySuicide} ` +
     `kill:${summary.deathsByKilling} dis:${summary.deathsByDisaster} age:${summary.deathsByOldAge})`
   );
 }
 
+/** Possible outcome labels. EXTINCTION added in ARD 031. */
+export type OutcomeLabel = 'EXTINCTION' | 'COLLAPSE' | 'STRUGGLING' | 'STABLE' | 'THRIVING';
+
 /**
  * Classifies the simulation outcome based on the final decade's summary.
- * Checks in order: COLLAPSE, THRIVING, STRUGGLING, STABLE.
+ * Checks in order: EXTINCTION, COLLAPSE, THRIVING, STRUGGLING, STABLE.
  *
  * @param finalDecade - the last TenYearSummary in decadeHistory
  * @param startPopulation - initial population at simulation start
@@ -109,7 +118,8 @@ export function formatDecadeSummary(summary: TenYearSummary): string {
 export function classifyOutcome(
   finalDecade: TenYearSummary,
   startPopulation: number,
-): 'COLLAPSE' | 'STRUGGLING' | 'STABLE' | 'THRIVING' {
+): OutcomeLabel {
+  if (finalDecade.endPopulation === 0) return 'EXTINCTION';
   const popFraction = finalDecade.endPopulation / startPopulation;
   if (
     finalDecade.avgResourceGini >= Variables.COLLAPSE_GINI_THRESHOLD ||
@@ -133,6 +143,135 @@ export function classifyOutcome(
 }
 
 /**
+ * Human-readable rationale for an outcome label, citing the triggering metric.
+ * ARD 016 specified this; surfaces the "why" alongside the label.
+ *
+ * @param finalDecade - the last TenYearSummary in decadeHistory
+ * @param startPopulation - initial population at simulation start
+ * @param outcome - the label returned by classifyOutcome
+ * @returns one-line reason string
+ */
+export function explainOutcome(
+  finalDecade: TenYearSummary,
+  startPopulation: number,
+  outcome: OutcomeLabel,
+): string {
+  const popFraction = finalDecade.endPopulation / startPopulation;
+  const giniStr = finalDecade.avgResourceGini.toFixed(2);
+  const happinessStr = finalDecade.avgHappiness.toFixed(1);
+  switch (outcome) {
+  case 'EXTINCTION':
+    return 'Population reached 0';
+  case 'COLLAPSE':
+    if (finalDecade.avgResourceGini >= Variables.COLLAPSE_GINI_THRESHOLD) {
+      return `Final-decade avg Gini ${giniStr} ≥ ${Variables.COLLAPSE_GINI_THRESHOLD.toFixed(2)} threshold`;
+    }
+    return `Population fell to ${(popFraction * 100).toFixed(0)}% of start (below ${(Variables.COLLAPSE_POPULATION_FRACTION * 100).toFixed(0)}%)`;
+  case 'THRIVING':
+    return `Final-decade Gini ${giniStr} below ${Variables.THRIVING_GINI_THRESHOLD.toFixed(2)} and happiness ${happinessStr} ≥ ${Variables.THRIVING_HAPPINESS_THRESHOLD.toFixed(1)}`;
+  case 'STRUGGLING':
+    if (finalDecade.avgResourceGini >= Variables.STRUGGLING_GINI_THRESHOLD) {
+      return `Final-decade Gini ${giniStr} ≥ ${Variables.STRUGGLING_GINI_THRESHOLD.toFixed(2)} threshold`;
+    }
+    return `Final-decade happiness ${happinessStr} below ${Variables.STRUGGLING_HAPPINESS_THRESHOLD.toFixed(1)} threshold`;
+  case 'STABLE':
+    return `Gini ${giniStr} and happiness ${happinessStr} within stable band`;
+  }
+}
+
+/**
+ * Summarises the composition of the living population by age, education,
+ * employment, health, and family status. ARD 031.
+ *
+ * @param living - current living population
+ * @returns aggregate composition
+ */
+export function summarizeSurvivors(living: Person[]): SurvivorSummary {
+  const summary: SurvivorSummary = {
+    total: living.length,
+    children: 0,
+    working: 0,
+    elderly: 0,
+    educationCounts: {
+      [Constants.EDUCATION.NONE]: 0,
+      [Constants.EDUCATION.HIGH_SCHOOL]: 0,
+      [Constants.EDUCATION.TRADE_SCHOOL]: 0,
+      [Constants.EDUCATION.BACHELORS]: 0,
+      [Constants.EDUCATION.MASTERS]: 0,
+      [Constants.EDUCATION.PHD]: 0,
+    },
+    enrolled: 0,
+    employed: 0,
+    healthWell: 0,
+    healthMild: 0,
+    healthSevere: 0,
+    avgIllness: 0,
+    partnered: 0,
+    withChildren: 0,
+  };
+
+  if (living.length === 0) return summary;
+
+  let illnessSum = 0;
+  for (const p of living) {
+    if (p.age < 18) summary.children++;
+    else if (p.age <= 65) summary.working++;
+    else summary.elderly++;
+
+    summary.educationCounts[p.education] = (summary.educationCounts[p.education] ?? 0) + 1;
+    if (p.isWorkingOnEd !== Constants.EDUCATION.NONE) summary.enrolled++;
+
+    if (p.age >= 18 && p.age <= 65 && p.hasJob) summary.employed++;
+
+    if (p.illness < 0.1) summary.healthWell++;
+    else if (p.illness < 0.5) summary.healthMild++;
+    else summary.healthSevere++;
+    illnessSum += p.illness;
+
+    if (p.isInRelationshipWith !== null) summary.partnered++;
+    if (p.hasChildren.length > 0) summary.withChildren++;
+  }
+
+  summary.avgIllness = illnessSum / living.length;
+  return summary;
+}
+
+/**
+ * Formats the SURVIVORS section as multi-line output. ARD 031.
+ *
+ * @param s - survivor summary
+ * @returns lines of the section (caller joins with newlines)
+ */
+export function formatSurvivorSection(s: SurvivorSummary): string[] {
+  const pct = (count: number, total: number): string =>
+    total > 0 ? `${((count / total) * 100).toFixed(1)}%` : '—';
+
+  const edu = s.educationCounts;
+  const employmentDenom = s.working;
+
+  return [
+    `SURVIVORS (${s.total})`,
+    `  Age:        children ${s.children} (${pct(s.children, s.total)})  ` +
+      `working ${s.working} (${pct(s.working, s.total)})  ` +
+      `elderly ${s.elderly} (${pct(s.elderly, s.total)})`,
+    `  Education:  NONE ${edu[Constants.EDUCATION.NONE] ?? 0}  ` +
+      `HS ${edu[Constants.EDUCATION.HIGH_SCHOOL] ?? 0}  ` +
+      `Trade ${edu[Constants.EDUCATION.TRADE_SCHOOL] ?? 0}  ` +
+      `BA ${edu[Constants.EDUCATION.BACHELORS] ?? 0}  ` +
+      `MA ${edu[Constants.EDUCATION.MASTERS] ?? 0}  ` +
+      `PhD ${edu[Constants.EDUCATION.PHD] ?? 0}   ` +
+      `(currently enrolled: ${s.enrolled})`,
+    `  Employment: ${s.employed} / ${employmentDenom} working-age employed (${pct(s.employed, employmentDenom)})`,
+    `  Health:     well ${s.healthWell} (<0.1)  ` +
+      `mild ${s.healthMild} (0.1–0.5)  ` +
+      `severe ${s.healthSevere} (≥0.5)   ` +
+      `avg illness ${s.avgIllness.toFixed(2)}`,
+    `  Family:     partnered ${s.partnered} (${pct(s.partnered, s.total)})  ` +
+      `with children ${s.withChildren} (${pct(s.withChildren, s.total)})`,
+  ];
+}
+
+/**
  * Builds the end-of-simulation console report string.
  *
  * @param decadeHistory - all decade summaries from the run
@@ -144,6 +283,12 @@ export function classifyOutcome(
  * @param personTypes - optional person types in effect; section omitted when empty (ARD 030)
  * @param seededTypeCounts - count of persons assigned to each type at seed time
  * @param living - current living population, for end-of-run type classification
+ * @param extinctionTick - tick at which population first reached 0; undefined unless EXTINCTION
+ * @param extractionEfficiency - final extractionEfficiency value (ARD 032)
+ * @param inventionCounts - cumulative invention firings by branch (ARD 032)
+ * @param inventionCounts.faster - count of depletion-faster firings
+ * @param inventionCounts.slower - count of depletion-slower firings
+ * @param inventionCounts.ceiling - count of ceiling-growth firings
  * @returns multi-line formatted report string
  */
 export function formatEndReport(
@@ -156,6 +301,9 @@ export function formatEndReport(
   personTypes: PersonTypes = {},
   seededTypeCounts: Record<string, number> = {},
   living: Person[] = [],
+  extinctionTick?: number,
+  extractionEfficiency = 1.0,
+  inventionCounts: { faster: number; slower: number; ceiling: number } = { faster: 0, slower: 0, ceiling: 0 },
 ): string {
   if (decadeHistory.length === 0) {
     return `=== End of Simulation (${ticks} ticks, seed ${seed}) ===\n(Run too short to produce a decade summary.)`;
@@ -164,13 +312,17 @@ export function formatEndReport(
   const final = decadeHistory[decadeHistory.length - 1];
   const first = decadeHistory[0];
   const outcome = classifyOutcome(final, startPopulation);
+  const reason = explainOutcome(final, startPopulation, outcome);
 
   const totalDeaths = decadeHistory.reduce((s, d) => s + d.totalDeaths, 0);
+  const totalBirths = decadeHistory.reduce((s, d) => s + d.births, 0);
   const byIllness = decadeHistory.reduce((s, d) => s + d.deathsByIllness, 0);
   const bySuicide = decadeHistory.reduce((s, d) => s + d.deathsBySuicide, 0);
   const byKilling = decadeHistory.reduce((s, d) => s + d.deathsByKilling, 0);
   const byDisaster = decadeHistory.reduce((s, d) => s + d.deathsByDisaster, 0);
   const byOldAge = decadeHistory.reduce((s, d) => s + d.deathsByOldAge, 0);
+  const netPop = final.endPopulation - startPopulation;
+  const netPopStr = netPop >= 0 ? `+${netPop}` : String(netPop);
 
   const giniTrend = final.avgResourceGini - first.avgResourceGini;
   const giniTrendStr = giniTrend >= 0 ? `+${giniTrend.toFixed(2)}` : giniTrend.toFixed(2);
@@ -186,6 +338,7 @@ export function formatEndReport(
       `  ${String(d.endTick).padStart(3, '0')}` +
       `  ${String(d.endPopulation).padStart(4)}` +
       `  ${delta.padStart(4)}` +
+      `  ${String(d.births).padStart(6)}` +
       `  ${d.avgResourceGini.toFixed(2)}` +
       `  ${d.peakResourceGini.toFixed(2).padStart(6)}` +
       `  ${d.avgResources.toFixed(1).padStart(5)}` +
@@ -198,10 +351,18 @@ export function formatEndReport(
     `=== End of Simulation (${ticks} ticks, seed ${seed}) ===`,
     '',
     `OUTCOME: ${outcome}`,
+    `  Reason: ${reason}`,
     `  Gini: ${final.avgResourceGini.toFixed(2)} avg, ${peakGiniDecade.peakResourceGini.toFixed(2)} peak (Yr ${String(peakGiniDecade.endTick).padStart(3, '0')})`,
+  ];
+
+  if (outcome === 'EXTINCTION' && extinctionTick !== undefined) {
+    lines.push(`  Extinct as of Yr ${String(extinctionTick).padStart(3, '0')}`);
+  }
+
+  lines.push(
     '',
     'POPULATION',
-    `  Start: ${startPopulation}  End: ${final.endPopulation}  Total deaths: ${totalDeaths}`,
+    `  Start: ${startPopulation}  End: ${final.endPopulation}  Births: ${totalBirths}  Deaths: ${totalDeaths}   (net: ${netPopStr})`,
     `  By cause — illness: ${byIllness}  suicide: ${bySuicide}  killing: ${byKilling}  disaster: ${byDisaster}  old age: ${byOldAge}`,
     '',
     'INEQUALITY (Gini)',
@@ -211,11 +372,18 @@ export function formatEndReport(
     'RESOURCES',
     `  Avg resources/person: ${first.avgResources.toFixed(1)} → ${final.avgResources.toFixed(1)}`,
     `  Natural resources remaining: ${Math.round(naturalResources)} / ${Math.round(naturalResourceCeiling)} ceiling`,
+    `  Inventions: ${inventionCounts.faster} faster  ${inventionCounts.slower} slower  ${inventionCounts.ceiling} ceiling   ` +
+      `(final efficiency: ${extractionEfficiency.toFixed(2)}, ceiling: ${Math.round(naturalResourceCeiling)})`,
     '',
     'HAPPINESS',
     `  Avg happiness: ${first.avgHappiness.toFixed(1)} → ${final.avgHappiness.toFixed(1)}`,
     `  Trend: ${final.avgHappiness >= first.avgHappiness ? 'rising' : 'declining'}`,
-  ];
+  );
+
+  if (living.length > 0) {
+    const survivors = summarizeSurvivors(living);
+    lines.push('', ...formatSurvivorSection(survivors));
+  }
 
   const typeSection = formatPersonTypeSection(personTypes, seededTypeCounts, living, startPopulation, final.endPopulation);
   if (typeSection !== null) {
@@ -225,7 +393,7 @@ export function formatEndReport(
   lines.push(
     '',
     'DECADE SUMMARY TABLE',
-    '  Yr   Pop  ΔPop  Gini  PkGini    Res  Happy  Deaths',
+    '  Yr   Pop  ΔPop  Births  Gini  PkGini    Res  Happy  Deaths',
     ...decadeTableRows,
   );
   return lines.join('\n');

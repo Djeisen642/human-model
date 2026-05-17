@@ -140,6 +140,6 @@ When in doubt:
 | [028](./028-windfall-event.md) | WindfallEvent | Accepted |
 | [029](./029-childbirth-event.md) | ChildbirthEvent | Accepted |
 | [030](./030-character-types.md) | Character Types in Population Seeding and Classification | Accepted |
-| [031](./031-survivor-composition-and-extinction.md) | Survivor Composition and EXTINCTION Outcome | Proposed |
-| [032](./032-pool-dynamics-tracking.md) | Pool Dynamics and Invention Counters in Snapshots | Proposed |
-| [033](./033-birth-tracking.md) | Birth Tracking | Proposed |
+| [031](./031-survivor-composition-and-extinction.md) | Survivor Composition and EXTINCTION Outcome | Accepted |
+| [032](./032-pool-dynamics-tracking.md) | Pool Dynamics and Invention Counters in Snapshots | Accepted |
+| [033](./033-birth-tracking.md) | Birth Tracking | Accepted |

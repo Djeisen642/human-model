@@ -57,5 +57,6 @@ export default class ChildbirthEvent implements IEvent {
     person.hasChildren.push(child);
     partner.hasChildren.push(child);
     simulation.add(child);
+    simulation.recordBirth();
   }
 }

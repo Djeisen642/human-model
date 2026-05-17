@@ -126,6 +126,52 @@ describe('InventionEvent', () => {
     });
   });
 
+  describe('invention counters (ARD 032)', () => {
+    /**
+     * @returns sim+person ready for InventionEvent.execute()
+     */
+    function setup(): { sim: Simulation; person: Person } {
+      const sim = new Simulation();
+      const person = new Person([]);
+      person.intelligence = 5;
+      sim.add(person);
+      return { sim, person };
+    }
+
+    it('faster branch increments inventionFasterCount only', () => {
+      const { sim, person } = setup();
+      new InventionEvent(() => 0).execute(person, sim);
+      expect(sim.inventionFasterCount).toBe(1);
+      expect(sim.inventionSlowerCount).toBe(0);
+      expect(sim.inventionCeilingCount).toBe(0);
+    });
+
+    it('slower branch increments inventionSlowerCount only', () => {
+      const { sim, person } = setup();
+      new InventionEvent(() => 0.5).execute(person, sim);
+      expect(sim.inventionFasterCount).toBe(0);
+      expect(sim.inventionSlowerCount).toBe(1);
+      expect(sim.inventionCeilingCount).toBe(0);
+    });
+
+    it('ceiling branch increments inventionCeilingCount only', () => {
+      const { sim, person } = setup();
+      new InventionEvent(() => 0.99).execute(person, sim);
+      expect(sim.inventionFasterCount).toBe(0);
+      expect(sim.inventionSlowerCount).toBe(0);
+      expect(sim.inventionCeilingCount).toBe(1);
+    });
+
+    it('counters accumulate across firings', () => {
+      const { sim, person } = setup();
+      const event = new InventionEvent(() => 0);
+      event.execute(person, sim);
+      event.execute(person, sim);
+      event.execute(person, sim);
+      expect(sim.inventionFasterCount).toBe(3);
+    });
+  });
+
   describe('outcome weight boundaries', () => {
     it('depletion-faster branch fires at roll just below FASTER_WEIGHT', () => {
       const sim = new Simulation();

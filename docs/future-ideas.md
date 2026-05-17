@@ -112,12 +112,6 @@ Three execution tiers behind a common `SimulationEngine` interface: (1) current 
 **Multiple simulation runs with comparison**
 Run N simulations with different seeds, compare `history` arrays. Requires deciding how `LooperSingleton` exposes results across runs.
 
-**Extinction as a distinct outcome label**
-Total extinction (population=0) is classified as COLLAPSE. The end report still prints "Trend: falling" for Gini — technically true, but reads like inequality improved rather than everyone dying. Add an EXTINCTION label or a `formatEndReport` callout when `endPopulation === 0`. Observed in seed 42 default run.
-
-**Partial-decade summary at run end**
-When `ticks` isn't a multiple of 10, the final N (N < 10) ticks have no `TenYearSummary`. `formatEndReport` uses the last full decade, which may be stale by up to 9 ticks. Build a partial-window summary at the actual end tick.
-
 ---
 
 ## Might be droppable
@@ -165,3 +159,7 @@ Considered and rejected without rising to ARD-level discussion. Each entry: name
 **Seeding strategy as experimental variable** — 2026-05-17 — Subsumed by ARD 030 (`simulation.personTypes` config with per-type stat ranges and percentage quotas).
 
 **Profile-based population seeding** — 2026-05-17 — Implemented: ARD 030 (config-driven `simulation.personTypes` with predicate-based classification at end-of-run). Catalog of recommended archetypes in `docs/research-character-types.md`.
+
+**Extinction as a distinct outcome label** — 2026-05-17 — Implemented: ARD 031 (`EXTINCTION` outcome added to `classifyOutcome`; `Extinct as of Yr NNN` callout in the end report).
+
+**Partial-decade summary at run end** — 2026-05-17 — Implemented: ARD 031 (`LooperSingleton` appends a partial `TenYearSummary` to `decadeHistory` after the loop when `ticks % 10 !== 0`).

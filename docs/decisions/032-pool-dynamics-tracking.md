@@ -1,6 +1,6 @@
 # ARD 032: Pool Dynamics and Invention Counters in Snapshots
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-17
 
 ## Context

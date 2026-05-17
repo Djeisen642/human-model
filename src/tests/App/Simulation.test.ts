@@ -495,5 +495,53 @@ describe('Simulation', () => {
       const snap = sim.snapshot();
       expect(snap.naturalResources).toBe(3_000);
     });
+
+    it('snapshot captures extractionEfficiency and naturalResourceCeiling (ARD 032)', () => {
+      const sim = new Simulation();
+      sim.extractionEfficiency = 0.65;
+      sim.naturalResourceCeiling = 5_500;
+      const snap = sim.snapshot();
+      expect(snap.extractionEfficiency).toBe(0.65);
+      expect(snap.naturalResourceCeiling).toBe(5_500);
+    });
+
+    it('invention counters initialize to 0 (ARD 032)', () => {
+      const sim = new Simulation();
+      expect(sim.inventionFasterCount).toBe(0);
+      expect(sim.inventionSlowerCount).toBe(0);
+      expect(sim.inventionCeilingCount).toBe(0);
+    });
+  });
+
+  describe('recordBirth (ARD 033)', () => {
+    it('snapshot captures births and cumulativeBirths from recordBirth calls', () => {
+      const sim = new Simulation();
+      sim.recordBirth();
+      sim.recordBirth();
+      const snap1 = sim.snapshot();
+      expect(snap1.births).toBe(2);
+      expect(snap1.cumulativeBirths).toBe(2);
+
+      sim.recordBirth();
+      const snap2 = sim.snapshot();
+      expect(snap2.births).toBe(1);
+      expect(snap2.cumulativeBirths).toBe(3);
+    });
+
+    it('snapshot resets tick births to 0 between snapshots', () => {
+      const sim = new Simulation();
+      sim.recordBirth();
+      sim.snapshot();
+      const snap = sim.snapshot();
+      expect(snap.births).toBe(0);
+    });
+
+    it('seed does not increment births', () => {
+      const sim = new Simulation();
+      sim.seed(10, alwaysFirst);
+      const snap = sim.snapshot();
+      expect(snap.births).toBe(0);
+      expect(snap.cumulativeBirths).toBe(0);
+    });
   });
 });

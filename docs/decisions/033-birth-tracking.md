@@ -1,6 +1,6 @@
 # ARD 033: Birth Tracking
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-17
 
 ## Context
