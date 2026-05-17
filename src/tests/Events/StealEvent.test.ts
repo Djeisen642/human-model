@@ -138,10 +138,11 @@ describe('StealEvent', () => {
 
   describe('detection and jailing (ARD 035)', () => {
     it('detection probability scales with prior crime count', () => {
-      // A thief with 3 prior crimes should have a higher detection rate than one with 0.
       // detectProb = BASE_DETECT_RATE_STEAL * (1 + priorCrimes * DETECTION_CRIME_COUNT_SCALAR)
-      // With 0 prior: 0.05 * 1.0 = 0.05; with 3 prior (after this theft): 0.05 * (1 + 4*0.05) = 0.06
-      // We check that a borderline rng value (e.g. 0.055) triggers detection after 3 priors but not 0.
+      // The steal record is pushed BEFORE detection, so even a first-time thief has priorCrimes=1.
+      // thief1 (no prior records): after theft, priorCrimes=1 → detectProb = 0.05*(1+1*0.05) = 0.0525
+      // thief2 (3 prior records): after theft, priorCrimes=4 → detectProb = 0.05*(1+4*0.05) = 0.06
+      // rng=0.055 sits between: above 0.0525 (no detection for thief1), below 0.06 (detection for thief2).
       const sim1 = new Simulation();
       const thief1 = new Person([]);
       const victim1 = new Person([]);
@@ -150,7 +151,7 @@ describe('StealEvent', () => {
       sim1.add(thief1);
       sim1.add(victim1);
 
-      // rng=0.055: above BASE_DETECT_RATE_STEAL=0.05 with 0 prior crimes → no detection
+      // rng=0.055: 0.055 >= detectProb(0.0525) → no detection
       const event1 = new StealEvent(() => 0.055);
       event1.execute(thief1, sim1);
       expect(thief1.jailedTicksRemaining).toBe(0);
@@ -163,11 +164,11 @@ describe('StealEvent', () => {
       victim2.resources = 100;
       sim2.add(thief2);
       sim2.add(victim2);
-      // Add 3 fake prior steal records to bump crime count
+      // 3 prior steal records so that after this theft priorCrimes = 4
       thief2.amountStolen.push(new StealingRecord(victim2, 1, 24));
       thief2.amountStolen.push(new StealingRecord(victim2, 1, 24));
       thief2.amountStolen.push(new StealingRecord(victim2, 1, 24));
-      // After this steal, priorCrimes = 4 → detectProb = 0.05 * (1 + 4*0.05) = 0.06 > 0.055
+      // priorCrimes = 4 → detectProb = 0.05 * (1 + 4*0.05) = 0.06; 0.055 < 0.06 → detected
       const event2 = new StealEvent(() => 0.055);
       event2.execute(thief2, sim2);
       expect(thief2.jailedTicksRemaining).toBe(Variables.JAIL_TICKS_STEAL);

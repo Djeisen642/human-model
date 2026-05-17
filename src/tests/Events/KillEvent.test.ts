@@ -4,6 +4,7 @@ import Simulation from '../../App/Simulation';
 import Constants from '../../Helpers/Constants';
 import Variables from '../../Helpers/Variables';
 import KillingRecord from '../../Records/KillingRecord';
+import StealingRecord from '../../Records/StealingRecord';
 
 describe('KillEvent', () => {
   describe('no-op cases', () => {
@@ -469,10 +470,11 @@ describe('KillEvent', () => {
       let c1 = 0;
       const rng1 = () => { c1++; if (c1 === 4) return 0.16; return 0; };
       new KillEvent(rng1).execute(k1, sim1);
-      // 0 prior crimes → detectProb = 0.15; 0.16 >= 0.15 → no detection
+      // After kill: killed.size=1, amountStolen.length=0 → priorCrimes=1
+      // detectProb = 0.15*(1+1*0.05) = 0.1575; 0.16 >= 0.1575 → no detection
       expect(k1.jailedTicksRemaining).toBe(0);
 
-      // Now with 3 prior steal records (crimes count = steal + killed)
+      // Now with 3 prior steal records so that after kill priorCrimes = 4
       const sim2 = new Simulation();
       const k2 = new Person([]);
       const v2 = new Person([]);
@@ -483,15 +485,14 @@ describe('KillEvent', () => {
       v2.constitution = 1;
       sim2.add(k2);
       sim2.add(v2);
-      // 3 prior steal crimes so that after kill priorCrimes = 4
-      k2.amountStolen.push({ person: v2, amount: 1, age: 24 } as never);
-      k2.amountStolen.push({ person: v2, amount: 1, age: 24 } as never);
-      k2.amountStolen.push({ person: v2, amount: 1, age: 24 } as never);
+      k2.amountStolen.push(new StealingRecord(v2, 1, 24));
+      k2.amountStolen.push(new StealingRecord(v2, 1, 24));
+      k2.amountStolen.push(new StealingRecord(v2, 1, 24));
 
       let c2 = 0;
       const rng2 = () => { c2++; if (c2 === 4) return 0.16; return 0; };
       new KillEvent(rng2).execute(k2, sim2);
-      // 3 prior + 1 kill = 4 crimes → detectProb = 0.15*(1+4*0.05) = 0.18; 0.16 < 0.18 → detected
+      // 3 prior steals + 1 kill = 4 crimes → detectProb = 0.15*(1+4*0.05) = 0.18; 0.16 < 0.18 → detected
       expect(k2.jailedTicksRemaining).toBe(Variables.JAIL_TICKS_KILL);
     });
   });
