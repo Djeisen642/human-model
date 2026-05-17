@@ -63,11 +63,11 @@ describe('EventFactory', () => {
 
   it('returns only unconditional events when all intents are zero', () => {
     // new Person has all intents=0; intent-gated events never fire
-    // Unconditional list: AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, ConsumptionEvent, JobEvent, RelationshipEvent, KillEvent, MisfortuneEvent
+    // Unconditional list: AgeEvent, ExperienceEvent, IllnessEvent, GatherResourcesEvent, ConsumptionEvent, JobEvent, RelationshipEvent, ChildbirthEvent, KillEvent, MisfortuneEvent
     const factory = new EventFactory(() => 0.5);
     const person = new Person([]);
 
-    expect(factory.getEventsFor(person).length).toBe(9);
+    expect(factory.getEventsFor(person).length).toBe(10);
   });
 
   it('appends ExerciseEvent when exerciseIntent gate passes', () => {
@@ -124,7 +124,7 @@ describe('EventFactory', () => {
 
     expect(events.some(e => e instanceof ExerciseEvent)).toBe(true);
     expect(events.some(e => e instanceof LearnEvent)).toBe(true);
-    expect(events.length).toBe(13); // 9 unconditional + ExerciseEvent + LearnEvent + EnrollmentEvent + WindfallEvent
+    expect(events.length).toBe(14); // 10 unconditional + ExerciseEvent + LearnEvent + EnrollmentEvent + WindfallEvent
   });
 
   it('always includes KillEvent', () => {

@@ -138,3 +138,4 @@ When in doubt:
 | [026](./026-steal-event.md) | StealEvent | Proposed |
 | [027](./027-kill-event.md) | KillEvent | Accepted |
 | [028](./028-windfall-event.md) | WindfallEvent | Accepted |
+| [029](./029-childbirth-event.md) | ChildbirthEvent | Accepted |
