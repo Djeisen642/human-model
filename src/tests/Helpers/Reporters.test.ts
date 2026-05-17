@@ -249,7 +249,7 @@ describe('classifyOutcome', () => {
     expect(classifyOutcome({ ...baseDecade, endPopulation: 19 }, 100)).toBe('COLLAPSE');
   });
 
-  it('returns THRIVING when Gini < 0.30 and happiness >= 6.0', () => {
+  it('returns THRIVING when Gini < 0.30 and happiness >= 6.0 and retention >= 70%', () => {
     expect(classifyOutcome({ ...baseDecade, avgResourceGini: 0.25, avgHappiness: 6.5 }, 100)).toBe('THRIVING');
   });
 
@@ -263,12 +263,26 @@ describe('classifyOutcome', () => {
     expect(result).not.toBe('THRIVING');
   });
 
+  it('caps at STABLE when retention is below THRIVING floor despite good Gini/happiness', () => {
+    // 69% retention — good welfare metrics but lost too many people to call THRIVING
+    expect(
+      classifyOutcome({ ...baseDecade, endPopulation: 69, avgResourceGini: 0.25, avgHappiness: 6.5 }, 100),
+    ).toBe('STABLE');
+  });
+
   it('returns STRUGGLING when Gini >= 0.45', () => {
     expect(classifyOutcome({ ...baseDecade, avgResourceGini: 0.45 }, 100)).toBe('STRUGGLING');
   });
 
   it('returns STRUGGLING when happiness < 3.0', () => {
     expect(classifyOutcome({ ...baseDecade, avgHappiness: 2.9 }, 100)).toBe('STRUGGLING');
+  });
+
+  it('forces STRUGGLING when retention is below the struggling cap regardless of welfare metrics', () => {
+    // 39% retention — good Gini/happiness but demographic failure forces STRUGGLING
+    expect(
+      classifyOutcome({ ...baseDecade, endPopulation: 39, avgResourceGini: 0.25, avgHappiness: 6.5 }, 100),
+    ).toBe('STRUGGLING');
   });
 
   it('returns STABLE otherwise', () => {
@@ -278,6 +292,12 @@ describe('classifyOutcome', () => {
   it('COLLAPSE takes priority over THRIVING conditions', () => {
     expect(
       classifyOutcome({ ...baseDecade, avgResourceGini: 0.65, avgHappiness: 7.0 }, 100),
+    ).toBe('COLLAPSE');
+  });
+
+  it('COLLAPSE takes priority over population cap conditions', () => {
+    expect(
+      classifyOutcome({ ...baseDecade, endPopulation: 39, avgResourceGini: 0.65 }, 100),
     ).toBe('COLLAPSE');
   });
 });

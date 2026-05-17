@@ -1,6 +1,6 @@
 # ARD 031: Population Retention Caps on Outcome Classification
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-17
 
 ## Context

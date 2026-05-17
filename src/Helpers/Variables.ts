@@ -213,7 +213,7 @@ export default class Variables {
   static ENROLLMENT_AGE_SCALE = 40;
   static ENROLLMENT_AGE_FLOOR = 0.05;
 
-  // Outcome classification thresholds (ARD 016)
+  // Outcome classification thresholds (ARD 016, ARD 031)
   /** Final-decade avg Gini at or above this → COLLAPSE. */
   static COLLAPSE_GINI_THRESHOLD = 0.60;
   /** Final population below this fraction of start → COLLAPSE. */
@@ -222,10 +222,14 @@ export default class Variables {
   static STRUGGLING_GINI_THRESHOLD = 0.45;
   /** Final-decade avg happiness below this → at least STRUGGLING (unless COLLAPSE). */
   static STRUGGLING_HAPPINESS_THRESHOLD = 3.0;
+  /** Retention below this forces at least STRUGGLING, regardless of Gini/happiness. */
+  static STRUGGLING_MAX_POPULATION_FRACTION = 0.40;
   /** Final-decade avg Gini below this AND happiness at or above THRIVING_HAPPINESS_THRESHOLD → THRIVING. */
   static THRIVING_GINI_THRESHOLD = 0.30;
   /** Final-decade avg happiness at or above this (with Gini below threshold) → THRIVING. */
   static THRIVING_HAPPINESS_THRESHOLD = 6.0;
+  /** Minimum retention required to qualify for THRIVING; below this, capped at STABLE. */
+  static THRIVING_MIN_POPULATION_FRACTION = 0.70;
 
   // Disaster event constants (ARD 012)
   /** Probability that a disaster fires in any given tick (~1 in 10 ticks). */

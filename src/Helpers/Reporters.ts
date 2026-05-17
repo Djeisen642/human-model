@@ -101,6 +101,7 @@ export function formatDecadeSummary(summary: TenYearSummary): string {
 /**
  * Classifies the simulation outcome based on the final decade's summary.
  * Checks in order: COLLAPSE, THRIVING, STRUGGLING, STABLE.
+ * Population retention acts as a ceiling on upper tiers (ARD 031).
  *
  * @param finalDecade - the last TenYearSummary in decadeHistory
  * @param startPopulation - initial population at simulation start
@@ -119,13 +120,15 @@ export function classifyOutcome(
   }
   if (
     finalDecade.avgResourceGini < Variables.THRIVING_GINI_THRESHOLD &&
-    finalDecade.avgHappiness >= Variables.THRIVING_HAPPINESS_THRESHOLD
+    finalDecade.avgHappiness >= Variables.THRIVING_HAPPINESS_THRESHOLD &&
+    popFraction >= Variables.THRIVING_MIN_POPULATION_FRACTION
   ) {
     return 'THRIVING';
   }
   if (
     finalDecade.avgResourceGini >= Variables.STRUGGLING_GINI_THRESHOLD ||
-    finalDecade.avgHappiness < Variables.STRUGGLING_HAPPINESS_THRESHOLD
+    finalDecade.avgHappiness < Variables.STRUGGLING_HAPPINESS_THRESHOLD ||
+    popFraction < Variables.STRUGGLING_MAX_POPULATION_FRACTION
   ) {
     return 'STRUGGLING';
   }
