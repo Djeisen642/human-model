@@ -283,8 +283,20 @@ function buildHTML(
       <div class="card"><canvas id="intentChart"></canvas></div>
       <div class="card"><canvas id="crimeChart"></canvas></div>
       <div class="card span-full"><canvas id="jailChart"></canvas></div>
-      <div class="card span-full"><canvas id="deathsPerTickChart"></canvas></div>
-      <div class="card span-full"><canvas id="deathsChart"></canvas></div>
+      <div class="card span-full" style="position: relative;">
+        <div style="position: absolute; top: 1.25rem; right: 1.5rem; z-index: 10;">
+          <select id="deathsChartToggle" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #e0e0e0; background: #fff; font-size: 0.85rem; cursor: pointer; outline: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            <option value="line">Line Chart</option>
+            <option value="stacked">Stacked Bar</option>
+          </select>
+        </div>
+        <div id="deathsLineContainer">
+          <canvas id="deathsPerTickChart"></canvas>
+        </div>
+        <div id="deathsBarContainer" style="display: none;">
+          <canvas id="deathsChart"></canvas>
+        </div>
+      </div>
     </div>
 
     <div class="section-title">Raw Output</div>
@@ -514,6 +526,16 @@ function buildHTML(
           x: { stacked: true, grid: { color: '#f0f0f0' } },
           y: { stacked: true, grid: { color: '#f0f0f0' } }
         }
+      }
+    });
+
+    document.getElementById('deathsChartToggle').addEventListener('change', function(e) {
+      if (e.target.value === 'stacked') {
+        document.getElementById('deathsLineContainer').style.display = 'none';
+        document.getElementById('deathsBarContainer').style.display = 'block';
+      } else {
+        document.getElementById('deathsBarContainer').style.display = 'none';
+        document.getElementById('deathsLineContainer').style.display = 'block';
       }
     });
   </script>

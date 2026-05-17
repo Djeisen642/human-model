@@ -147,4 +147,4 @@ When in doubt:
 | [035](./035-jail-and-retribution.md) | Jail and Retribution | Accepted |
 | [036](./036-dynamic-intent-multipliers.md) | Dynamic Intent Multipliers and Theft Emboldening | Accepted |
 | [037](./037-newborn-stat-seeding.md) | Newborn Stat Seeding via Parental Heritability | Accepted |
-| [038](./038-handlebars-html-generation.md) | Handlebars HTML Generation | Proposed |
+| [038](./038-handlebars-html-generation.md) | Handlebars HTML Generation | Accepted |
