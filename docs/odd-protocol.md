@@ -70,7 +70,12 @@ One shared environment object. No spatial structure; all agent interactions are 
 | `living` | Person[] | Agents currently alive |
 | `deceased` | Person[] | Agents who have died (retained for record-keeping) |
 | `history` | TickSnapshot[] | Per-tick aggregate metrics |
-| `decadeHistory` | TenYearSummary[] | One summary per 10-tick window |
+| `decadeHistory` | TenYearSummary[] | One entry per 10-tick window plus optional partial window at run end |
+| `personTypes` | PersonTypes | Character type definitions used for seeding (ARD 030) |
+| `seededTypeCounts` | Record\<string, number\> | Count of persons seeded per named type (ARD 030) |
+| `inventionFasterCount` | integer | Cumulative depletion-faster invention outcomes (ARD 032) |
+| `inventionSlowerCount` | integer | Cumulative depletion-slower invention outcomes (ARD 032) |
+| `inventionCeilingCount` | integer | Cumulative ceiling-growth invention outcomes (ARD 032) |
 
 #### Scale
 
@@ -105,6 +110,7 @@ Each tick executes in this order:
    16. `StealEvent` — intent-gated (`stealingIntent × ageModifier`)
 4. **`simulation.snapshot()`** — records per-tick aggregate metrics.
 5. **Every 10 ticks:** `buildTenYearSummary()` appended to `decadeHistory`; one-line console summary printed.
+6. **After the final tick (if `ticks % 10 !== 0`):** partial-decade summary built over the remaining ticks and appended to `decadeHistory` (ARD 031).
 
 Deaths during the loop are processed immediately (agent removed from `living`). Newborns added via `simulation.add()` during the loop are eligible for events in the same tick (ordering depends on shuffle position).
 
@@ -144,7 +150,7 @@ Deaths during the loop are processed immediately (agent removed from `living`). 
 
 Default: 100 agents, 100 ticks, seed 42.
 
-**Agent seeding** (`Simulation.seed(n, rng)`):
+**Agent seeding** (`Simulation.seed(n, rng, personTypes?)`):
 
 | Stat | Initial distribution |
 |---|---|
@@ -170,6 +176,8 @@ Education seeding by age:
 - `naturalResources = NATURAL_RESOURCE_CEILING_INITIAL`
 - `naturalResourceCeiling = NATURAL_RESOURCE_CEILING_INITIAL`
 - `extractionEfficiency = 1.0`
+
+When `personTypes` is supplied, `floor(n × percentage)` persons of each named type are seeded with stat ranges from that type's definition rather than the defaults above (ARD 030). Remaining persons are seeded with defaults.
 
 All constants live in `src/Helpers/Variables.ts`. A full reference config can be generated with `npm run generate-config`.
 
