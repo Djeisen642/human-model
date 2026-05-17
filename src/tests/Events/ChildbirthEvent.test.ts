@@ -197,9 +197,9 @@ describe('ChildbirthEvent', () => {
 
   describe('suppressor interactions', () => {
     it('full resources and zero illness gives highest probability (fires with high rng threshold)', () => {
-      // At peak age, full resources, zero illness, moderate happiness:
-      // illnessFactor=1, resourceFactor=1, happinessFactor≥1 → p ≈ BASE_CHILDBIRTH_RATE
-      // rng = 0.35 < 0.40 → should fire
+      // Peak age, full resources, zero illness → illnessFactor=1, resourceFactor=1.
+      // p = 0.40 * 1.0 * 1.0 * 1.0 * happinessFactor; happinessFactor ≥ 1 so p ≥ 0.40.
+      // rng = 0.35 → fires regardless of HAPPINESS_BASELINE tuning.
       const sim = new Simulation();
       const a = new Person([]);
       const b = new Person([]);
@@ -214,10 +214,11 @@ describe('ChildbirthEvent', () => {
       expect(sim.getLiving().length).toBe(3);
     });
 
-    it('partial illness reduces probability (same rng that fired above now fails)', () => {
-      // illness=0.5 → illnessFactor = max(0, 1 - 0.5*0.8) = 0.6
-      // p ≈ 0.40 * 1.0 * 0.6 * 1.0 * happinessFactor ≈ 0.24+
-      // rng=0.35 > 0.24 → should NOT fire
+    it('partial illness reduces probability (rng with headroom against HAPPINESS_BASELINE tuning)', () => {
+      // Couple illness = max(0.5, 0) = 0.5 → illnessFactor = 1 - 0.5*0.8 = 0.6.
+      // p = 0.40 * 1.0 * 0.6 * 1.0 * happinessFactor.
+      // Max realistic happinessFactor at this setup ≈ 1.5 (happiness ~10) → p_max ≈ 0.36.
+      // rng = 0.7 has ~2x headroom over p_max, so the test is robust to baseline tuning.
       const sim = new Simulation();
       const a = new Person([]);
       const b = new Person([]);
@@ -227,7 +228,64 @@ describe('ChildbirthEvent', () => {
       sim.add(a); sim.add(b);
       partner(a, b);
 
-      new ChildbirthEvent(() => 0.35).execute(a, sim);
+      new ChildbirthEvent(() => 0.7).execute(a, sim);
+
+      expect(sim.getLiving().length).toBe(2);
+    });
+  });
+
+  describe('couple aggregation', () => {
+    it('partner illness blocks the couple even when person is healthy', () => {
+      // a (lower-index) is fully healthy; b (partner) is fully ill.
+      // Couple illness = max(0, 1) = 1 → illnessFactor = 1 - 0.8 = 0.2.
+      // p ≈ 0.40 * 1.0 * 0.2 * 1.0 * happinessFactor ≈ 0.08–0.12.
+      // rng = 0.5 well above p_max for any reasonable HAPPINESS_BASELINE.
+      const sim = new Simulation();
+      const a = new Person([]);
+      const b = new Person([]);
+      a.resources = 100; b.resources = 100;
+      a.age = 26; b.age = 26;
+      a.illness = 0;
+      b.illness = 1;
+      sim.add(a); sim.add(b);
+      partner(a, b);
+
+      new ChildbirthEvent(() => 0.5).execute(a, sim);
+
+      expect(sim.getLiving().length).toBe(2);
+    });
+
+    it('poorer partner binds the resource factor', () => {
+      // a is rich (100), b is at the resource floor (RESOURCE_MIN).
+      // Couple resources = min(100, MIN) = MIN → resourceFactor = 0 → no birth.
+      const sim = new Simulation();
+      const a = new Person([]);
+      const b = new Person([]);
+      a.resources = 100;
+      b.resources = Variables.CHILDBIRTH_RESOURCE_MIN;
+      a.age = 26; b.age = 26;
+      sim.add(a); sim.add(b);
+      partner(a, b);
+
+      new ChildbirthEvent(alwaysPass).execute(a, sim);
+
+      expect(sim.getLiving().length).toBe(2);
+    });
+
+    it('older partner age drives the ageModifier', () => {
+      // a is at peak age (26); b is far past peak — couple age = max should hit floor.
+      // With AGE_FLOOR = 0.02, p ≤ 0.40 * 0.02 * happinessFactor ≈ 0.008–0.012.
+      // alwaysPass=0 still fires (0 < tiny p), but rng = 0.05 should not.
+      const sim = new Simulation();
+      const a = new Person([]);
+      const b = new Person([]);
+      a.resources = 100; b.resources = 100;
+      a.age = 26;
+      b.age = 70; // far past peak — ageModifier clamps to AGE_FLOOR
+      sim.add(a); sim.add(b);
+      partner(a, b);
+
+      new ChildbirthEvent(() => 0.05).execute(a, sim);
 
       expect(sim.getLiving().length).toBe(2);
     });

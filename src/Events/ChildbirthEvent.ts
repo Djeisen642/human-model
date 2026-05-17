@@ -8,14 +8,15 @@ import { RNG } from '../Helpers/Types';
 /**
  * Unconditional (internal probability gate): partnered couple may produce a child.
  * Only the lower-index partner fires to prevent double-creation per couple per tick.
- * Three multiplicative suppressors: illness, resources, happiness. See ARD 029.
+ * Probability aggregates both partners' stats so the deduplication choice doesn't
+ * shift fertility. See ARD 029.
  */
 export default class ChildbirthEvent implements IEvent {
   /** @param rng - random number source injected at construction */
   constructor(private rng: RNG) {}
 
   /**
-   * Attempt to produce a child for a partnered person.
+   * Attempt to produce a child for a partnered couple.
    * No-op if unpartnered, deduplication check fails, or probability roll fails.
    * On success: deducts birth cost from each parent, creates child, adds to simulation.
    *
@@ -26,19 +27,24 @@ export default class ChildbirthEvent implements IEvent {
     const partner = person.isInRelationshipWith;
     if (!partner) return;
 
-    // Only the lower-index partner fires to prevent two children per couple per tick
-    const living = simulation.getLiving();
-    if (living.indexOf(person) > living.indexOf(partner)) return;
+    if (simulation.indexOfLiving(person) > simulation.indexOfLiving(partner)) return;
 
-    const illnessFactor = Math.max(0, 1 - person.illness * Variables.CHILDBIRTH_ILLNESS_SCALAR);
+    // Couple aggregates: worst-case for the biological blockers (illness, resources, age),
+    // average for the soft signal (happiness). Ensures dedup choice doesn't change probability.
+    const coupleIllness = Math.max(person.illness, partner.illness);
+    const coupleResources = Math.min(person.resources, partner.resources);
+    const coupleHappiness = (person.happiness + partner.happiness) / 2;
+    const coupleAge = Math.max(person.age, partner.age);
+
+    const illnessFactor = Math.max(0, 1 - coupleIllness * Variables.CHILDBIRTH_ILLNESS_SCALAR);
+    const resourceRange = Variables.CHILDBIRTH_RESOURCE_SCALE - Variables.CHILDBIRTH_RESOURCE_MIN;
     const resourceFactor = Math.min(1, Math.max(0,
-      (person.resources - Variables.CHILDBIRTH_RESOURCE_MIN) /
-      (Variables.CHILDBIRTH_RESOURCE_SCALE - Variables.CHILDBIRTH_RESOURCE_MIN),
+      (coupleResources - Variables.CHILDBIRTH_RESOURCE_MIN) / resourceRange,
     ));
-    const happinessFactor = 1 + person.happiness * Variables.CHILDBIRTH_HAPPINESS_SCALAR;
+    const happinessFactor = 1 + coupleHappiness * Variables.CHILDBIRTH_HAPPINESS_SCALAR;
 
     const p = Variables.BASE_CHILDBIRTH_RATE
-      * ageModifier(person.age, Variables.CHILDBIRTH_PEAK_AGE,
+      * ageModifier(coupleAge, Variables.CHILDBIRTH_PEAK_AGE,
         Variables.CHILDBIRTH_AGE_SCALE, Variables.CHILDBIRTH_AGE_FLOOR)
       * illnessFactor * resourceFactor * happinessFactor;
 

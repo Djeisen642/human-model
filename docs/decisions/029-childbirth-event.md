@@ -13,27 +13,31 @@ Calibration data is in `docs/research-childbirth.md`. The Hutterite natural fert
 
 Add `ChildbirthEvent` (implements `IEvent`). Added to the unconditional event list in `EventFactory` between `RelationshipEvent` and `KillEvent`; probability gating is inside `execute()` because the gate depends on multiple person stats (illness, resources, happiness) not available at factory level.
 
-**Deduplication.** Both partners will have `ChildbirthEvent` in their event list each tick. To prevent double-creation, only the partner with the lower index in `simulation.getLiving()` fires:
+**Deduplication.** Both partners will have `ChildbirthEvent` in their event list each tick. To prevent double-creation, only the partner with the lower index in the living array fires. `Simulation.indexOfLiving(person)` reads the internal array directly (no per-call allocation):
 
 ```typescript
 const partner = person.isInRelationshipWith;
 if (!partner) return;
-const living = simulation.getLiving();
-if (living.indexOf(person) > living.indexOf(partner)) return;
+if (simulation.indexOfLiving(person) > simulation.indexOfLiving(partner)) return;
 ```
 
-**Probability formula:**
+**Probability formula.** All factors aggregate both partners' stats so the dedup choice doesn't shift fertility — `max` for illness (worst-case blocker), `min` for resources (poorer partner binds), `max` for age (older partner constrains biological fecundity), `avg` for happiness (soft signal):
 
 ```typescript
-const illnessFactor = Math.max(0, 1 - person.illness * Variables.CHILDBIRTH_ILLNESS_SCALAR);
+const coupleIllness = Math.max(person.illness, partner.illness);
+const coupleResources = Math.min(person.resources, partner.resources);
+const coupleHappiness = (person.happiness + partner.happiness) / 2;
+const coupleAge = Math.max(person.age, partner.age);
+
+const illnessFactor = Math.max(0, 1 - coupleIllness * CHILDBIRTH_ILLNESS_SCALAR);
+const resourceRange = CHILDBIRTH_RESOURCE_SCALE - CHILDBIRTH_RESOURCE_MIN;
 const resourceFactor = Math.min(1, Math.max(0,
-  (person.resources - Variables.CHILDBIRTH_RESOURCE_MIN) /
-  (Variables.CHILDBIRTH_RESOURCE_SCALE - Variables.CHILDBIRTH_RESOURCE_MIN)
+  (coupleResources - CHILDBIRTH_RESOURCE_MIN) / resourceRange
 ));
-const happinessFactor = 1 + person.happiness * Variables.CHILDBIRTH_HAPPINESS_SCALAR;
-const p = Variables.BASE_CHILDBIRTH_RATE
-  * ageModifier(person.age, Variables.CHILDBIRTH_PEAK_AGE,
-                Variables.CHILDBIRTH_AGE_SCALE, Variables.CHILDBIRTH_AGE_FLOOR)
+const happinessFactor = 1 + coupleHappiness * CHILDBIRTH_HAPPINESS_SCALAR;
+const p = BASE_CHILDBIRTH_RATE
+  * ageModifier(coupleAge, CHILDBIRTH_PEAK_AGE,
+                CHILDBIRTH_AGE_SCALE, CHILDBIRTH_AGE_FLOOR)
   * illnessFactor * resourceFactor * happinessFactor;
 if (this.rng() >= p) return;
 ```
@@ -61,7 +65,14 @@ Age profile constants (`CHILDBIRTH_PEAK_AGE`, `CHILDBIRTH_AGE_SCALE`, `CHILDBIRT
 
 **Deduplication by index over a new Person field.** Adding a `lastChildbirthTick` field to `Person` would work but introduces a stat whose sole purpose is bookkeeping — it would load into agent context without informational value. Comparing living-array indices is O(n) but n is ~100, called only when a couple's probability roll passes (~3% of partnered persons at peak age), and requires no changes to `Person`. A single-sided approach (e.g., only fire for persons whose partner reference is "less than" theirs by some property) is O(1) but breaks if two persons share all compared properties; index comparison is unambiguous.
 
-**Three separate suppressors over a single composite health factor.** Illness, resources, and happiness are empirically distinct mechanisms with different magnitudes and time courses (illness is fast-cycling, resources respond to gathering, happiness is computed from many sources). A composite would either require a new derived stat or obscure which mechanism is active when debugging collapse trajectories. Treating them as multiplicative factors is both compositionally simple and empirically defensible: each factor ranges [0, 1+] and can independently zero out the probability.
+**Three separate factors over a single composite health factor.** Illness, resources, and happiness are empirically distinct mechanisms with different magnitudes and time courses (illness is fast-cycling, resources respond to gathering, happiness is computed from many sources). A composite would either require a new derived stat or obscure which mechanism is active when debugging collapse trajectories. Treating them as multiplicative factors is both compositionally simple and empirically defensible. Illness and resource factors are true suppressors in `[0, 1]` and can independently zero the probability; happiness is a small booster in `[1, ~1.5+]` reflecting that high mood lifts birth intention but never blocks it on its own.
+
+**Couple aggregation: max illness, min resources, max age, avg happiness.** The dedup rule fires only the lower-index partner, but the lower-index choice is arbitrary — using only `person`'s stats would mean two otherwise-identical couples could have different fertility based on insertion order. Couple-level aggregates fix this:
+
+- **`max(illness)`** — the unhealthier partner constrains fertility (one partner's chronic illness disrupts the couple's reproduction).
+- **`min(resources)`** — the poorer partner binds the resource floor; we don't model resource pooling between partners (ARD 025 deferred it), so the Dutch Hunger Winter threshold should fire when either partner is below it.
+- **`max(age)`** — biological fecundity falls off with age; the older partner is the binding constraint (Hutterite age-fertility curves are by mother's age, which is implicitly the older-curve constraint in mostly age-paired pairings).
+- **`avg(happiness)`** — happiness is a soft, intention-level signal; either partner being a bit unhappy shouldn't fully cancel a happy partner's contribution, so averaging is the right shape.
 
 **Resource threshold ramp over linear scale from 0.** A linear scale from `resources = 0` would give non-zero fertility even at near-starvation conditions, contradicting the Dutch Hunger Winter evidence of a hard biological threshold. The ramp (zero below `RESOURCE_MIN`, full above `RESOURCE_SCALE`) captures the threshold behavior while avoiding a hard cliff.
 
@@ -73,8 +84,11 @@ Age profile constants (`CHILDBIRTH_PEAK_AGE`, `CHILDBIRTH_AGE_SCALE`, `CHILDBIRT
 
 ## Consequences
 
-- `src/Events/ChildbirthEvent.ts` — new file; constructor takes `rng`; `execute()` implements deduplication check, probability roll with three multiplicative suppressors, and birth mechanics.
-- `src/Events/EventFactory.ts` — add `ChildbirthEvent` to unconditional list between `RelationshipEvent` and `KillEvent`.
-- `src/Helpers/Variables.ts` — add `BASE_CHILDBIRTH_RATE`, `CHILDBIRTH_ILLNESS_SCALAR`, `CHILDBIRTH_RESOURCE_MIN`, `CHILDBIRTH_RESOURCE_SCALE`, `CHILDBIRTH_HAPPINESS_SCALAR`, `CHILDBIRTH_BIRTH_COST`.
-- `src/tests/Events/ChildbirthEvent.test.ts` — tests must cover: no-op when not in relationship; deduplication (two partners both fire, only one child created); no-op when rng fails; no-op when resources ≤ RESOURCE_MIN; no-op when illness = 1; birth adds child to `simulation.getLiving()`; child's `childOf` contains both parents; both parents' `hasChildren` contain the child; each parent loses `CHILDBIRTH_BIRTH_COST` resources; birth cost is floored at 0.
-- Cross-references: ARD 008 (ageModifier, age profile constants), ARD 010 (EventFactory routing), ARD 025 (RelationshipEvent — isInRelationshipWith lifecycle).
+- `src/Events/ChildbirthEvent.ts` — new file; constructor takes `rng`; `execute()` implements deduplication check, couple-aggregate probability roll, and birth mechanics.
+- `src/App/Simulation.ts` — adds `indexOfLiving(person)` to expose insertion-order index without allocating a fresh copy of the living array (`getLiving()`'s copy was wasteful for hot-path index lookups).
+- `src/Events/EventFactory.ts` — `ChildbirthEvent` in the unconditional list between `RelationshipEvent` and `KillEvent`.
+- `src/Helpers/Variables.ts` — `BASE_CHILDBIRTH_RATE`, `CHILDBIRTH_ILLNESS_SCALAR`, `CHILDBIRTH_RESOURCE_MIN`, `CHILDBIRTH_RESOURCE_SCALE`, `CHILDBIRTH_HAPPINESS_SCALAR`, `CHILDBIRTH_BIRTH_COST`.
+- `src/tests/Events/ChildbirthEvent.test.ts` — covers: no-op when unpartnered, rng fails, couple resources ≤ RESOURCE_MIN, couple illness saturated; deduplication trio (lower fires, higher no-ops alone, both together = one child); birth wiring (child.childOf, hasChildren on both, cost deduction, cost floored at 0 still births); couple aggregation (partner illness blocks healthy person, poorer partner binds resourceFactor, older partner drives ageModifier into floor).
+- Cross-references: ARD 008 (ageModifier, age profile constants), ARD 010 (EventFactory routing), ARD 025 (RelationshipEvent — isInRelationshipWith lifecycle, deferred resource pooling).
+
+**Feedback into existing chains.** `ChildbirthEvent` runs after `ConsumptionEvent`, so its `CHILDBIRTH_BIRTH_COST` deduction is additive to the same tick's consumption. A couple at the resource floor can drop to 0 post-birth and trigger the existing starvation chain (`STARVATION_ILLNESS_RATE` → `MisfortuneEvent` illness mortality) over the next ticks. This is the intended "high cost of parenthood" feedback, not a bug — births during scarcity should carry survival risk.
