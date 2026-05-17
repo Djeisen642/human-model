@@ -73,10 +73,7 @@ export function buildTenYearSummary(
  * @returns formatted header string
  */
 export function formatSimulationHeader(n: number, ticks: number, seed: number): string {
-  return (
-    `=== Simulation start: ${n} persons, ${ticks} ticks, seed ${seed} ===\n` +
-    '[Yr ---] Pop           Gini            Resources  Happiness  Deaths'
-  );
+  return `=== Simulation start: ${n} persons, ${ticks} ticks, seed ${seed} ===`;
 }
 
 /**
