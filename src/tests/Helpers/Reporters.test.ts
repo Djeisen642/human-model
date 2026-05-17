@@ -58,6 +58,10 @@ function makeSnapshot(
     births,
     cumulativeBirths: (prev?.cumulativeBirths ?? 0) + births,
     communityPool: overrides.communityPool ?? 0,
+    averageIllness: overrides.averageIllness ?? 0,
+    employmentRate: overrides.employmentRate ?? 0,
+    stealsCommitted: overrides.stealsCommitted ?? 0,
+    jailedPopulation: overrides.jailedPopulation ?? 0,
   };
 }
 

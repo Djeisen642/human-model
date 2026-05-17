@@ -60,15 +60,24 @@ function buildHTML(
   const avgResourceSeries = history.map(s => s.averageResources.toFixed(2));
   const naturalResourceSeries = history.map(s => s.naturalResources.toFixed(2));
   const ceilingSeries = history.map(s => s.naturalResourceCeiling.toFixed(2));
-  const efficiencySeries = history.map(s => s.extractionEfficiency.toFixed(4));
   const communityPoolSeries = history.map(s => s.communityPool.toFixed(2));
   const happinessSeries = history.map(s => s.averageHappiness.toFixed(4));
+  const illnessSeries_ = history.map(s => s.averageIllness.toFixed(4));
+  const employmentSeries = history.map(s => s.employmentRate.toFixed(4));
   const killingIntentSeries = history.map(s =>
     (s.population > 0 ? s.aggregateKillingIntent / s.population : 0).toFixed(5),
   );
   const stealingIntentSeries = history.map(s =>
     (s.population > 0 ? s.aggregateStealingIntent / s.population : 0).toFixed(5),
   );
+  const jailedSeries = history.map(s => s.jailedPopulation);
+  const murdersPerTickSeries = history.map(s => s.deathsByMurder);
+  const stealsPerTickSeries = history.map(s => s.stealsCommitted);
+  const deathsIllnessTickSeries = history.map(s => s.deathsByIllness);
+  const deathsSuicideTickSeries = history.map(s => s.deathsBySuicide);
+  const deathsMurderTickSeries = history.map(s => s.deathsByMurder);
+  const deathsDisasterTickSeries = history.map(s => s.deathsByDisaster);
+  const deathsOldAgeTickSeries = history.map(s => s.deathsByOldAge);
 
   const decadeLabels = decadeHistory.map(d => `Yr ${d.endTick}`);
   const illnessSeries = decadeHistory.map(d => d.deathsByIllness);
@@ -91,6 +100,15 @@ function buildHTML(
       births: s.births,
       averageHappiness: s.averageHappiness,
       communityPool: s.communityPool,
+      averageIllness: s.averageIllness,
+      employmentRate: s.employmentRate,
+      stealsCommitted: s.stealsCommitted,
+      jailedPopulation: s.jailedPopulation,
+      deathsByMurder: s.deathsByMurder,
+      deathsByIllness: s.deathsByIllness,
+      deathsBySuicide: s.deathsBySuicide,
+      deathsByDisaster: s.deathsByDisaster,
+      deathsByOldAge: s.deathsByOldAge,
     })),
   });
 
@@ -235,10 +253,13 @@ function buildHTML(
     <div class="charts-grid">
       <div class="card"><canvas id="giniChart"></canvas></div>
       <div class="card"><canvas id="populationChart"></canvas></div>
-      <div class="card"><canvas id="resourcesChart"></canvas></div>
       <div class="card"><canvas id="happinessChart"></canvas></div>
+      <div class="card"><canvas id="healthEmploymentChart"></canvas></div>
       <div class="card span-full"><canvas id="poolDynamicsChart"></canvas></div>
-      <div class="card span-full"><canvas id="intentChart"></canvas></div>
+      <div class="card"><canvas id="intentChart"></canvas></div>
+      <div class="card"><canvas id="crimeChart"></canvas></div>
+      <div class="card span-full"><canvas id="jailChart"></canvas></div>
+      <div class="card span-full"><canvas id="deathsPerTickChart"></canvas></div>
       <div class="card span-full"><canvas id="deathsChart"></canvas></div>
     </div>
 
@@ -289,33 +310,6 @@ function buildHTML(
       }
     });
 
-    new Chart(document.getElementById('resourcesChart'), {
-      type: 'line',
-      data: {
-        labels: tickLabels,
-        datasets: [
-          { label: 'Avg Resources / Person', data: ${JSON.stringify(avgResourceSeries)},
-            borderColor: '#27ae60', backgroundColor: 'rgba(39,174,96,0.06)',
-            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
-          { label: 'Natural Resources Pool', data: ${JSON.stringify(naturalResourceSeries)},
-            borderColor: '#8e44ad', backgroundColor: 'transparent',
-            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [5,3], yAxisID: 'y2' }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          title: { display: true, text: 'Resources Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
-          legend: { position: 'bottom' }
-        },
-        scales: {
-          x: { grid: { color: '#f0f0f0' } },
-          y: { position: 'left', grid: { color: '#f0f0f0' } },
-          y2: { position: 'right', grid: { drawOnChartArea: false } }
-        }
-      }
-    });
-
     new Chart(document.getElementById('happinessChart'), {
       type: 'line',
       data: {
@@ -325,6 +319,33 @@ function buildHTML(
           fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }]
       },
       options: ${chartOptions('Happiness Over Time', ', y: { min: 0, grid: { color: "#f0f0f0" } }')}
+    });
+
+    new Chart(document.getElementById('healthEmploymentChart'), {
+      type: 'line',
+      data: {
+        labels: tickLabels,
+        datasets: [
+          { label: 'Avg Illness', data: ${JSON.stringify(illnessSeries_)},
+            borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.06)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Employment Rate', data: ${JSON.stringify(employmentSeries)},
+            borderColor: '#27ae60', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [4,3], yAxisID: 'y2' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Health & Employment Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' } },
+          y: { position: 'left', min: 0, max: 1, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Illness [0–1]' } },
+          y2: { position: 'right', min: 0, max: 1, grid: { drawOnChartArea: false }, title: { display: true, text: 'Employment Rate [0–1]' } }
+        }
+      }
     });
 
     new Chart(document.getElementById('poolDynamicsChart'), {
@@ -338,25 +359,24 @@ function buildHTML(
           { label: 'Resource Ceiling', data: ${JSON.stringify(ceilingSeries)},
             borderColor: '#34495e', backgroundColor: 'transparent',
             tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [5,3] },
-          { label: 'Extraction Efficiency', data: ${JSON.stringify(efficiencySeries)},
-            borderColor: '#e67e22', backgroundColor: 'transparent',
+          { label: 'Avg Resources / Person', data: ${JSON.stringify(avgResourceSeries)},
+            borderColor: '#27ae60', backgroundColor: 'transparent',
             tension: 0.2, pointRadius: 0, borderWidth: 2, yAxisID: 'y2' },
           { label: 'Community Pool', data: ${JSON.stringify(communityPoolSeries)},
             borderColor: '#1abc9c', backgroundColor: 'transparent',
-            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [3,2], yAxisID: 'y3' }
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [3,2], yAxisID: 'y2' }
         ]
       },
       options: {
         responsive: true,
         plugins: {
-          title: { display: true, text: 'Resource Pool Dynamics', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          title: { display: true, text: 'Resources Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
           legend: { position: 'bottom' }
         },
         scales: {
           x: { grid: { color: '#f0f0f0' } },
-          y: { position: 'left', grid: { color: '#f0f0f0' } },
-          y2: { position: 'right', grid: { drawOnChartArea: false } },
-          y3: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true, display: false }
+          y: { position: 'left', grid: { color: '#f0f0f0' }, title: { display: true, text: 'Natural Resources' } },
+          y2: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true, title: { display: true, text: 'Per-Person / Pool' } }
         }
       }
     });
@@ -375,6 +395,81 @@ function buildHTML(
         ]
       },
       options: ${chartOptions('Antisocial Intent Per Capita', ', y: { min: 0, grid: { color: "#f0f0f0" } }')}
+    });
+
+    new Chart(document.getElementById('crimeChart'), {
+      type: 'line',
+      data: {
+        labels: tickLabels,
+        datasets: [
+          { label: 'Murders', data: ${JSON.stringify(murdersPerTickSeries)},
+            borderColor: '#c0392b', backgroundColor: 'rgba(192,57,43,0.06)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Thefts', data: ${JSON.stringify(stealsPerTickSeries)},
+            borderColor: '#7d3c98', backgroundColor: 'rgba(125,60,152,0.06)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2, yAxisID: 'y2' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Crime Activity Per Tick', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' } },
+          y: { position: 'left', beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Murders' } },
+          y2: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'Thefts' } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('jailChart'), {
+      type: 'line',
+      data: {
+        labels: tickLabels,
+        datasets: [
+          { label: 'Jailed Population', data: ${JSON.stringify(jailedSeries)},
+            borderColor: '#d35400', backgroundColor: 'rgba(211,84,0,0.08)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }
+        ]
+      },
+      options: ${chartOptions('Jailed Population Over Time', ', y: { beginAtZero: true, grid: { color: "#f0f0f0" } }')}
+    });
+
+    new Chart(document.getElementById('deathsPerTickChart'), {
+      type: 'line',
+      data: {
+        labels: tickLabels,
+        datasets: [
+          { label: 'Illness',  data: ${JSON.stringify(deathsIllnessTickSeries)},
+            borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.4)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 1.5 },
+          { label: 'Suicide',  data: ${JSON.stringify(deathsSuicideTickSeries)},
+            borderColor: '#8e44ad', backgroundColor: 'rgba(142,68,173,0.4)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 1.5 },
+          { label: 'Murder',   data: ${JSON.stringify(deathsMurderTickSeries)},
+            borderColor: '#c0392b', backgroundColor: 'rgba(192,57,43,0.4)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 1.5 },
+          { label: 'Disaster', data: ${JSON.stringify(deathsDisasterTickSeries)},
+            borderColor: '#2c3e50', backgroundColor: 'rgba(44,62,80,0.4)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 1.5 },
+          { label: 'Old Age',  data: ${JSON.stringify(deathsOldAgeTickSeries)},
+            borderColor: '#95a5a6', backgroundColor: 'rgba(149,165,166,0.4)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 1.5 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Deaths by Cause Per Tick', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' } },
+          y: { beginAtZero: true, grid: { color: '#f0f0f0' } }
+        }
+      }
     });
 
     new Chart(document.getElementById('deathsChart'), {

@@ -64,6 +64,14 @@ export interface TickSnapshot {
   cumulativeBirths: number;
   /** Community pool balance at end of tick. ARD 034. */
   communityPool: number;
+  /** Mean illness severity across living population at end of tick. */
+  averageIllness: number;
+  /** Fraction of working-age persons (18–65) with a job at end of tick. 0 when none exist. */
+  employmentRate: number;
+  /** Thefts executed this tick (successful StealEvent executions). */
+  stealsCommitted: number;
+  /** Number of living persons currently serving a jail sentence at end of tick. */
+  jailedPopulation: number;
 }
 
 export default class Simulation {
@@ -98,6 +106,7 @@ export default class Simulation {
 
   private tickDeathCauses: number[] = [];
   private tickBirths = 0;
+  private tickSteals = 0;
 
   /**
    * Returns a shallow copy of the living population.
@@ -171,6 +180,13 @@ export default class Simulation {
    */
   recordBirth(): void {
     this.tickBirths++;
+  }
+
+  /**
+   * Increments the per-tick steal counter. Called by StealEvent on a successful theft.
+   */
+  recordSteal(): void {
+    this.tickSteals++;
   }
 
   /**
@@ -314,8 +330,14 @@ export default class Simulation {
     const averageResources = mean(resources);
     const resourceGini = gini(resources);
     const averageHappiness = mean(this.living.map(p => p.happiness));
+    const averageIllness = mean(this.living.map(p => p.illness));
     const aggregateKillingIntent = this.living.reduce((s, p) => s + p.killingIntent, 0);
     const aggregateStealingIntent = this.living.reduce((s, p) => s + p.stealingIntent, 0);
+    const workingAge = this.living.filter(p => p.age >= 18 && p.age <= 65);
+    const employmentRate = workingAge.length > 0
+      ? workingAge.filter(p => p.hasJob).length / workingAge.length
+      : 0;
+    const jailedPopulation = this.living.filter(p => p.jailedTicksRemaining > 0).length;
 
     const deaths = this.tickDeathCauses.length;
     const deathsByMurder = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.MURDER).length;
@@ -334,6 +356,7 @@ export default class Simulation {
 
     const births = this.tickBirths;
     const cumulativeBirths = (prev?.cumulativeBirths ?? 0) + births;
+    const stealsCommitted = this.tickSteals;
 
     const snap: TickSnapshot = {
       tick,
@@ -361,11 +384,16 @@ export default class Simulation {
       births,
       cumulativeBirths,
       communityPool: this.communityPool,
+      averageIllness,
+      employmentRate,
+      stealsCommitted,
+      jailedPopulation,
     };
 
     this.history.push(snap);
     this.tickDeathCauses = [];
     this.tickBirths = 0;
+    this.tickSteals = 0;
     return snap;
   }
 }

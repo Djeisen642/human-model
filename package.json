@@ -8,7 +8,7 @@
     "build": "rimraf ./build && tsgo",
     "lint": "eslint src/",
     "generate-config": "ts-node scripts/generate-config.ts",
-    "start:dev": "nodemon",
+    "start": "ts-node src/App/index.ts",
     "prepare": "husky"
   },
   "keywords": [],
