@@ -32,6 +32,8 @@ export default class InventionEvent implements IEvent {
     const roll = this.rng() * totalWeight;
 
     if (roll < Variables.INVENTION_DEPLETION_FASTER_WEIGHT) {
+      // Math.max floor is unreachable here: (1 + delta) with delta >= 0 never decreases a positive value.
+      // Kept for defensive symmetry with the slower branch.
       simulation.extractionEfficiency = Math.max(
         0.01,
         simulation.extractionEfficiency * (1 + delta),

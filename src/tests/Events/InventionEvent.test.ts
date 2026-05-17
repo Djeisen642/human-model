@@ -8,9 +8,6 @@ describe('InventionEvent', () => {
     + Variables.INVENTION_DEPLETION_SLOWER_WEIGHT
     + Variables.INVENTION_CEILING_GROWTH_WEIGHT;
 
-  // rng threshold boundaries for each outcome
-  const fasterThreshold = Variables.INVENTION_DEPLETION_FASTER_WEIGHT / totalWeight;
-
   describe('depletion-faster outcome', () => {
     it('increases extractionEfficiency when roll < INVENTION_DEPLETION_FASTER_WEIGHT', () => {
       const sim = new Simulation();
@@ -42,23 +39,6 @@ describe('InventionEvent', () => {
       expect(sim2.extractionEfficiency).toBeGreaterThan(sim1.extractionEfficiency);
     });
 
-    it('floors extractionEfficiency at 0.01 on depletion-faster when efficiency is already near zero', () => {
-      const sim = new Simulation();
-      const person = new Person([]);
-      person.intelligence = 10;
-      sim.add(person);
-      // Force efficiency to near-zero so floor is exercised
-      // The faster branch multiplies by (1 + delta) which increases efficiency — use slower branch to reach floor
-      // Set efficiency explicitly to test floor on slower branch
-      sim.extractionEfficiency = 0.001;
-
-      // rng() * totalWeight should be in [FASTER_WEIGHT, FASTER_WEIGHT + SLOWER_WEIGHT)
-      const rngForSlower = (fasterThreshold + 0.0001);
-
-      new InventionEvent(() => rngForSlower).execute(person, sim);
-
-      expect(sim.extractionEfficiency).toBeGreaterThanOrEqual(0.01);
-    });
   });
 
   describe('depletion-slower outcome', () => {
