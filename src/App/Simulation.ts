@@ -62,6 +62,8 @@ export interface TickSnapshot {
   births: number;
   /** Cumulative births up to and including this tick. ARD 033. */
   cumulativeBirths: number;
+  /** Community pool balance at end of tick. ARD 034. */
+  communityPool: number;
 }
 
 export default class Simulation {
@@ -83,6 +85,9 @@ export default class Simulation {
   personTypes: PersonTypes = {};
   /** Seeded count per type, captured at seed time. Used to compute survival deltas. */
   seededTypeCounts: Record<string, number> = {};
+
+  /** Shared redistributive fund; funded by tax and jail forfeitures, paid to welfare recipients. ARD 034. */
+  communityPool = 0;
 
   /** Cumulative count of InventionEvent firings that accelerated depletion. ARD 032. */
   inventionFasterCount = 0;
@@ -259,6 +264,43 @@ export default class Simulation {
   }
 
   /**
+   * Deducts TAX_RATE fraction from each person's resources and adds the proceeds to
+   * `communityPool`. Deduction is proportional, so a person at zero resources pays nothing.
+   * Call once per tick before gathering events. ARD 034.
+   *
+   * @param persons - living population to tax
+   */
+  collectTax(persons: Person[]): void {
+    for (const person of persons) {
+      const tax = person.resources * Variables.TAX_RATE;
+      person.resources -= tax;
+      this.communityPool += tax;
+    }
+  }
+
+  /**
+   * Distributes `communityPool * (1 - COMMUNITY_POOL_RESERVE_FRACTION)` equally to eligible
+   * persons. Eligible: `resources < WELFARE_THRESHOLD` or orphaned child (`age < 18` with no
+   * living parents). If no eligible persons exist, the full pool carries over.
+   * Call once per tick after consumption events. ARD 034.
+   *
+   * @param persons - living population to evaluate for eligibility
+   */
+  distributeWelfare(persons: Person[]): void {
+    const eligible = persons.filter(p =>
+      p.resources < Variables.WELFARE_THRESHOLD ||
+      (p.age < 18 && p.livingParents.length === 0),
+    );
+    if (eligible.length === 0) return;
+    const distributable = this.communityPool * (1 - Variables.COMMUNITY_POOL_RESERVE_FRACTION);
+    const share = distributable / eligible.length;
+    this.communityPool -= distributable;
+    for (const person of eligible) {
+      person.resources += share;
+    }
+  }
+
+  /**
    * Captures aggregate stats for the current tick, appends to history,
    * resets per-tick accumulators, and returns the snapshot.
    *
@@ -318,6 +360,7 @@ export default class Simulation {
       naturalResourceCeiling: this.naturalResourceCeiling,
       births,
       cumulativeBirths,
+      communityPool: this.communityPool,
     };
 
     this.history.push(snap);

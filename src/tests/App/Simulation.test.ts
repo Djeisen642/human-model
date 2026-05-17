@@ -544,4 +544,149 @@ describe('Simulation', () => {
       expect(snap.cumulativeBirths).toBe(0);
     });
   });
+
+  describe('collectTax (ARD 034)', () => {
+    it('deducts TAX_RATE fraction from each person and adds to communityPool', () => {
+      const sim = new Simulation();
+      const p1 = new Person([]);
+      p1.resources = 100;
+      const p2 = new Person([]);
+      p2.resources = 50;
+      sim.add(p1);
+      sim.add(p2);
+      sim.collectTax([p1, p2]);
+      const expectedTax = 100 * Variables.TAX_RATE + 50 * Variables.TAX_RATE;
+      expect(sim.communityPool).toBeCloseTo(expectedTax);
+      expect(p1.resources).toBeCloseTo(100 * (1 - Variables.TAX_RATE));
+      expect(p2.resources).toBeCloseTo(50 * (1 - Variables.TAX_RATE));
+    });
+
+    it('person with zero resources pays zero tax', () => {
+      const sim = new Simulation();
+      const p = new Person([]);
+      p.resources = 0;
+      sim.add(p);
+      sim.collectTax([p]);
+      expect(p.resources).toBe(0);
+      expect(sim.communityPool).toBe(0);
+    });
+
+    it('accumulates tax across multiple ticks', () => {
+      const sim = new Simulation();
+      const p = new Person([]);
+      p.resources = 100;
+      sim.add(p);
+      sim.collectTax([p]);
+      const afterFirst = sim.communityPool;
+      sim.collectTax([p]);
+      expect(sim.communityPool).toBeGreaterThan(afterFirst);
+    });
+
+    it('snapshot captures communityPool', () => {
+      const sim = new Simulation();
+      const p = new Person([]);
+      p.resources = 100;
+      sim.add(p);
+      sim.collectTax([p]);
+      const snap = sim.snapshot();
+      expect(snap.communityPool).toBeCloseTo(100 * Variables.TAX_RATE);
+    });
+  });
+
+  describe('distributeWelfare (ARD 034)', () => {
+    it('distributes to persons below WELFARE_THRESHOLD', () => {
+      const sim = new Simulation();
+      sim.communityPool = 100;
+      const poor = new Person([]);
+      poor.age = 30;
+      poor.resources = Variables.WELFARE_THRESHOLD - 1;
+      const rich = new Person([]);
+      rich.age = 30;
+      rich.resources = Variables.WELFARE_THRESHOLD + 10;
+      sim.add(poor);
+      sim.add(rich);
+      const richBefore = rich.resources;
+      sim.distributeWelfare([poor, rich]);
+      expect(poor.resources).toBeGreaterThan(Variables.WELFARE_THRESHOLD - 1);
+      expect(rich.resources).toBe(richBefore);
+    });
+
+    it('distributes to orphaned children (age < 18, no living parents)', () => {
+      const sim = new Simulation();
+      sim.communityPool = 100;
+      const orphan = new Person([]);
+      orphan.age = 10;
+      orphan.resources = Variables.WELFARE_THRESHOLD + 5;
+      sim.add(orphan);
+      const before = orphan.resources;
+      sim.distributeWelfare([orphan]);
+      expect(orphan.resources).toBeGreaterThan(before);
+    });
+
+    it('does not distribute to a child with living parents even if above threshold', () => {
+      const sim = new Simulation();
+      sim.communityPool = 100;
+      const p1 = new Person([]);
+      p1.age = 30;
+      p1.resources = 200;
+      const p2 = new Person([]);
+      p2.age = 30;
+      p2.resources = 200;
+      const child = new Person([p1, p2]);
+      child.age = 10;
+      child.resources = Variables.WELFARE_THRESHOLD + 5;
+      sim.add(p1);
+      sim.add(p2);
+      sim.add(child);
+      const childBefore = child.resources;
+      sim.distributeWelfare([p1, p2, child]);
+      expect(child.resources).toBe(childBefore);
+    });
+
+    it('distributes equal shares to each eligible recipient', () => {
+      const sim = new Simulation();
+      sim.communityPool = 100;
+      const p1 = new Person([]);
+      p1.age = 30;
+      p1.resources = 0;
+      const p2 = new Person([]);
+      p2.age = 30;
+      p2.resources = 0;
+      sim.add(p1);
+      sim.add(p2);
+      const before1 = p1.resources;
+      const before2 = p2.resources;
+      sim.distributeWelfare([p1, p2]);
+      expect(p1.resources - before1).toBeCloseTo(p2.resources - before2);
+    });
+
+    it('retains COMMUNITY_POOL_RESERVE_FRACTION in the pool', () => {
+      const sim = new Simulation();
+      sim.communityPool = 100;
+      const p = new Person([]);
+      p.age = 30;
+      p.resources = 0;
+      sim.add(p);
+      sim.distributeWelfare([p]);
+      expect(sim.communityPool).toBeCloseTo(100 * Variables.COMMUNITY_POOL_RESERVE_FRACTION);
+    });
+
+    it('no-ops when no eligible recipients', () => {
+      const sim = new Simulation();
+      sim.communityPool = 100;
+      const rich = new Person([]);
+      rich.age = 30;
+      rich.resources = Variables.WELFARE_THRESHOLD + 50;
+      sim.add(rich);
+      sim.distributeWelfare([rich]);
+      expect(sim.communityPool).toBe(100);
+    });
+
+    it('no-ops when person list is empty', () => {
+      const sim = new Simulation();
+      sim.communityPool = 100;
+      sim.distributeWelfare([]);
+      expect(sim.communityPool).toBe(100);
+    });
+  });
 });

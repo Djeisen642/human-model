@@ -40,12 +40,14 @@ export default class LooperSingleton {
       disaster.execute(simulation);
       const living = simulation.getLiving();
       shuffleInPlace(living, rng);
+      simulation.collectTax(living);
       for (const person of living) {
         for (const event of factory.getEventsFor(person)) {
           if (person.causeOfDeath !== null) break;
           event.execute(person, simulation);
         }
       }
+      simulation.distributeWelfare(simulation.getLiving());
       simulation.snapshot();
 
       if (t % 10 === 9) {

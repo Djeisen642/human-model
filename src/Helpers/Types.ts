@@ -70,6 +70,8 @@ export interface TenYearSummary {
   peakResourceGini: number;
   /** Births over the decade (delta, not cumulative). */
   births: number;
+  /** Average community pool balance across the decade's ticks. ARD 034. */
+  avgCommunityPool: number;
 }
 
 /** Aggregate composition of the living population at end of simulation. ARD 031. */
