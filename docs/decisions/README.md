@@ -143,3 +143,6 @@ When in doubt:
 | [031](./031-survivor-composition-and-extinction.md) | Survivor Composition and EXTINCTION Outcome | Accepted |
 | [032](./032-pool-dynamics-tracking.md) | Pool Dynamics and Invention Counters in Snapshots | Accepted |
 | [033](./033-birth-tracking.md) | Birth Tracking | Accepted |
+| [034](./034-community-pool-tax-welfare.md) | Community Pool, Taxation, and Welfare Distribution | Proposed |
+| [035](./035-jail-and-retribution.md) | Jail and Retribution | Proposed |
+| [036](./036-dynamic-intent-multipliers.md) | Dynamic Intent Multipliers and Theft Emboldening | Proposed |
