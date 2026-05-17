@@ -164,4 +164,4 @@ Considered and rejected without rising to ARD-level discussion. Each entry: name
 
 **Seeding strategy as experimental variable** — 2026-05-17 — Subsumed by ARD 030 (`simulation.personTypes` config with per-type stat ranges and percentage quotas).
 
-**Profile-based population seeding** — 2026-05-17 — Subsumed by ARD 030 (named archetypes with configurable ranges and composition percentages).
+**Profile-based population seeding** — 2026-05-17 — Implemented: ARD 030 (config-driven `simulation.personTypes` with predicate-based classification at end-of-run). Catalog of recommended archetypes in `docs/research-character-types.md`.

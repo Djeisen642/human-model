@@ -1,5 +1,7 @@
-import { TenYearSummary } from './Types';
+import { PersonTypes, TenYearSummary } from './Types';
 import { TickSnapshot } from '../App/Simulation';
+import Person from '../App/Person';
+import { countPerType } from './Classifier';
 import Variables from './Variables';
 
 /**
@@ -139,6 +141,9 @@ export function classifyOutcome(
  * @param startPopulation - initial population count
  * @param naturalResources - remaining natural resources at end
  * @param naturalResourceCeiling - resource ceiling at end
+ * @param personTypes - optional person types in effect; section omitted when empty (ARD 030)
+ * @param seededTypeCounts - count of persons assigned to each type at seed time
+ * @param living - current living population, for end-of-run type classification
  * @returns multi-line formatted report string
  */
 export function formatEndReport(
@@ -148,6 +153,9 @@ export function formatEndReport(
   startPopulation: number,
   naturalResources: number,
   naturalResourceCeiling: number,
+  personTypes: PersonTypes = {},
+  seededTypeCounts: Record<string, number> = {},
+  living: Person[] = [],
 ): string {
   if (decadeHistory.length === 0) {
     return `=== End of Simulation (${ticks} ticks, seed ${seed}) ===\n(Run too short to produce a decade summary.)`;
@@ -186,7 +194,7 @@ export function formatEndReport(
     );
   });
 
-  return [
+  const lines = [
     `=== End of Simulation (${ticks} ticks, seed ${seed}) ===`,
     '',
     `OUTCOME: ${outcome}`,
@@ -207,11 +215,63 @@ export function formatEndReport(
     'HAPPINESS',
     `  Avg happiness: ${first.avgHappiness.toFixed(1)} → ${final.avgHappiness.toFixed(1)}`,
     `  Trend: ${final.avgHappiness >= first.avgHappiness ? 'rising' : 'declining'}`,
+  ];
+
+  const typeSection = formatPersonTypeSection(personTypes, seededTypeCounts, living, startPopulation, final.endPopulation);
+  if (typeSection !== null) {
+    lines.push('', ...typeSection);
+  }
+
+  lines.push(
     '',
     'DECADE SUMMARY TABLE',
     '  Yr   Pop  ΔPop  Gini  PkGini    Res  Happy  Deaths',
     ...decadeTableRows,
-  ].join('\n');
+  );
+  return lines.join('\n');
+}
+
+/**
+ * Formats the per-type cohort survival section. Returns null when no types are configured.
+ *
+ * @param personTypes - declared types
+ * @param seededTypeCounts - count assigned to each type at seed time
+ * @param living - current living population
+ * @param startPopulation - initial population count
+ * @param endPopulation - final population count
+ * @returns the section's lines, or null when no types apply
+ */
+function formatPersonTypeSection(
+  personTypes: PersonTypes,
+  seededTypeCounts: Record<string, number>,
+  living: Person[],
+  startPopulation: number,
+  endPopulation: number,
+): string[] | null {
+  const names = Object.keys(personTypes);
+  if (names.length === 0) return null;
+
+  const currentCounts = countPerType(living, personTypes);
+  const pct = (count: number, total: number) => total > 0 ? `${((count / total) * 100).toFixed(1)}%` : '—';
+
+  const rows = names.map(name => {
+    const seeded = seededTypeCounts[name] ?? 0;
+    const current = currentCounts[name] ?? 0;
+    const delta = current - seeded;
+    const deltaStr = delta >= 0 ? `+${delta}` : String(delta);
+    return (
+      `  ${name.padEnd(14)}` +
+      `  ${String(seeded).padStart(5)} (${pct(seeded, startPopulation).padStart(6)})` +
+      `  ${String(current).padStart(5)} (${pct(current, endPopulation).padStart(6)})` +
+      `  ${deltaStr.padStart(5)}`
+    );
+  });
+
+  return [
+    'COHORT SURVIVAL (ARD 030)',
+    '  Type            Seeded            Current           Delta',
+    ...rows,
+  ];
 }
 
 /**

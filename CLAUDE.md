@@ -44,7 +44,7 @@ npm run generate-config  # writes config.default.json from Variables.ts (gitigno
 npx ts-node src/App/index.ts [--config path/to/config.json] [--output path/to/dir]
 ```
 
-- `--config` — JSON file that deep-merges over defaults; only changed keys needed. Run `npm run generate-config` to get a full reference file (`config.default.json`) with all available keys (`simulation.persons/ticks/seed` + every `Variables` constant). That file is gitignored — it's generated, not maintained.
+- `--config` — JSON file that deep-merges over defaults; only changed keys needed. Run `npm run generate-config` to get a full reference file (`config.default.json`) with all available keys (`simulation.persons/ticks/seed/personTypes` + every `Variables` constant). That file is gitignored — it's generated, not maintained. `simulation.personTypes` (ARD 030) maps a name to `{ percentage, ranges }`; percentages must sum to ≤ 1.0, ranges are partial per-field overrides.
 - `--output` — directory to write HTML reports into (default: `./output`). Created if absent. Kept separate from `--config` so batch/concurrent tooling can vary the output dir without touching the variable config.
 
 ## Architecture
@@ -77,8 +77,9 @@ src/
     Variables.ts           # ILLNESS_DEATH_SCALAR, age curve constants, per-event age profiles
     SeededRandom.ts        # LCG seeded RNG; asRNG() returns an RNG-typed function
     AgeModifier.ts         # ageModifier(age, peakAge, scale, floor) — bell curve helper
-    Types.ts               # RNG = () => number; TenYearSummary interface
-    Reporters.ts           # Pure functions: buildTenYearSummary, formatDecadeSummary, formatSimulationHeader, formatEndReport, classifyOutcome
+    Types.ts               # RNG, TenYearSummary, PersonTypeDefinition/PersonTypes, OverridableField, INTEGER_FIELDS (ARD 030)
+    Classifier.ts          # Pure: classifyPerson, countPerType, parsePersonTypes — predicate over PersonTypes (ARD 030)
+    Reporters.ts           # Pure functions: buildTenYearSummary, formatDecadeSummary, formatSimulationHeader, formatEndReport (includes COHORT SURVIVAL section when personTypes supplied), classifyOutcome
     ReportWriter.ts        # writeReportHTML — writes self-contained HTML report with Chart.js to output/
   tests/                   # Mirrors src/ structure; one test file per source file
 ```
@@ -127,11 +128,12 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - **`isInRelationshipWith` lifecycle managed by `RelationshipEvent` + `kill()`**: formation requires both persons unpartnered; dissolution uses a flat per-tick rate (`BASE_BREAKUP_RATE`); partner death clears the surviving partner's field, dropping the +3 happiness bonus as a widowhood proxy feeding MisfortuneEvent's suicide check. Resource pooling deferred. See ARD 025.
 - **10-year summary and progress reporting**: Every 10 ticks, `LooperSingleton` builds a `TenYearSummary` (averaged Gini/resources/happiness/naturalResources, peak Gini, delta death counts by cause, population delta), appends it to `Simulation.decadeHistory`, and prints a one-line console summary. `TenYearSummary` is defined in `Types.ts`. Formatting lives in `src/Helpers/Reporters.ts` (pure functions). See ARD 015.
 - **End-of-simulation report**: After the tick loop, `index.ts` calls `formatEndReport` (console summary with outcome verdict) and `writeReportHTML` (writes `output/report-<seed>-<timestamp>.html` — self-contained HTML with Chart.js charts loaded from CDN). Outcome classification (`COLLAPSE`/`STRUGGLING`/`STABLE`/`THRIVING`) uses named threshold constants in `Variables.ts`. I/O in `src/Helpers/ReportWriter.ts`, pure formatting in `Reporters.ts`. See ARD 016.
+- **Character types** (config-driven, predicate-based): `simulation.personTypes` in the config maps a name to `{ percentage, ranges }`; ranges are partial `[min, max)` overrides on the 11 numeric fields (`age`, `resources`, `experience`, `intelligence`, `constitution`, `charisma`, `learningIntent`, `exerciseIntent`, `stealingIntent`, `lyingIntent`, `killingIntent`). At seed time, `floor(n * percentage)` persons are quota-allocated per type, Fisher-Yates shuffled, then seeded with the overrides; undeclared fields fall back to defaults. `education`/`isWorkingOnEd` stay age-keyed. No `Person.type` field — a `classifyPerson` predicate evaluated against current stats produces the per-type counts in the end report's `COHORT SURVIVAL` section, so "did engineers grow or shrink?" is answered from current stats, not seed labels. Catalog of proposed archetypes in `docs/research-character-types.md`. See ARD 030.
 
 ## What's implemented
 
 - `Person` data model — all properties, mutable primitives, readonly collections, `happiness` getter (ARD 014: job+5/−3 for working-age only, age-group resource thresholds, children use living-parents avg, floor 0), `livingParents` getter, `ageMortalityModifier` getter (U-shaped curve, ARD 008)
-- `Simulation` — `living`, `deceased`, `history`, `decadeHistory`; `getLiving()`, `indexOfLiving()`, `getRandomOther()`, `kill()`, `add()`, `seed()`, `snapshot()`, `regenerate()`; Gini coefficient computed per tick; `naturalResources`, `naturalResourceCeiling`, `extractionEfficiency` resource pool fields (ARD 007)
+- `Simulation` — `living`, `deceased`, `history`, `decadeHistory`; `getLiving()`, `indexOfLiving()`, `getRandomOther()`, `kill()`, `add()`, `seed(n, rng, personTypes?)`, `snapshot()`, `regenerate()`; Gini coefficient computed per tick; `naturalResources`, `naturalResourceCeiling`, `extractionEfficiency` resource pool fields (ARD 007); `personTypes` and `seededTypeCounts` retained for ARD-030 end-of-run reporting
 - `LooperSingleton.start(n, ticks, seed, logger?)` — full tick loop: prints header, seeds simulation, calls `regenerate()` then runs EventFactory per person per tick, calls `snapshot()` each tick; builds and stores a `TenYearSummary` every 10 ticks (ARD 015)
 - `IEvent` interface
 - `AgeEvent` — age increment only (old-age hard cutoff removed; death handled by MisfortuneEvent via age mortality curve)
@@ -157,7 +159,8 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 - `SeededRandom` (LCG), `RNG` type, `Constants`, `Variables` (includes `HAPPINESS_BASELINE`, `PRIME_AGE`, `AGE_DEATH_CURVATURE`, `BASE_GATHER_AMOUNT`, `INTELLIGENCE_GATHER_SCALAR`, `SUICIDE_PROBABILITY_SCALE`, `ILLNESS_DEATH_SCALAR`, disaster constants, experience constants, illness constants, job constants (`JOB_GAIN_EXPERIENCE_SCALAR`, `JOB_GAIN_CHARISMA_SCALAR`, `JOB_LOSS_BASE`, `JOB_LOSS_STAT_SCALAR`, `EDUCATION_JOB_GAIN_SCALAR`), graduation constants (`BASE_GRADUATION_RATE`, `GRADUATION_HS_MAX_AGE`, `GRADUATION_COLLEGE_MAX_AGE`, `GRADUATION_HS_SEED_RATE`, `GRADUATION_COLLEGE_SEED_RATE`), enrollment constants (`BASE_ENROLLMENT_RATE`), and per-event age profile constants for all planned events including graduation and enrollment)
 - `AgeModifier.ts` — `ageModifier(age, peakAge, scale, floor)` bell-curve helper (ARD 008)
 - `TickSnapshot` observability: population, per-tick and cumulative death counts by cause (murder/illness/disaster/suicide/old age), `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`
-- `Reporters.ts` — `buildTenYearSummary(window, endTick, startPopulation)`, `formatDecadeSummary`, `formatSimulationHeader`, `formatEndReport`, `classifyOutcome`. All pure; no I/O. See ARD 015, ARD 016.
+- `Reporters.ts` — `buildTenYearSummary(window, endTick, startPopulation)`, `formatDecadeSummary`, `formatSimulationHeader`, `formatEndReport(..., personTypes?, seededTypeCounts?, living?)` (renders `COHORT SURVIVAL` section when types supplied), `classifyOutcome`. All pure; no I/O. See ARD 015, ARD 016, ARD 030.
+- `Classifier.ts` — `classifyPerson(person, types)`, `countPerType(persons, types)`, `parsePersonTypes(raw)`. Pure predicate-based classification + config parsing/validation (sum ≤ 1.0 enforced; malformed ranges and unknown fields warned and skipped). See ARD 030.
 - `ReportWriter.ts` — `writeReportHTML(simulation, n, ticks, seed)`: writes `output/report-<seed>-<outcome>-<timestamp>.html` with embedded JSON data and Chart.js charts. See ARD 016.
 - `index.ts` — after the run, prints `formatEndReport` to console and calls `writeReportHTML`; `output/` is gitignored
 - `Variables.ts` — outcome classification thresholds: `COLLAPSE_GINI_THRESHOLD`, `COLLAPSE_POPULATION_FRACTION`, `STRUGGLING_GINI_THRESHOLD`, `STRUGGLING_HAPPINESS_THRESHOLD`, `THRIVING_GINI_THRESHOLD`, `THRIVING_HAPPINESS_THRESHOLD`

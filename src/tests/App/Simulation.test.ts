@@ -345,6 +345,107 @@ describe('Simulation', () => {
     });
   });
 
+  describe('seed with personTypes (ARD 030)', () => {
+    it('passes through with empty personTypes (no behavior change)', () => {
+      const sim1 = new Simulation();
+      const sim2 = new Simulation();
+      sim1.seed(20, new SeededRandom(123).asRNG());
+      sim2.seed(20, new SeededRandom(123).asRNG(), {});
+      expect(sim1.getLiving()).toHaveLength(20);
+      expect(sim2.getLiving()).toHaveLength(20);
+      sim1.getLiving().forEach((p, i) => {
+        const q = sim2.getLiving()[i];
+        expect(p.intelligence).toBe(q.intelligence);
+        expect(p.age).toBe(q.age);
+      });
+    });
+
+    it('assigns exactly floor(n * percentage) persons per type', () => {
+      const sim = new Simulation();
+      sim.seed(100, new SeededRandom(7).asRNG(), {
+        engineer: { percentage: 0.3, ranges: { intelligence: [7, 11] } },
+        criminal: { percentage: 0.1, ranges: { killingIntent: [0.5, 1.0] } },
+      });
+      expect(sim.seededTypeCounts.engineer).toBe(30);
+      expect(sim.seededTypeCounts.criminal).toBe(10);
+    });
+
+    it('seeded engineers all fall inside the override range', () => {
+      const sim = new Simulation();
+      sim.seed(100, new SeededRandom(11).asRNG(), {
+        engineer: { percentage: 0.5, ranges: { intelligence: [7, 11] } },
+      });
+      const engineers = sim.getLiving().filter(p => p.intelligence >= 7 && p.intelligence < 11);
+      expect(engineers.length).toBeGreaterThanOrEqual(50);
+    });
+
+    it('untyped remainder uses default ranges (not the type override)', () => {
+      const sim = new Simulation();
+      sim.seed(100, new SeededRandom(13).asRNG(), {
+        engineer: { percentage: 0.3, ranges: { intelligence: [10, 11] } },
+      });
+      // 30 engineers all have intelligence === 10. The other 70 should span [1, 10].
+      const lowIntelligence = sim.getLiving().filter(p => p.intelligence < 7);
+      expect(lowIntelligence.length).toBeGreaterThan(0);
+    });
+
+    it('same seed produces same type assignment', () => {
+      const types = {
+        engineer: { percentage: 0.2, ranges: { intelligence: [7, 11] as [number, number] } },
+        criminal: { percentage: 0.2, ranges: { killingIntent: [0.5, 1.0] as [number, number] } },
+      };
+      const sim1 = new Simulation();
+      const sim2 = new Simulation();
+      sim1.seed(50, new SeededRandom(99).asRNG(), types);
+      sim2.seed(50, new SeededRandom(99).asRNG(), types);
+      const stats1 = sim1.getLiving().map(p => `${p.intelligence}/${p.killingIntent.toFixed(4)}`);
+      const stats2 = sim2.getLiving().map(p => `${p.intelligence}/${p.killingIntent.toFixed(4)}`);
+      expect(stats1).toEqual(stats2);
+    });
+
+    it('respects continuous-field override ranges', () => {
+      const sim = new Simulation();
+      sim.seed(100, new SeededRandom(17).asRNG(), {
+        violent: { percentage: 0.4, ranges: { killingIntent: [0.5, 1.0] } },
+      });
+      const violent = sim.getLiving().filter(p => p.killingIntent >= 0.5 && p.killingIntent < 1.0);
+      expect(violent.length).toBeGreaterThanOrEqual(40);
+    });
+
+    it('seededTypeCounts is empty when no types supplied', () => {
+      const sim = new Simulation();
+      sim.seed(10, new SeededRandom(1).asRNG());
+      expect(sim.seededTypeCounts).toEqual({});
+    });
+
+    it('a type with empty ranges still allocates the quota', () => {
+      const sim = new Simulation();
+      sim.seed(50, new SeededRandom(3).asRNG(), {
+        anyone: { percentage: 0.4, ranges: {} },
+      });
+      expect(sim.seededTypeCounts.anyone).toBe(20);
+    });
+
+    it('floor truncation: percentage 0.07 over n=10 yields 0', () => {
+      const sim = new Simulation();
+      sim.seed(10, new SeededRandom(5).asRNG(), {
+        rare: { percentage: 0.07, ranges: { intelligence: [10, 11] } },
+      });
+      expect(sim.seededTypeCounts.rare).toBe(0);
+    });
+
+    it('override stays out of default domain when configured to', () => {
+      const sim = new Simulation();
+      sim.seed(50, new SeededRandom(31).asRNG(), {
+        odd: { percentage: 1.0, ranges: { intelligence: [50, 60] } },
+      });
+      sim.getLiving().forEach(p => {
+        expect(p.intelligence).toBeGreaterThanOrEqual(50);
+        expect(p.intelligence).toBeLessThan(60);
+      });
+    });
+  });
+
   describe('resource pool', () => {
     it('should initialize naturalResources to NATURAL_RESOURCE_CEILING_INITIAL', () => {
       const sim = new Simulation();

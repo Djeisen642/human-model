@@ -1,6 +1,6 @@
 # ARD 030: Character Types in Population Seeding and Classification
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-17
 
 ## Context

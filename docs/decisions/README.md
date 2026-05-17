@@ -139,4 +139,4 @@ When in doubt:
 | [027](./027-kill-event.md) | KillEvent | Accepted |
 | [028](./028-windfall-event.md) | WindfallEvent | Accepted |
 | [029](./029-childbirth-event.md) | ChildbirthEvent | Accepted |
-| [030](./030-character-types.md) | Character Types in Population Seeding and Classification | Proposed |
+| [030](./030-character-types.md) | Character Types in Population Seeding and Classification | Accepted |

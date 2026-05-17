@@ -3,7 +3,14 @@ import DeathRecord from '../Records/DeathRecord';
 import KillingRecord from '../Records/KillingRecord';
 import Constants from '../Helpers/Constants';
 import Variables from '../Helpers/Variables';
-import { RNG, TenYearSummary } from '../Helpers/Types';
+import {
+  INTEGER_FIELDS,
+  OverridableField,
+  PersonTypeDefinition,
+  PersonTypes,
+  RNG,
+  TenYearSummary,
+} from '../Helpers/Types';
 
 /** Per-tick aggregate state captured at the end of each tick. */
 export interface TickSnapshot {
@@ -63,6 +70,11 @@ export default class Simulation {
   naturalResourceCeiling: number = Variables.NATURAL_RESOURCE_CEILING_INITIAL;
   /** Pool cost per unit gathered; starts at 1.0, modified by InventionEvent. Floor: 0.01. */
   extractionEfficiency = 1.0;
+
+  /** Person types in effect for this run; empty when none were configured. Used by reporting. */
+  personTypes: PersonTypes = {};
+  /** Seeded count per type, captured at seed time. Used to compute survival deltas. */
+  seededTypeCounts: Record<string, number> = {};
 
   private tickDeathCauses: number[] = [];
 
@@ -136,18 +148,39 @@ export default class Simulation {
    * Creates `n` persons with stats and intents drawn from uniform distributions
    * and adds them to the living population.
    *
-   * Ranges: age [15, 50), resources [0, 100), experience [0, age],
+   * Default ranges: age [15, 50), resources [0, 100), experience [0, age],
    * intelligence/constitution/charisma [1, 10],
    * learningIntent/exerciseIntent [0, 1),
    * stealingIntent/lyingIntent [0, 0.3), killingIntent [0, 0.1).
    *
+   * When `personTypes` is supplied, `floor(n * percentage)` persons are assigned
+   * to each declared type; the assignment array is Fisher-Yates shuffled so
+   * type does not correlate with iteration order. For each typed person, fields
+   * declared in the type's `ranges` use the override; undeclared fields fall
+   * back to the default range. See ARD 030.
+   *
    * @param n - number of persons to seed
    * @param rng - random number source
+   * @param personTypes - optional map of type definitions; defaults to none
    */
-  seed(n: number, rng: RNG): void {
+  seed(n: number, rng: RNG, personTypes: PersonTypes = {}): void {
+    this.personTypes = personTypes;
+    this.seededTypeCounts = {};
+    for (const name of Object.keys(personTypes)) this.seededTypeCounts[name] = 0;
+
+    // Only build (and shuffle) an assignment array when types are declared, so
+    // the default-seeding RNG sequence is unchanged from prior behaviour.
+    const assignments = Object.keys(personTypes).length > 0
+      ? buildTypeAssignments(n, personTypes, rng)
+      : null;
+
     for (let i = 0; i < n; i++) {
+      const typeName = assignments ? assignments[i] : null;
+      const ranges = typeName !== null ? personTypes[typeName].ranges : {};
+      if (typeName !== null) this.seededTypeCounts[typeName]++;
+
       const person = new Person([]);
-      person.age = randomInt(rng, 15, 50);
+      person.age = drawField(rng, 'age', ranges, 15, 50);
       if (person.age <= Variables.GRADUATION_HS_MAX_AGE) {
         if (rng() < Variables.GRADUATION_HS_SEED_RATE) {
           person.isWorkingOnEd = Constants.EDUCATION.HIGH_SCHOOL;
@@ -170,16 +203,22 @@ export default class Simulation {
           }
         }
       }
-      person.resources = randomInt(rng, 0, 100);
-      person.experience = randomInt(rng, 0, Math.min(person.age, Variables.EXPERIENCE_CAP) + 1);
-      person.intelligence = randomInt(rng, 1, 11);
-      person.constitution = randomInt(rng, 1, 11);
-      person.charisma = randomInt(rng, 1, 11);
-      person.learningIntent = rng();
-      person.exerciseIntent = rng();
-      person.stealingIntent = rng() * 0.3;
-      person.lyingIntent = rng() * 0.3;
-      person.killingIntent = rng() * 0.1;
+      person.resources = drawField(rng, 'resources', ranges, 0, 100);
+      person.experience = drawField(
+        rng,
+        'experience',
+        ranges,
+        0,
+        Math.min(person.age, Variables.EXPERIENCE_CAP) + 1,
+      );
+      person.intelligence = drawField(rng, 'intelligence', ranges, 1, 11);
+      person.constitution = drawField(rng, 'constitution', ranges, 1, 11);
+      person.charisma = drawField(rng, 'charisma', ranges, 1, 11);
+      person.learningIntent = drawField(rng, 'learningIntent', ranges, 0, 1);
+      person.exerciseIntent = drawField(rng, 'exerciseIntent', ranges, 0, 1);
+      person.stealingIntent = drawField(rng, 'stealingIntent', ranges, 0, 0.3);
+      person.lyingIntent = drawField(rng, 'lyingIntent', ranges, 0, 0.3);
+      person.killingIntent = drawField(rng, 'killingIntent', ranges, 0, 0.1);
       this.add(person);
     }
   }
@@ -264,6 +303,59 @@ export default class Simulation {
  */
 function randomInt(rng: RNG, min: number, max: number): number {
   return min + Math.floor(rng() * (max - min));
+}
+
+/**
+ * Draws a value for a seedable field, applying a type's range override when present.
+ * Integer fields use `randomInt`; continuous fields use uniform `[min, max)`.
+ * Always consumes exactly one `rng()` call so seed-time determinism is preserved
+ * regardless of whether a range override is set.
+ *
+ * @param rng - random number source
+ * @param field - the field being seeded
+ * @param ranges - the active type's range overrides (possibly empty)
+ * @param defaultMin - default lower bound for this field
+ * @param defaultMax - default upper bound for this field (exclusive)
+ * @returns drawn value in the effective `[min, max)`
+ */
+function drawField(
+  rng: RNG,
+  field: OverridableField,
+  ranges: PersonTypeDefinition['ranges'],
+  defaultMin: number,
+  defaultMax: number,
+): number {
+  const override = ranges[field];
+  const min = override ? override[0] : defaultMin;
+  const max = override ? override[1] : defaultMax;
+  if (INTEGER_FIELDS.has(field)) {
+    return randomInt(rng, min, max);
+  }
+  return min + rng() * (max - min);
+}
+
+/**
+ * Builds an assignment array of length `n`: pushes `floor(n * percentage)`
+ * entries per declared type, pads with `null` to length `n`, then Fisher-Yates
+ * shuffles so type assignment doesn't correlate with iteration order.
+ *
+ * @param n - population size
+ * @param types - declared types
+ * @param rng - random number source
+ * @returns shuffled assignment array
+ */
+function buildTypeAssignments(n: number, types: PersonTypes, rng: RNG): (string | null)[] {
+  const out: (string | null)[] = [];
+  for (const [name, def] of Object.entries(types)) {
+    const count = Math.floor(n * def.percentage);
+    for (let i = 0; i < count; i++) out.push(name);
+  }
+  while (out.length < n) out.push(null);
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
 }
 
 /**

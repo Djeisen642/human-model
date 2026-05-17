@@ -52,7 +52,11 @@ Empirical and evolutionary-psychology framework: in unequal societies, low-resou
 
 ## Proposed type catalog (v1)
 
-Six archetypes. Each is the **dominant** perturbation on a distinct measure, so an experiment can attribute outcomes cleanly. Adding a seventh (Drifter / leisure class) was considered and rejected — too much overlap with default seeding for a clean signal.
+The catalog has two layers: research-backed archetypes drawn from the frameworks above, and **sim-native archetypes** designed against this model's specific mechanics (which don't map cleanly to any single external framework — the simulation has its own intent-and-event surface). Each archetype is the **dominant** perturbation on a distinct measure, so experiments can attribute outcomes cleanly.
+
+### Research-backed archetypes
+
+Six archetypes. Adding a seventh (Drifter / leisure class) was considered and rejected — too much overlap with default seeding for a clean signal.
 
 | Type | Distinguishing stats (suggested ranges) | Primary signal moved | Framework |
 |---|---|---|---|
@@ -62,6 +66,21 @@ Six archetypes. Each is the **dominant** perturbation on a distinct measure, so 
 | **Inventor** | `intelligence` [9,11), `learningIntent` [0.7,1), `age` [30,55) | ↑ resource ceiling (when `InventionEvent` lands) | Schumpeter |
 | **Cooperator** | `charisma` [7,11), all antisocial intents [0,0.02) | ↑ happiness, ↓ suicide; relationship glue | Axelrod / Boyd-Richerson |
 | **Fragile** | `constitution` [1,4), `resources` [0,20) | ↑ illness and disaster deaths without violence | Sugarscape low-metabolism |
+
+### Sim-native archetypes
+
+This simulation's mechanics — the age-modulated learning curve, the loneliness-to-suicide chain via happiness, the consumption/starvation feedback, the windfall/steal interaction — produce dynamics that don't map cleanly onto existing typologies. The archetypes below were designed to probe these distinctive surfaces directly.
+
+| Type | Distinguishing stats (suggested ranges) | Primary signal moved | Sim surface probed |
+|---|---|---|---|
+| **Late Bloomer** | `learningIntent` [0.8,1), `age` [35,55), `intelligence` [3,6) | ↑ adult intelligence over time | `ExperienceEvent` learning fade past peak age 18; tests whether persistent intent overcomes age decay |
+| **Hermit** | `charisma` [1,3), all antisocial intents [0,0.02) | ↑ suicide, ↓ relationship formation | `RelationshipEvent` charisma gate; `MisfortuneEvent` suicide via no-relationship/no-job happiness floor |
+| **Lone Wolf** | `charisma` [1,3), `killingIntent` [0.3,1), `stealingIntent` [0.3,1) | mid murder/steal effectiveness, ↑ self-suicide | The "talentless predator" — antisocial intent without the charisma to extract via jobs/stealing; tests whether unsupported violence still moves Gini |
+| **Heir** | `resources` [300,800), `age` [15,22), `experience` [0,2), `learningIntent` [0,0.2) | ↑ starting Gini without ↑ killing intent | Unearned wealth meeting `ConsumptionEvent` once parental subsidy ends at age 18; tests whether capital alone survives |
+| **Aristocrat** | `resources` [300,800), `charisma` [7,11), all antisocial intents [0,0.02) | ↑ Gini at start without corrosive feedback | Distinct from Extractor: starts rich and prosocial; tests whether windfall+gather equilibrium can sustain inherited inequality without violence |
+| **Survivor** | `constitution` [9,11), `resources` [0,30), `age` [30,55) | ↓ illness death, ↑ longevity at low resources | The hardened-poor: bottom of the resource ladder but durable; tests whether `IllnessEvent` and `DisasterEvent` constitution scaling alone can keep a poor class alive without producing them upward |
+
+These are speculative until run against the simulation — the value of each will depend on the calibration of the existing events, and several may be replaced or refined as data comes in.
 
 ### Range calibration intent
 

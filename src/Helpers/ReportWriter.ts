@@ -87,6 +87,9 @@ function buildHTML(
     n,
     simulation.naturalResources,
     simulation.naturalResourceCeiling,
+    simulation.personTypes,
+    simulation.seededTypeCounts,
+    simulation.getLiving(),
   ).replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const outcomeColors: Record<string, string> = {
