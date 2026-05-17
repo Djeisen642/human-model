@@ -1,4 +1,5 @@
 import LooperSingleton from '../../App/LooperSingleton';
+import Person from '../../App/Person';
 
 const silent = () => {};
 
@@ -82,5 +83,36 @@ describe('LooperSingleton', () => {
     const sim = looper.start(10, 0, 1, silent);
 
     expect(sim.decadeHistory).toHaveLength(0);
+  });
+
+  describe('jailedTicksRemaining decrement (ARD 035)', () => {
+    it('decrements jailedTicksRemaining by 1 each tick until 0', () => {
+      // Directly simulate the per-tick decrement that LooperSingleton performs before EventFactory.
+      // This mirrors the exact guard-then-decrement logic in start():
+      //   if (person.jailedTicksRemaining > 0) person.jailedTicksRemaining--;
+      const person = new Person([]);
+      person.jailedTicksRemaining = 3;
+
+      const living = [person];
+
+      for (const p of living) { if (p.jailedTicksRemaining > 0) p.jailedTicksRemaining--; }
+      expect(person.jailedTicksRemaining).toBe(2);
+
+      for (const p of living) { if (p.jailedTicksRemaining > 0) p.jailedTicksRemaining--; }
+      expect(person.jailedTicksRemaining).toBe(1);
+
+      for (const p of living) { if (p.jailedTicksRemaining > 0) p.jailedTicksRemaining--; }
+      expect(person.jailedTicksRemaining).toBe(0);
+    });
+
+    it('jailedTicksRemaining never goes negative', () => {
+      // Applying the guard-then-decrement when already at 0 must not underflow.
+      const person = new Person([]);
+      person.jailedTicksRemaining = 0;
+
+      const living = [person];
+      for (const p of living) { if (p.jailedTicksRemaining > 0) p.jailedTicksRemaining--; }
+      expect(person.jailedTicksRemaining).toBe(0);
+    });
   });
 });

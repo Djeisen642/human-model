@@ -138,6 +138,36 @@ export default class Variables {
   /** Hard ceiling on a single theft; prevents large resource transfers from destabilising the simulation. */
   static STEAL_MAX_AMOUNT = 10;
 
+  // Jail and retribution constants (ARD 035)
+  /** Baseline per-theft detection probability before crime-count scaling. Lower than kill rate — theft is easier to conceal. */
+  static BASE_DETECT_RATE_STEAL = 0.05;
+  /** Baseline per-kill detection probability. Higher than steal — murder is harder to conceal. */
+  static BASE_DETECT_RATE_KILL = 0.15;
+  /** Linear boost to detection probability per prior crime committed; encodes accumulating visibility of repeat offenders. */
+  static DETECTION_CRIME_COUNT_SCALAR = 0.05;
+  /** Sentence length in ticks for a theft conviction. */
+  static JAIL_TICKS_STEAL = 3;
+  /** Sentence length in ticks for a murder conviction; longer than theft. */
+  static JAIL_TICKS_KILL = 10;
+  /** Flat resources added per tick while jailed; below typical free gather to make incarceration economically costly. */
+  static JAIL_GATHER_AMOUNT = 0.5;
+  /** Flat resources consumed per tick while jailed. */
+  static JAIL_CONSUMPTION_AMOUNT = 1.0;
+
+  // Dynamic intent multipliers and emboldening constants (ARD 036)
+  /** Permanent additive bump to stealingIntent per undetected theft; small enough that many thefts are needed to approach the cap. */
+  static STEALING_EMBOLDEN_INCREMENT = 0.01;
+  /** Maximum value stealingIntent can reach through emboldening; preserves the stochastic character of the event. */
+  static STEALING_INTENT_CAP = 0.8;
+  /** Resource level below which resource pressure on steal probability begins. Calibrated near the comfortable threshold. */
+  static SITUATIONAL_STEAL_RESOURCE_THRESHOLD = 30;
+  /** Maximum multiplier on steal probability at zero resources; roughly doubles probability at full pressure. */
+  static SITUATIONAL_STEAL_SCALAR = 1.0;
+  /** Happiness level below which happiness pressure on kill attempt probability begins. */
+  static SITUATIONAL_KILL_HAPPINESS_THRESHOLD = 3.0;
+  /** Maximum multiplier on kill attempt probability at zero happiness; roughly doubles probability at full pressure. */
+  static SITUATIONAL_KILL_SCALAR = 1.0;
+
   // ConsumptionEvent constants (ARD 024)
   /** Resources consumed per tick by a working-age adult. Calibrated so a median gatherer covers costs without long-term depletion. */
   static CONSUMPTION_BASE = 1.0;

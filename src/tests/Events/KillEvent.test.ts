@@ -4,6 +4,7 @@ import Simulation from '../../App/Simulation';
 import Constants from '../../Helpers/Constants';
 import Variables from '../../Helpers/Variables';
 import KillingRecord from '../../Records/KillingRecord';
+import StealingRecord from '../../Records/StealingRecord';
 
 describe('KillEvent', () => {
   describe('no-op cases', () => {
@@ -241,27 +242,28 @@ describe('KillEvent', () => {
       // at low Gini. We construct two scenarios differing only in resource distribution.
 
       // High Gini scenario: resources [100, 0] → Gini ≈ 0.5
-      // attemptProb = 1.0 * 1.0 * (1 + 0.5 * 1.5) = 1.75 → fires for any rng value
+      // killerH has a job so happiness = +5+3 = 8 → happinessPressure = 0 (≥ threshold 3.0)
+      // attemptProb = 1.0 * 1.0 * (1 + 0.5 * 1.5) * 1.0 = 1.75 → fires for any rng value
       const simHighGini = new Simulation();
       const killerH = new Person([]);
       const victimH = new Person([]);
       killerH.killingIntent = 1.0;
       killerH.age = 24;
+      killerH.hasJob = true; // ensures happiness ≥ threshold → happinessPressure = 0
       killerH.resources = 100;
       victimH.resources = 0;
-      victimH.constitution = 10; // success never fires
+      victimH.constitution = 10;
       simHighGini.add(killerH);
       simHighGini.add(victimH);
 
       let callCountH = 0;
-      const rngH = () => { callCountH++; if (callCountH === 1) return 0.9; return 0; };
+      // Call 1 (attempt): 0.9 < 1.75 → fires; call 2 (getRandomOther): 0; call 3 (success): 0.99 >= 0.05 → fails
+      const rngH = () => { callCountH++; if (callCountH === 1) return 0.9; if (callCountH === 3) return 0.99; return 0; };
       new KillEvent(rngH).execute(killerH, simHighGini);
-      // with high Gini, attemptProb ≥ 1.75, rng=0.9 < 1.75 → attempt fires (callCount reaches 3)
+      // with high Gini, attemptProb = 1.75, rng=0.9 < 1.75 → attempt fires (callCount reaches 3)
       expect(callCountH).toBe(3);
 
       // Low Gini scenario: resources [50, 50] → Gini = 0
-      // attemptProb = 1.0 * 1.0 * (1 + 0 * 1.5) = 1.0 → fires for rng < 1.0, so still fires...
-      // Actually at Gini=0 with intent=1.0, attemptProb=1.0 which fires for any rng < 1.
       // Use a lower intent to show difference:
       // killingIntent=0.5, age=24, Gini=0 → prob=0.5; rng=0.7 → no attempt
       // killingIntent=0.5, age=24, Gini=0.5 → prob=0.5*(1+0.75)=0.875; rng=0.7 → attempt fires
@@ -270,6 +272,7 @@ describe('KillEvent', () => {
       const victimL = new Person([]);
       killerL.killingIntent = 0.5;
       killerL.age = 24;
+      killerL.hasJob = true; // ensures happiness ≥ threshold → happinessPressure = 0
       killerL.resources = 50;
       victimL.resources = 50; // equal resources → Gini = 0
       victimL.constitution = 10;
@@ -288,6 +291,7 @@ describe('KillEvent', () => {
       const victimH2 = new Person([]);
       killerH2.killingIntent = 0.5;
       killerH2.age = 24;
+      killerH2.hasJob = true; // ensures happiness ≥ threshold → happinessPressure = 0
       killerH2.resources = 100;
       victimH2.resources = 0;   // Gini ≈ 0.5
       victimH2.constitution = 10;
@@ -380,6 +384,182 @@ describe('KillEvent', () => {
 
     it('KILL_GINI_SCALAR is defined and positive', () => {
       expect(Variables.KILL_GINI_SCALAR).toBeGreaterThan(0);
+    });
+  });
+
+  describe('detection and jailing on successful kill (ARD 035)', () => {
+    it('detection fires after a successful kill and sets jailedTicksRemaining', () => {
+      const sim = new Simulation();
+      const killer = new Person([]);
+      const victim = new Person([]);
+      killer.killingIntent = 1.0;
+      killer.age = 24;
+      killer.hasJob = true; // neutralises happiness pressure so probabilities are predictable
+      killer.resources = 100;
+      victim.resources = 0;
+      victim.constitution = 1;
+      sim.add(killer);
+      sim.add(victim);
+
+      // rng always 0: attempt fires, victim selected, success fires, detection fires
+      const event = new KillEvent(() => 0);
+      event.execute(killer, sim);
+
+      expect(victim.causeOfDeath).not.toBeNull();
+      expect(killer.jailedTicksRemaining).toBe(Variables.JAIL_TICKS_KILL);
+    });
+
+    it('detection does not fire when success roll fails (no kill)', () => {
+      const sim = new Simulation();
+      const killer = new Person([]);
+      const victim = new Person([]);
+      killer.killingIntent = 1.0;
+      killer.age = 24;
+      killer.hasJob = true;
+      killer.resources = 100;
+      victim.resources = 0;
+      victim.constitution = 10; // successProb = 0.05
+      sim.add(killer);
+      sim.add(victim);
+
+      // attempt=0 fires, getRandomOther=0, success=0.99 fails → no kill → no detection
+      let callCount = 0;
+      const rng = () => { callCount++; if (callCount === 3) return 0.99; return 0; };
+      const event = new KillEvent(rng);
+      event.execute(killer, sim);
+
+      expect(killer.jailedTicksRemaining).toBe(0);
+    });
+
+    it('resources are forfeited to communityPool on kill detection', () => {
+      const sim = new Simulation();
+      const killer = new Person([]);
+      const victim = new Person([]);
+      killer.killingIntent = 1.0;
+      killer.age = 24;
+      killer.hasJob = true;
+      killer.resources = 100;
+      victim.resources = 0;
+      victim.constitution = 1;
+      sim.add(killer);
+      sim.add(victim);
+
+      const poolBefore = sim.communityPool;
+      const event = new KillEvent(() => 0);
+      event.execute(killer, sim);
+
+      expect(sim.communityPool).toBeGreaterThan(poolBefore);
+      expect(killer.resources).toBeCloseTo(100 * (1 - Variables.JAIL_RESOURCE_FORFEIT_FRACTION));
+    });
+
+    it('detection probability scales with prior crime count', () => {
+      // With 0 prior crimes: detectProb = BASE_DETECT_RATE_KILL (0.15)
+      // With 3 prior crimes: detectProb = 0.15 * (1 + 4*0.05) = 0.18
+      // rng=0.16 is above 0.15 (no detection with 0 prior) but below 0.18 (detection with 3 prior)
+      const sim1 = new Simulation();
+      const k1 = new Person([]);
+      const v1 = new Person([]);
+      k1.killingIntent = 1.0;
+      k1.age = 24;
+      k1.hasJob = true;
+      k1.resources = 100;
+      v1.constitution = 1;
+      sim1.add(k1);
+      sim1.add(v1);
+      // Call 1 (attempt): 0, Call 2 (getRandomOther): 0, Call 3 (success): 0, Call 4 (detection): 0.16
+      let c1 = 0;
+      const rng1 = () => { c1++; if (c1 === 4) return 0.16; return 0; };
+      new KillEvent(rng1).execute(k1, sim1);
+      // After kill: killed.size=1, amountStolen.length=0 → priorCrimes=1
+      // detectProb = 0.15*(1+1*0.05) = 0.1575; 0.16 >= 0.1575 → no detection
+      expect(k1.jailedTicksRemaining).toBe(0);
+
+      // Now with 3 prior steal records so that after kill priorCrimes = 4
+      const sim2 = new Simulation();
+      const k2 = new Person([]);
+      const v2 = new Person([]);
+      k2.killingIntent = 1.0;
+      k2.age = 24;
+      k2.hasJob = true;
+      k2.resources = 100;
+      v2.constitution = 1;
+      sim2.add(k2);
+      sim2.add(v2);
+      k2.amountStolen.push(new StealingRecord(v2, 1, 24));
+      k2.amountStolen.push(new StealingRecord(v2, 1, 24));
+      k2.amountStolen.push(new StealingRecord(v2, 1, 24));
+
+      let c2 = 0;
+      const rng2 = () => { c2++; if (c2 === 4) return 0.16; return 0; };
+      new KillEvent(rng2).execute(k2, sim2);
+      // 3 prior steals + 1 kill = 4 crimes → detectProb = 0.15*(1+4*0.05) = 0.18; 0.16 < 0.18 → detected
+      expect(k2.jailedTicksRemaining).toBe(Variables.JAIL_TICKS_KILL);
+    });
+  });
+
+  describe('happiness-pressure multiplier (ARD 036)', () => {
+    it('zero happiness maximises attempt probability multiplier', () => {
+      // killingIntent=0.5, age=24, Gini=0, happiness=0 →
+      // attemptProb = 0.5 * 1.0 * 1.0 * (1 + 1*SITUATIONAL_KILL_SCALAR)
+      // With SITUATIONAL_KILL_SCALAR=1.0: prob = 0.5 * 2.0 = 1.0
+      // A rng value of 0.7 would fail at prob=0.5 but pass at prob=1.0
+      const sim = new Simulation();
+      const killer = new Person([]);
+      const victim = new Person([]);
+      killer.killingIntent = 0.5;
+      killer.age = 24;
+      // No job, resources=0 → happiness = max(0, -3-5) = 0 → max pressure
+      killer.resources = 0;
+      victim.resources = 50;
+      victim.constitution = 10;
+      sim.add(killer);
+      sim.add(victim);
+
+      let callCount = 0;
+      // attempt=0.7, getRandomOther=0, success=0.99 (fails)
+      const rng = () => { callCount++; if (callCount === 1) return 0.7; if (callCount === 3) return 0.99; return 0; };
+      new KillEvent(rng).execute(killer, sim);
+
+      // With happiness=0: pressure=1, prob=0.5*1.0*1.0*(1+1*1.0)=1.0 → 0.7 < 1.0 → attempt fires → 3 calls
+      expect(callCount).toBe(3);
+    });
+
+    it('happiness at or above threshold produces no pressure multiplier', () => {
+      // happiness >= SITUATIONAL_KILL_HAPPINESS_THRESHOLD → pressureMultiplier = 1.0 (no boost)
+      const sim = new Simulation();
+      const killer = new Person([]);
+      const victim = new Person([]);
+      killer.killingIntent = 0.5;
+      killer.age = 24;
+      killer.hasJob = true; // happiness will be ≥ threshold
+      killer.resources = 50;
+      victim.resources = 50;
+      victim.constitution = 10;
+      sim.add(killer);
+      sim.add(victim);
+
+      // equal resources → Gini=0, happiness = +5 (job) + 0 (resources 30≤50<70) = 5 ≥ 3.0
+      // attemptProb = 0.5 * 1.0 * 1.0 * 1.0 = 0.5; rng=0.7 ≥ 0.5 → attempt does NOT fire
+      let callCount = 0;
+      new KillEvent(() => { callCount++; return 0.7; }).execute(killer, sim);
+      expect(callCount).toBe(1);
+    });
+
+    it('does not mutate killingIntent (situational effect is transient)', () => {
+      const sim = new Simulation();
+      const killer = new Person([]);
+      const victim = new Person([]);
+      killer.killingIntent = 0.3;
+      killer.age = 24;
+      killer.resources = 0; // zero resources → zero happiness → max pressure
+      victim.resources = 50;
+      victim.constitution = 10;
+      sim.add(killer);
+      sim.add(victim);
+
+      const intentBefore = killer.killingIntent;
+      new KillEvent(() => 0.99).execute(killer, sim); // attempt fails (0.99 ≥ anything, no kill)
+      expect(killer.killingIntent).toBe(intentBefore);
     });
   });
 });

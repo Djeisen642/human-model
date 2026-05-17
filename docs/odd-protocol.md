@@ -43,9 +43,10 @@ Each agent represents one individual. All fields are per-person; collections are
 | `isInRelationshipWith` | Person \| null | — | Current partner (reference equality) |
 | `learningIntent` | number | [0, 1) | Probability weight for LearnEvent |
 | `exerciseIntent` | number | [0, 1) | Probability weight for ExerciseEvent |
-| `stealingIntent` | number | [0, 0.3) | Probability weight for StealEvent |
+| `stealingIntent` | number | [0, STEALING_INTENT_CAP] | Probability weight for StealEvent; can grow via emboldening (ARD 036) |
 | `lyingIntent` | number | [0, 0.3) | Probability weight for LyingEvent |
 | `killingIntent` | number | [0, 0.1) | Probability weight for KillEvent |
+| `jailedTicksRemaining` | integer | ≥ 0 | Ticks remaining in current jail sentence; 0 = free; decremented by LooperSingleton before EventFactory (ARD 035) |
 | `causeOfDeath` | DeathRecord \| null | — | Null while alive; set on death (cause + optional killer reference) |
 | `hasChildren` | Person[] | — | Biological children (living or deceased) |
 | `childOf` | Person[] | — | Biological parents (readonly) |
@@ -76,6 +77,7 @@ One shared environment object. No spatial structure; all agent interactions are 
 | `inventionFasterCount` | integer | Cumulative depletion-faster invention outcomes (ARD 032) |
 | `inventionSlowerCount` | integer | Cumulative depletion-slower invention outcomes (ARD 032) |
 | `inventionCeilingCount` | integer | Cumulative ceiling-growth invention outcomes (ARD 032) |
+| `communityPool` | number | Pooled resources funded by per-tick taxation and jail forfeitures; distributed to poor persons and orphaned children each tick (ARD 034) |
 
 #### Scale
 
@@ -91,26 +93,36 @@ Each tick executes in this order:
 
 1. **`simulation.regenerate()`** — natural-resource pool replenishes by `NATURAL_RESOURCE_REGEN_RATE`, capped at `naturalResourceCeiling`.
 2. **`DisasterEvent`** — fires once per tick (not per agent); probabilistic trigger; random subset of living agents may be killed or lose resources.
-3. **Per-agent event loop** — extraction order shuffled each tick via Fisher-Yates (seeded RNG). For each living agent, `EventFactory` fires events in this fixed sequence:
-   1. `AgeEvent` — increments age
-   2. `ExperienceEvent` — experience growth/decay (unconditional)
-   3. `IllnessEvent` — illness onset/recovery (unconditional)
-   4. `GatherResourcesEvent` — extracts from pool (unconditional)
-   5. `ConsumptionEvent` — deducts living costs (unconditional)
-   6. `JobEvent` — employment gain/loss (unconditional)
-   7. `RelationshipEvent` — partnership formation/dissolution (unconditional)
-   8. `ChildbirthEvent` — birth (unconditional, dedup by index)
-   9. `KillEvent` — homicide attempt (unconditional; intent gate inside execute())
-   10. `MisfortuneEvent` — illness death then suicide check (unconditional)
-   11. `ExerciseEvent` — intent-gated (`exerciseIntent × ageModifier`)
-   12. `LearnEvent` — intent-gated (`learningIntent × ageModifier`)
-   13. `EnrollmentEvent` **or** `GraduationEvent` (mutually exclusive by condition)
-   14. `WindfallEvent` — probability-gated (`BASE_WINDFALL_RATE × ageModifier`)
-   15. `InventionEvent` — intelligence-scaled probability gate
-   16. `StealEvent` — intent-gated (`stealingIntent × ageModifier`)
-4. **`simulation.snapshot()`** — records per-tick aggregate metrics.
-5. **Every 10 ticks:** `buildTenYearSummary()` appended to `decadeHistory`; one-line console summary printed.
-6. **After the final tick (if `ticks % 10 !== 0`):** partial-decade summary built over the remaining ticks and appended to `decadeHistory` (ARD 031).
+3. **`simulation.collectTax(living)`** — deducts `TAX_RATE × resources` from each living agent; credited to `communityPool` (ARD 034).
+4. **Jail countdown** — for each living agent, if `jailedTicksRemaining > 0`, decrement by 1. Happens before EventFactory so the decremented value governs this tick's event set (ARD 035).
+5. **Per-agent event loop** — extraction order shuffled each tick via Fisher-Yates (seeded RNG). For each living agent, `EventFactory` fires events based on jail status:
+   - **If jailed (`jailedTicksRemaining > 0` before decrement, i.e. > 0 after decrement still running the remaining ticks):**
+     - **Note:** after the decrement in step 4, `jailedTicksRemaining` is checked again by `EventFactory`. If still > 0 after decrement, agent gets reduced suite.
+     1. `AgeEvent`
+     2. `IllnessEvent`
+     3. `JailEvent` — flat gather/consume replacing normal economy events (ARD 035)
+     4. `MisfortuneEvent`
+   - **If free (`jailedTicksRemaining === 0` when EventFactory is called):**
+     1. `AgeEvent` — increments age
+     2. `ExperienceEvent` — experience growth/decay (unconditional)
+     3. `IllnessEvent` — illness onset/recovery (unconditional)
+     4. `GatherResourcesEvent` — extracts from pool (unconditional)
+     5. `ConsumptionEvent` — deducts living costs (unconditional)
+     6. `JobEvent` — employment gain/loss (unconditional)
+     7. `RelationshipEvent` — partnership formation/dissolution (unconditional)
+     8. `ChildbirthEvent` — birth (unconditional, dedup by index)
+     9. `KillEvent` — homicide attempt (unconditional; intent gate inside execute(); happiness-pressure multiplier ARD 036)
+     10. `MisfortuneEvent` — illness death then suicide check (unconditional)
+     11. `ExerciseEvent` — intent-gated
+     12. `LearnEvent` — intent-gated
+     13. `EnrollmentEvent` **or** `GraduationEvent` (mutually exclusive)
+     14. `WindfallEvent` — probability-gated
+     15. `InventionEvent` — intelligence-scaled probability gate
+     16. `StealEvent` — intent-gated with resource-pressure multiplier (ARD 036); detection + emboldening inside execute() (ARD 035, ARD 036)
+6. **`simulation.distributeWelfare(living)`** — distributes `communityPool × (1 − COMMUNITY_POOL_RESERVE_FRACTION)` equally to eligible agents (resources < WELFARE_THRESHOLD or orphaned children); 20% reserve retained (ARD 034).
+7. **`simulation.snapshot()`** — records per-tick aggregate metrics.
+8. **Every 10 ticks:** `buildTenYearSummary()` appended to `decadeHistory`; one-line console summary printed.
+9. **After the final tick (if `ticks % 10 !== 0`):** partial-decade summary built over the remaining ticks and appended to `decadeHistory` (ARD 031).
 
 Deaths during the loop are processed immediately (agent removed from `living`). Newborns added via `simulation.add()` during the loop are eligible for events in the same tick (ordering depends on shuffle position).
 
@@ -124,7 +136,7 @@ Deaths during the loop are processed immediately (agent removed from `living`). 
 
 **Emergence.** The Gini coefficient, population trajectory, and outcome classification (COLLAPSE / STRUGGLING / STABLE / THRIVING) are not imposed — they emerge from per-agent decisions each tick. Feedback loops (KillEvent amplified by Gini, GatherResourcesEvent depleting a shared pool, illness propagating through MisfortuneEvent) are the mechanism through which micro-rules produce macro-outcomes.
 
-**Adaptation.** Agents do not update their behavioral intents in response to outcomes in the current implementation. Intents are seeded at initialization and remain fixed unless a future mechanic (e.g., loss aversion, lying) modifies them. Job and education status do adapt (gain/lose employment; enroll/graduate) based on probabilistic rules each tick.
+**Adaptation.** Most intents are seeded at initialization and remain fixed. Two mechanisms now modify stored state in response to outcomes: (1) **Emboldening** — each undetected theft permanently increments `stealingIntent` by `STEALING_EMBOLDEN_INCREMENT`, capped at `STEALING_INTENT_CAP`, encoding reinforcement learning from repeated unpunished crime (ARD 036). (2) **Jailing** — detected crimes set `jailedTicksRemaining`, removing the agent from the normal economy for a fixed sentence (ARD 035). Situational multipliers (resource pressure on stealing, happiness pressure on killing) are transient — they amplify event probability in-tick without modifying stored fields. Job and education status also adapt each tick via probabilistic gain/loss rules.
 
 **Objectives.** Agents have no explicit utility function and do not optimize. Intent fields (`killingIntent`, `stealingIntent`, etc.) act as fixed behavioral weights rather than goals. The `happiness` getter measures wellbeing for external observation; agents do not use it to make decisions (suicide in MisfortuneEvent is the one exception, where low happiness raises mortality risk).
 
@@ -230,11 +242,13 @@ Fires only when both partners are living; deduplicated to the lower-index partne
 Couple aggregates: max illness, min resources, max age, avg happiness.
 On birth: deducts `CHILDBIRTH_BIRTH_COST` from each parent (floored at 0); creates `new Person([p1, p2])`; calls `simulation.add(child)`.
 
-#### KillEvent (ARD 027)
-Intent gate inside `execute()` (requires simulation access for Gini).
-Attempt: `prob = killingIntent × ageModifier(24, 30, 0.05) × (1 + currentGini × KILL_GINI_SCALAR)`
+#### KillEvent (ARD 027, ARD 035, ARD 036)
+Intent gate inside `execute()` (requires simulation access for Gini and happiness).
+`happinessPressure = max(0, 1 − happiness / SITUATIONAL_KILL_HAPPINESS_THRESHOLD)`
+Attempt: `prob = killingIntent × ageModifier(24, 30, 0.05) × (1 + currentGini × KILL_GINI_SCALAR) × (1 + happinessPressure × SITUATIONAL_KILL_SCALAR)`
 Success: `prob = KILL_SUCCESS_BASE / max(1, victim.constitution)`
 On success: `simulation.kill(victim, MURDER, person)` — creates `DeathRecord` and `KillingRecord`.
+Detection (after successful kill): `prob = BASE_DETECT_RATE_KILL × (1 + priorCrimes × DETECTION_CRIME_COUNT_SCALAR)`. On detection: `JAIL_RESOURCE_FORFEIT_FRACTION` of killer's resources transferred to `communityPool`; `jailedTicksRemaining += JAIL_TICKS_KILL`.
 
 #### MisfortuneEvent (ARD 019)
 Two sequential checks; first cause wins:
@@ -261,11 +275,18 @@ Intent-gated: `rng() < exerciseIntent × ageModifier(24, 35, 0.1)`. Increments `
 #### LearnEvent
 Intent-gated: `rng() < learningIntent × ageModifier(18, 45, 0.15)`. Increments `intelligence` by 1.
 
-#### StealEvent (ARD 026)
-Intent-gated: `rng() < stealingIntent × (1 + charisma × STEAL_CHARISMA_SCALAR) × ageModifier(24, 30, 0.05)`.
+#### StealEvent (ARD 026, ARD 035, ARD 036)
+`resourcePressure = max(0, 1 − resources / SITUATIONAL_STEAL_RESOURCE_THRESHOLD)`
+Intent-gated: `rng() < stealingIntent × (1 + charisma × STEAL_CHARISMA_SCALAR) × ageModifier(24, 30, 0.05) × (1 + resourcePressure × SITUATIONAL_STEAL_SCALAR)`.
 Selects random victim; no-ops if victim null or has zero resources.
-Transfers `min(victim.resources × STEAL_FRACTION, STEAL_MAX_AMOUNT)` from victim to thief.
-Pushes `StealingRecord` to thief's record.
+Transfers `min(victim.resources × STEAL_FRACTION, STEAL_MAX_AMOUNT)` from victim to thief. Pushes `StealingRecord`.
+Detection: `prob = BASE_DETECT_RATE_STEAL × (1 + priorCrimes × DETECTION_CRIME_COUNT_SCALAR)` where `priorCrimes = amountStolen.length + killed.size`.
+- Detected: forfeits `JAIL_RESOURCE_FORFEIT_FRACTION` of thief's resources to `communityPool`; `jailedTicksRemaining += JAIL_TICKS_STEAL`.
+- Not detected: `stealingIntent = min(stealingIntent + STEALING_EMBOLDEN_INCREMENT, STEALING_INTENT_CAP)`.
+
+#### JailEvent (ARD 035)
+Replaces the normal gather/consume cycle for agents with `jailedTicksRemaining > 0`.
+Adds `JAIL_GATHER_AMOUNT` flat to `person.resources`; deducts `JAIL_CONSUMPTION_AMOUNT` flat. Resources floored at 0. If jail consumption exceeds resources after gather, `STARVATION_ILLNESS_RATE` is added to illness (same starvation path as ConsumptionEvent).
 
 #### WindfallEvent (ARD 028)
 Probability gate at factory: `prob = BASE_WINDFALL_RATE × ageModifier(58, 20, 0.05)`.
