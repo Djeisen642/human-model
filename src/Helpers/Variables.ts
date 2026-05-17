@@ -29,6 +29,8 @@ export default class Variables {
   static INVENTION_CEILING_GROWTH_WEIGHT = 1;
   /** Scales inventor's intelligence into the magnitude of any invention effect. */
   static INVENTION_MAGNITUDE_SCALAR = 0.05;
+  /** Per-tick base probability of an invention, multiplied by intelligence (1–10) and ageModifier. At intelligence=10, peak age: ~2% per tick. */
+  static BASE_INVENTION_RATE = 0.002;
 
   // IllnessEvent constants (ARD 018)
   /** Onset probability at ageRisk=1, constitution=1. */

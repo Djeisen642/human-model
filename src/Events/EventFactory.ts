@@ -16,6 +16,7 @@ import ChildbirthEvent from './ChildbirthEvent';
 import StealEvent from './StealEvent';
 import KillEvent from './KillEvent';
 import WindfallEvent from './WindfallEvent';
+import InventionEvent from './InventionEvent';
 import { ageModifier } from '../Helpers/AgeModifier';
 import Variables from '../Helpers/Variables';
 import Constants from '../Helpers/Constants';
@@ -77,6 +78,12 @@ export default class EventFactory {
     if (this.rng() < Variables.BASE_WINDFALL_RATE
       * ageModifier(person.age, Variables.WINDFALL_PEAK_AGE, Variables.WINDFALL_AGE_SCALE, Variables.WINDFALL_AGE_FLOOR)) {
       events.push(new WindfallEvent(this.rng));
+    }
+
+    if (this.rng() < Variables.BASE_INVENTION_RATE
+      * person.intelligence
+      * ageModifier(person.age, Variables.INVENTION_PEAK_AGE, Variables.INVENTION_AGE_SCALE, Variables.INVENTION_AGE_FLOOR)) {
+      events.push(new InventionEvent(this.rng));
     }
 
     const stealProb = person.stealingIntent
