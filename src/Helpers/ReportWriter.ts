@@ -81,8 +81,7 @@ function buildHTML(
       deathsIllness: d.deathsByIllness,
       deathsSuicide: d.deathsBySuicide,
       deathsMurder: d.deathsByKilling,
-      deathsDisaster: d.deathsByDisaster,
-      deathsOldAge: d.deathsByOldAge
+      deathsDisaster: d.deathsByDisaster
     };
   });
 
@@ -106,13 +105,11 @@ function buildHTML(
   const deathsSuicideTickSeries = aggregatedHistory.map(a => a.deathsSuicide);
   const deathsMurderTickSeries = aggregatedHistory.map(a => a.deathsMurder);
   const deathsDisasterTickSeries = aggregatedHistory.map(a => a.deathsDisaster);
-  const deathsOldAgeTickSeries = aggregatedHistory.map(a => a.deathsOldAge);
 
   const illnessSeries = decadeHistory.map(d => d.deathsByIllness);
   const suicideSeries = decadeHistory.map(d => d.deathsBySuicide);
   const killingSeries = decadeHistory.map(d => d.deathsByKilling);
   const disasterSeries = decadeHistory.map(d => d.deathsByDisaster);
-  const oldAgeSeries = decadeHistory.map(d => d.deathsByOldAge);
 
   const embeddedData = JSON.stringify({
     meta: { seed, ticks, n, outcome },
@@ -136,7 +133,6 @@ function buildHTML(
       deathsByIllness: s.deathsByIllness,
       deathsBySuicide: s.deathsBySuicide,
       deathsByDisaster: s.deathsByDisaster,
-      deathsByOldAge: s.deathsByOldAge,
     })),
   });
 
@@ -481,9 +477,6 @@ function buildHTML(
             fill: true, tension: 0.2, pointRadius: 0, borderWidth: 1.5 },
           { label: 'Disaster', data: ${JSON.stringify(deathsDisasterTickSeries)},
             borderColor: '#2c3e50', backgroundColor: 'rgba(44,62,80,0.4)',
-            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 1.5 },
-          { label: 'Old Age',  data: ${JSON.stringify(deathsOldAgeTickSeries)},
-            borderColor: '#95a5a6', backgroundColor: 'rgba(149,165,166,0.4)',
             fill: true, tension: 0.2, pointRadius: 0, borderWidth: 1.5 }
         ]
       },
@@ -508,8 +501,7 @@ function buildHTML(
           { label: 'Illness',  data: ${JSON.stringify(illnessSeries)},  backgroundColor: 'rgba(230,126,34,0.85)' },
           { label: 'Suicide',  data: ${JSON.stringify(suicideSeries)},  backgroundColor: 'rgba(142,68,173,0.85)' },
           { label: 'Killing',  data: ${JSON.stringify(killingSeries)},  backgroundColor: 'rgba(231,76,60,0.85)' },
-          { label: 'Disaster', data: ${JSON.stringify(disasterSeries)}, backgroundColor: 'rgba(44,62,80,0.85)' },
-          { label: 'Old Age',  data: ${JSON.stringify(oldAgeSeries)},   backgroundColor: 'rgba(149,165,166,0.85)' }
+          { label: 'Disaster', data: ${JSON.stringify(disasterSeries)}, backgroundColor: 'rgba(44,62,80,0.85)' }
         ]
       },
       options: {

@@ -28,8 +28,6 @@ export interface TickSnapshot {
   deathsByDisaster: number;
   /** Deaths caused by suicide this tick. */
   deathsBySuicide: number;
-  /** Deaths caused by old age this tick. */
-  deathsByOldAge: number;
   /** Cumulative total deaths up to and including this tick. */
   cumulativeDeaths: number;
   /** Cumulative murder deaths up to and including this tick. */
@@ -40,8 +38,6 @@ export interface TickSnapshot {
   cumulativeDeathsByDisaster: number;
   /** Cumulative suicide deaths up to and including this tick. */
   cumulativeDeathsBySuicide: number;
-  /** Cumulative old-age deaths up to and including this tick. */
-  cumulativeDeathsByOldAge: number;
   /** Mean resources across living population. */
   averageResources: number;
   /** Gini coefficient of resource distribution (0 = perfect equality, 1 = perfect inequality). */
@@ -344,7 +340,6 @@ export default class Simulation {
     const deathsByIllness = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.ILLNESS).length;
     const deathsByDisaster = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.DISASTER).length;
     const deathsBySuicide = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.SUICIDE).length;
-    const deathsByOldAge = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.OLD_AGE).length;
 
     const prev = this.history.length > 0 ? this.history[this.history.length - 1] : null;
     const cumulativeDeaths = (prev?.cumulativeDeaths ?? 0) + deaths;
@@ -352,7 +347,6 @@ export default class Simulation {
     const cumulativeDeathsByIllness = (prev?.cumulativeDeathsByIllness ?? 0) + deathsByIllness;
     const cumulativeDeathsByDisaster = (prev?.cumulativeDeathsByDisaster ?? 0) + deathsByDisaster;
     const cumulativeDeathsBySuicide = (prev?.cumulativeDeathsBySuicide ?? 0) + deathsBySuicide;
-    const cumulativeDeathsByOldAge = (prev?.cumulativeDeathsByOldAge ?? 0) + deathsByOldAge;
 
     const births = this.tickBirths;
     const cumulativeBirths = (prev?.cumulativeBirths ?? 0) + births;
@@ -366,13 +360,11 @@ export default class Simulation {
       deathsByIllness,
       deathsByDisaster,
       deathsBySuicide,
-      deathsByOldAge,
       cumulativeDeaths,
       cumulativeDeathsByMurder,
       cumulativeDeathsByIllness,
       cumulativeDeathsByDisaster,
       cumulativeDeathsBySuicide,
-      cumulativeDeathsByOldAge,
       averageResources,
       resourceGini,
       averageHappiness,

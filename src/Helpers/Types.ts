@@ -48,8 +48,6 @@ export interface TenYearSummary {
   populationDelta: number;
   /** Total deaths over the decade (delta, not cumulative). */
   totalDeaths: number;
-  /** Deaths by old age over the decade. */
-  deathsByOldAge: number;
   /** Deaths by illness over the decade. */
   deathsByIllness: number;
   /** Deaths by suicide over the decade. */
