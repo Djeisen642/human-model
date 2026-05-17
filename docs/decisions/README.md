@@ -146,3 +146,4 @@ When in doubt:
 | [034](./034-community-pool-tax-welfare.md) | Community Pool, Taxation, and Welfare Distribution | Accepted |
 | [035](./035-jail-and-retribution.md) | Jail and Retribution | Accepted |
 | [036](./036-dynamic-intent-multipliers.md) | Dynamic Intent Multipliers and Theft Emboldening | Accepted |
+| [037](./037-newborn-stat-seeding.md) | Newborn Stat Seeding via Parental Heritability | Accepted |

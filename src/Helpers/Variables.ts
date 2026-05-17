@@ -116,6 +116,18 @@ export default class Variables {
   /** One-time resource deduction per parent at birth; ~25% of median resources. */
   static CHILDBIRTH_BIRTH_COST = 12;
 
+  // Newborn heritability constants (ARD 037)
+  /** Anchor point that newborn stats regress toward; midpoint of the adult seed range [1, 10]. */
+  static NEWBORN_STAT_POPULATION_MEAN = 5.5;
+  /** Strength of regression toward parental mean for stats. ~0.4 matches twin-study heritability for physical/cognitive traits. */
+  static HERITABILITY_STAT_COEFFICIENT = 0.4;
+  /** Uniform noise half-width on newborn stat draws. Calibrated so worst-case parental mean still yields positive child stats. */
+  static HERITABILITY_STAT_NOISE_RANGE = 2.5;
+  /** Strength of regression toward parental intent for intents (target = 0). Lower than stat coefficient: behavioral transmission is weaker than trait heritability. */
+  static HERITABILITY_INTENT_COEFFICIENT = 0.25;
+  /** Uniform noise half-width on newborn intent draws. Large enough to occasionally produce antisocial intents in clean lineages. */
+  static HERITABILITY_INTENT_NOISE_RANGE = 0.05;
+
   // WindfallEvent constants (ARD 028)
   /** Per-tick base probability of a windfall at peak age; ~3% annually, consistent with SCF/HRS inheritance prevalence. */
   static BASE_WINDFALL_RATE = 0.03;
