@@ -28,8 +28,6 @@ export interface TickSnapshot {
   deathsByDisaster: number;
   /** Deaths caused by suicide this tick. */
   deathsBySuicide: number;
-  /** Deaths caused by old age this tick. */
-  deathsByOldAge: number;
   /** Cumulative total deaths up to and including this tick. */
   cumulativeDeaths: number;
   /** Cumulative murder deaths up to and including this tick. */
@@ -40,8 +38,6 @@ export interface TickSnapshot {
   cumulativeDeathsByDisaster: number;
   /** Cumulative suicide deaths up to and including this tick. */
   cumulativeDeathsBySuicide: number;
-  /** Cumulative old-age deaths up to and including this tick. */
-  cumulativeDeathsByOldAge: number;
   /** Mean resources across living population. */
   averageResources: number;
   /** Gini coefficient of resource distribution (0 = perfect equality, 1 = perfect inequality). */
@@ -64,6 +60,14 @@ export interface TickSnapshot {
   cumulativeBirths: number;
   /** Community pool balance at end of tick. ARD 034. */
   communityPool: number;
+  /** Mean illness severity across living population at end of tick. */
+  averageIllness: number;
+  /** Fraction of working-age persons (18–65) with a job at end of tick. 0 when none exist. */
+  employmentRate: number;
+  /** Thefts executed this tick (successful StealEvent executions). */
+  stealsCommitted: number;
+  /** Number of living persons currently serving a jail sentence at end of tick. */
+  jailedPopulation: number;
 }
 
 export default class Simulation {
@@ -98,6 +102,7 @@ export default class Simulation {
 
   private tickDeathCauses: number[] = [];
   private tickBirths = 0;
+  private tickSteals = 0;
 
   /**
    * Returns a shallow copy of the living population.
@@ -171,6 +176,13 @@ export default class Simulation {
    */
   recordBirth(): void {
     this.tickBirths++;
+  }
+
+  /**
+   * Increments the per-tick steal counter. Called by StealEvent on a successful theft.
+   */
+  recordSteal(): void {
+    this.tickSteals++;
   }
 
   /**
@@ -314,15 +326,20 @@ export default class Simulation {
     const averageResources = mean(resources);
     const resourceGini = gini(resources);
     const averageHappiness = mean(this.living.map(p => p.happiness));
+    const averageIllness = mean(this.living.map(p => p.illness));
     const aggregateKillingIntent = this.living.reduce((s, p) => s + p.killingIntent, 0);
     const aggregateStealingIntent = this.living.reduce((s, p) => s + p.stealingIntent, 0);
+    const workingAge = this.living.filter(p => p.age >= 18 && p.age <= 65);
+    const employmentRate = workingAge.length > 0
+      ? workingAge.filter(p => p.hasJob).length / workingAge.length
+      : 0;
+    const jailedPopulation = this.living.filter(p => p.jailedTicksRemaining > 0).length;
 
     const deaths = this.tickDeathCauses.length;
     const deathsByMurder = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.MURDER).length;
     const deathsByIllness = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.ILLNESS).length;
     const deathsByDisaster = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.DISASTER).length;
     const deathsBySuicide = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.SUICIDE).length;
-    const deathsByOldAge = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.OLD_AGE).length;
 
     const prev = this.history.length > 0 ? this.history[this.history.length - 1] : null;
     const cumulativeDeaths = (prev?.cumulativeDeaths ?? 0) + deaths;
@@ -330,10 +347,10 @@ export default class Simulation {
     const cumulativeDeathsByIllness = (prev?.cumulativeDeathsByIllness ?? 0) + deathsByIllness;
     const cumulativeDeathsByDisaster = (prev?.cumulativeDeathsByDisaster ?? 0) + deathsByDisaster;
     const cumulativeDeathsBySuicide = (prev?.cumulativeDeathsBySuicide ?? 0) + deathsBySuicide;
-    const cumulativeDeathsByOldAge = (prev?.cumulativeDeathsByOldAge ?? 0) + deathsByOldAge;
 
     const births = this.tickBirths;
     const cumulativeBirths = (prev?.cumulativeBirths ?? 0) + births;
+    const stealsCommitted = this.tickSteals;
 
     const snap: TickSnapshot = {
       tick,
@@ -343,13 +360,11 @@ export default class Simulation {
       deathsByIllness,
       deathsByDisaster,
       deathsBySuicide,
-      deathsByOldAge,
       cumulativeDeaths,
       cumulativeDeathsByMurder,
       cumulativeDeathsByIllness,
       cumulativeDeathsByDisaster,
       cumulativeDeathsBySuicide,
-      cumulativeDeathsByOldAge,
       averageResources,
       resourceGini,
       averageHappiness,
@@ -361,11 +376,16 @@ export default class Simulation {
       births,
       cumulativeBirths,
       communityPool: this.communityPool,
+      averageIllness,
+      employmentRate,
+      stealsCommitted,
+      jailedPopulation,
     };
 
     this.history.push(snap);
     this.tickDeathCauses = [];
     this.tickBirths = 0;
+    this.tickSteals = 0;
     return snap;
   }
 }

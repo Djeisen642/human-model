@@ -36,6 +36,7 @@ export default class StealEvent implements IEvent {
     victim.resources -= amount;
     person.resources += amount;
     person.amountStolen.push(new StealingRecord(victim, amount, person.age));
+    simulation.recordSteal();
 
     const priorCrimes = person.amountStolen.length + person.killed.size;
     const detectProb = Variables.BASE_DETECT_RATE_STEAL
