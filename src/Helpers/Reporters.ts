@@ -45,6 +45,7 @@ export function buildTenYearSummary(
   const avgHappiness = avg(window.map(s => s.averageHappiness));
   const avgNaturalResources = avg(window.map(s => s.naturalResources));
   const peakResourceGini = Math.max(...window.map(s => s.resourceGini));
+  const avgCommunityPool = avg(window.map(s => s.communityPool));
 
   return {
     endTick,
@@ -62,6 +63,7 @@ export function buildTenYearSummary(
     avgNaturalResources,
     peakResourceGini,
     births,
+    avgCommunityPool,
   };
 }
 
@@ -289,6 +291,7 @@ export function formatSurvivorSection(s: SurvivorSummary): string[] {
  * @param inventionCounts.faster - count of depletion-faster firings
  * @param inventionCounts.slower - count of depletion-slower firings
  * @param inventionCounts.ceiling - count of ceiling-growth firings
+ * @param communityPool - community pool balance at end of run (ARD 034)
  * @returns multi-line formatted report string
  */
 export function formatEndReport(
@@ -304,6 +307,7 @@ export function formatEndReport(
   extinctionTick?: number,
   extractionEfficiency = 1.0,
   inventionCounts: { faster: number; slower: number; ceiling: number } = { faster: 0, slower: 0, ceiling: 0 },
+  communityPool = 0,
 ): string {
   if (decadeHistory.length === 0) {
     return `=== End of Simulation (${ticks} ticks, seed ${seed}) ===\n(Run too short to produce a decade summary.)`;
@@ -372,6 +376,7 @@ export function formatEndReport(
     'RESOURCES',
     `  Avg resources/person: ${first.avgResources.toFixed(1)} → ${final.avgResources.toFixed(1)}`,
     `  Natural resources remaining: ${Math.round(naturalResources)} / ${Math.round(naturalResourceCeiling)} ceiling`,
+    `  Community pool: ${Math.round(communityPool)}`,
     `  Inventions: ${inventionCounts.faster} faster  ${inventionCounts.slower} slower  ${inventionCounts.ceiling} ceiling   ` +
       `(final efficiency: ${extractionEfficiency.toFixed(2)}, ceiling: ${Math.round(naturalResourceCeiling)})`,
     '',

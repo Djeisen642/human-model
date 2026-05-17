@@ -227,6 +227,16 @@ export default class Variables {
   /** Final-decade avg happiness at or above this (with Gini below threshold) → THRIVING. */
   static THRIVING_HAPPINESS_THRESHOLD = 6.0;
 
+  // Community pool, taxation, and welfare constants (ARD 034)
+  /** Flat fraction of each living person's resources deducted per tick and added to the community pool. */
+  static TAX_RATE = 0.02;
+  /** Resource level below which a person qualifies for welfare distribution each tick. */
+  static WELFARE_THRESHOLD = 20;
+  /** Fraction of the community pool retained as reserve after each distribution; prevents one-tick exhaustion. */
+  static COMMUNITY_POOL_RESERVE_FRACTION = 0.20;
+  /** Fraction of a convicted person's resources forfeited to the community pool on jailing (ARD 035). */
+  static JAIL_RESOURCE_FORFEIT_FRACTION = 0.80;
+
   // Disaster event constants (ARD 012)
   /** Probability that a disaster fires in any given tick (~1 in 10 ticks). */
   static DISASTER_PROBABILITY = 0.1;

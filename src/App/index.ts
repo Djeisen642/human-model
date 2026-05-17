@@ -84,6 +84,7 @@ console.log(formatEndReport(
     slower: simulation.inventionSlowerCount,
     ceiling: simulation.inventionCeilingCount,
   },
+  simulation.communityPool,
 ));
 
 writeReportHTML(simulation, N, TICKS, SEED, outputDir);

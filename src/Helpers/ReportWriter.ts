@@ -61,6 +61,7 @@ function buildHTML(
   const naturalResourceSeries = history.map(s => s.naturalResources.toFixed(2));
   const ceilingSeries = history.map(s => s.naturalResourceCeiling.toFixed(2));
   const efficiencySeries = history.map(s => s.extractionEfficiency.toFixed(4));
+  const communityPoolSeries = history.map(s => s.communityPool.toFixed(2));
   const happinessSeries = history.map(s => s.averageHappiness.toFixed(4));
   const killingIntentSeries = history.map(s =>
     (s.population > 0 ? s.aggregateKillingIntent / s.population : 0).toFixed(5),
@@ -89,6 +90,7 @@ function buildHTML(
       extractionEfficiency: s.extractionEfficiency,
       births: s.births,
       averageHappiness: s.averageHappiness,
+      communityPool: s.communityPool,
     })),
   });
 
@@ -110,6 +112,7 @@ function buildHTML(
       slower: simulation.inventionSlowerCount,
       ceiling: simulation.inventionCeilingCount,
     },
+    simulation.communityPool,
   ).replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const outcomeColors: Record<string, string> = {
@@ -337,7 +340,10 @@ function buildHTML(
             tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [5,3] },
           { label: 'Extraction Efficiency', data: ${JSON.stringify(efficiencySeries)},
             borderColor: '#e67e22', backgroundColor: 'transparent',
-            tension: 0.2, pointRadius: 0, borderWidth: 2, yAxisID: 'y2' }
+            tension: 0.2, pointRadius: 0, borderWidth: 2, yAxisID: 'y2' },
+          { label: 'Community Pool', data: ${JSON.stringify(communityPoolSeries)},
+            borderColor: '#1abc9c', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [3,2], yAxisID: 'y3' }
         ]
       },
       options: {
@@ -349,7 +355,8 @@ function buildHTML(
         scales: {
           x: { grid: { color: '#f0f0f0' } },
           y: { position: 'left', grid: { color: '#f0f0f0' } },
-          y2: { position: 'right', grid: { drawOnChartArea: false } }
+          y2: { position: 'right', grid: { drawOnChartArea: false } },
+          y3: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true, display: false }
         }
       }
     });
