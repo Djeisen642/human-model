@@ -4,9 +4,15 @@ import LooperSingleton from './LooperSingleton';
 import { formatEndReport } from '../Helpers/Reporters';
 import { writeReportHTML } from '../Helpers/ReportWriter';
 import Variables from '../Helpers/Variables';
+import { parsePersonTypes } from '../Helpers/Classifier';
 
 interface SimConfig {
-  simulation?: { persons?: number; ticks?: number; seed?: number };
+  simulation?: {
+    persons?: number;
+    ticks?: number;
+    seed?: number;
+    personTypes?: unknown;
+  };
   variables?: Record<string, unknown>;
 }
 
@@ -52,9 +58,11 @@ if (config.variables) {
 const N = config.simulation?.persons ?? 100;
 const TICKS = config.simulation?.ticks ?? 100;
 const SEED = config.simulation?.seed ?? 42;
+const PERSON_TYPES = parsePersonTypes(config.simulation?.personTypes);
 
 const looper = LooperSingleton.getInstance();
-const simulation = looper.start(N, TICKS, SEED);
+// eslint-disable-next-line no-console
+const simulation = looper.start(N, TICKS, SEED, console.log, PERSON_TYPES);
 
 // eslint-disable-next-line no-console
 console.log(formatEndReport(
@@ -64,6 +72,9 @@ console.log(formatEndReport(
   N,
   simulation.naturalResources,
   simulation.naturalResourceCeiling,
+  simulation.personTypes,
+  simulation.seededTypeCounts,
+  simulation.getLiving(),
 ));
 
 writeReportHTML(simulation, N, TICKS, SEED, outputDir);

@@ -1,5 +1,43 @@
 export type RNG = () => number;
 
+/** Person stat/intent fields whose seeding range can be overridden by a personType. */
+export const OVERRIDABLE_FIELDS = [
+  'age',
+  'resources',
+  'experience',
+  'intelligence',
+  'constitution',
+  'charisma',
+  'learningIntent',
+  'exerciseIntent',
+  'stealingIntent',
+  'lyingIntent',
+  'killingIntent',
+] as const;
+
+export type OverridableField = typeof OVERRIDABLE_FIELDS[number];
+
+/** Integer-valued seeded fields; the rest are continuous in [0, 1]-ish. */
+export const INTEGER_FIELDS: ReadonlySet<OverridableField> = new Set<OverridableField>([
+  'age',
+  'resources',
+  'experience',
+  'intelligence',
+  'constitution',
+  'charisma',
+]);
+
+/** A single user-defined person type: a fraction of the population and a partial range override. */
+export interface PersonTypeDefinition {
+  /** Fraction of the initial population assigned to this type, in [0, 1]. */
+  percentage: number;
+  /** Partial map: overrides per field. Each entry is a half-open [min, max). */
+  ranges: Partial<Record<OverridableField, [number, number]>>;
+}
+
+/** Map of type name → definition. Names are arbitrary strings chosen by the config author. */
+export type PersonTypes = Record<string, PersonTypeDefinition>;
+
 /** Aggregate statistics for a completed 10-tick decade. */
 export interface TenYearSummary {
   /** The tick that closed this decade (10, 20, 30, …). */

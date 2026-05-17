@@ -7,6 +7,7 @@ import {
   formatEndReport,
 } from '../../Helpers/Reporters';
 import { TenYearSummary } from '../../Helpers/Types';
+import Person from '../../App/Person';
 
 /**
  * @param tick - zero-based tick index
@@ -311,5 +312,49 @@ describe('formatEndReport', () => {
     expect(report).toContain('RESOURCES');
     expect(report).toContain('HAPPINESS');
     expect(report).toContain('DECADE SUMMARY TABLE');
+  });
+
+  it('omits COHORT SURVIVAL section when no personTypes (ARD 030)', () => {
+    const decade: TenYearSummary = {
+      endTick: 10, endPopulation: 90, populationDelta: -10, totalDeaths: 10,
+      deathsByOldAge: 2, deathsByIllness: 4, deathsBySuicide: 2,
+      deathsByKilling: 1, deathsByDisaster: 1,
+      avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
+      avgNaturalResources: 5000, peakResourceGini: 0.40,
+    };
+    const report = formatEndReport([decade], 10, 42, 100, 9000, 10000);
+    expect(report).not.toContain('COHORT SURVIVAL');
+  });
+
+  it('includes COHORT SURVIVAL section when personTypes are supplied (ARD 030)', () => {
+    const decade: TenYearSummary = {
+      endTick: 10, endPopulation: 90, populationDelta: -10, totalDeaths: 10,
+      deathsByOldAge: 2, deathsByIllness: 4, deathsBySuicide: 2,
+      deathsByKilling: 1, deathsByDisaster: 1,
+      avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
+      avgNaturalResources: 5000, peakResourceGini: 0.40,
+    };
+    // 5 engineers seeded (intelligence in [7,11)), 3 alive at end
+    /**
+     * @returns a person with intelligence 8 (within engineer range)
+     */
+    const makeEngineer = (): Person => {
+      const p = new Person([]);
+      p.intelligence = 8;
+      return p;
+    };
+    const living = [makeEngineer(), makeEngineer(), makeEngineer()];
+    const personTypes = {
+      engineer: { percentage: 0.05, ranges: { intelligence: [7, 11] as [number, number] } },
+    };
+    const report = formatEndReport(
+      [decade], 10, 42, 100, 9000, 10000,
+      personTypes, { engineer: 5 }, living,
+    );
+    expect(report).toContain('COHORT SURVIVAL');
+    expect(report).toContain('engineer');
+    expect(report).toContain('5');
+    expect(report).toContain('3');
+    expect(report).toMatch(/-2/);
   });
 });

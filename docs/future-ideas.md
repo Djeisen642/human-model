@@ -112,12 +112,6 @@ Three execution tiers behind a common `SimulationEngine` interface: (1) current 
 **Multiple simulation runs with comparison**
 Run N simulations with different seeds, compare `history` arrays. Requires deciding how `LooperSingleton` exposes results across runs.
 
-**Seeding strategy as experimental variable**
-Starting stat/intent distributions are the experiment's independent variable. Needs a parameterizable `Simulation.seed()` interface.
-
-**Profile-based population seeding**
-Compose populations from named archetypes — `killer` (high `killingIntent`, low `charisma`), `unhappy`, `scholar`, `drifter`. Experiments specified as mixes ("80/10/10"). More expressive than tuning per-stat distributions globally; lets you ask "above what fraction of killers does Gini collapse?" Refines the broader seeding-as-variable idea above.
-
 **Extinction as a distinct outcome label**
 Total extinction (population=0) is classified as COLLAPSE. The end report still prints "Trend: falling" for Gini — technically true, but reads like inequality improved rather than everyone dying. Add an EXTINCTION label or a `formatEndReport` callout when `endPopulation === 0`. Observed in seed 42 default run.
 
@@ -167,3 +161,7 @@ Cognitive cap on stable relationships (~150 in the original argument). Distinct 
 Considered and rejected without rising to ARD-level discussion. Each entry: name, date dropped, one-sentence reason. Decisions formal enough to merit an ARD belong in `docs/decisions/` instead.
 
 **Education payoff on stats** — 2026-05-16 — Implemented: ARD 021 (intelligence +1 at graduation) and ARD 022 (education multiplier on job-gain probability).
+
+**Seeding strategy as experimental variable** — 2026-05-17 — Subsumed by ARD 030 (`simulation.personTypes` config with per-type stat ranges and percentage quotas).
+
+**Profile-based population seeding** — 2026-05-17 — Implemented: ARD 030 (config-driven `simulation.personTypes` with predicate-based classification at end-of-run). Catalog of recommended archetypes in `docs/research-character-types.md`.

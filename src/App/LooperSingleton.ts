@@ -3,7 +3,7 @@ import SeededRandom from '../Helpers/SeededRandom';
 import EventFactory from '../Events/EventFactory';
 import DisasterEvent from '../Events/DisasterEvent';
 import { buildTenYearSummary, formatDecadeSummary, formatSimulationHeader } from '../Helpers/Reporters';
-import { RNG } from '../Helpers/Types';
+import { PersonTypes, RNG } from '../Helpers/Types';
 
 export default class LooperSingleton {
   private static instance: LooperSingleton;
@@ -15,13 +15,20 @@ export default class LooperSingleton {
    * @param ticks - number of ticks to simulate
    * @param seed - PRNG seed for reproducibility
    * @param logger - output function for progress lines; defaults to console.log
+   * @param personTypes - optional ARD-030 type definitions; defaults to no types
    * @returns the simulation after all ticks have run
    */
-  // eslint-disable-next-line no-console
-  public start(n = 100, ticks = 100, seed = 42, logger: (msg: string) => void = console.log): Simulation {
+  public start(
+    n = 100,
+    ticks = 100,
+    seed = 42,
+    // eslint-disable-next-line no-console
+    logger: (msg: string) => void = console.log,
+    personTypes: PersonTypes = {},
+  ): Simulation {
     const rng = new SeededRandom(seed).asRNG();
     const simulation = new Simulation();
-    simulation.seed(n, rng);
+    simulation.seed(n, rng, personTypes);
     const factory = new EventFactory(rng);
     const disaster = new DisasterEvent(rng);
 
