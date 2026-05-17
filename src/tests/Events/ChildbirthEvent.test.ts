@@ -86,7 +86,35 @@ describe('ChildbirthEvent', () => {
   });
 
   describe('deduplication', () => {
-    it('fires event on both partners but creates exactly one child', () => {
+    it('lower-index partner fires and creates a child', () => {
+      const sim = new Simulation();
+      const a = new Person([]);
+      const b = new Person([]);
+      a.resources = 50; b.resources = 50;
+      a.age = 26; b.age = 26;
+      sim.add(a); sim.add(b); // a is index 0, b is index 1
+      partner(a, b);
+
+      new ChildbirthEvent(alwaysPass).execute(a, sim);
+
+      expect(sim.getLiving().length).toBe(3);
+    });
+
+    it('higher-index partner alone does not create a child', () => {
+      const sim = new Simulation();
+      const a = new Person([]);
+      const b = new Person([]);
+      a.resources = 50; b.resources = 50;
+      a.age = 26; b.age = 26;
+      sim.add(a); sim.add(b); // a is index 0, b is index 1
+      partner(a, b);
+
+      new ChildbirthEvent(alwaysPass).execute(b, sim); // b is higher-index → no-op
+
+      expect(sim.getLiving().length).toBe(2);
+    });
+
+    it('firing on both partners creates exactly one child', () => {
       const sim = new Simulation();
       const a = new Person([]);
       const b = new Person([]);
@@ -95,7 +123,6 @@ describe('ChildbirthEvent', () => {
       sim.add(a); sim.add(b);
       partner(a, b);
 
-      // Fire on both — only the lower-index partner should create a child
       new ChildbirthEvent(alwaysPass).execute(a, sim);
       new ChildbirthEvent(alwaysPass).execute(b, sim);
 
@@ -104,20 +131,6 @@ describe('ChildbirthEvent', () => {
   });
 
   describe('successful birth', () => {
-    it('adds child to simulation.getLiving()', () => {
-      const sim = new Simulation();
-      const a = new Person([]);
-      const b = new Person([]);
-      a.resources = 50; b.resources = 50;
-      a.age = 26; b.age = 26;
-      sim.add(a); sim.add(b);
-      partner(a, b);
-
-      new ChildbirthEvent(alwaysPass).execute(a, sim);
-
-      expect(sim.getLiving().length).toBe(3);
-    });
-
     it('child\'s childOf contains both parents', () => {
       const sim = new Simulation();
       const a = new Person([]);
@@ -165,7 +178,7 @@ describe('ChildbirthEvent', () => {
       expect(b.resources).toBeCloseTo(60 - Variables.CHILDBIRTH_BIRTH_COST);
     });
 
-    it('floors parent resources at 0 when cost exceeds resources', () => {
+    it('floors parent resources at 0 when cost exceeds resources, birth still occurs', () => {
       const sim = new Simulation();
       const a = new Person([]);
       const b = new Person([]);
@@ -178,6 +191,7 @@ describe('ChildbirthEvent', () => {
       new ChildbirthEvent(alwaysPass).execute(a, sim);
 
       expect(b.resources).toBe(0);
+      expect(sim.getLiving().length).toBe(3); // birth still happened despite b being poor
     });
   });
 
