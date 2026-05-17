@@ -140,3 +140,4 @@ When in doubt:
 | [028](./028-windfall-event.md) | WindfallEvent | Accepted |
 | [029](./029-childbirth-event.md) | ChildbirthEvent | Accepted |
 | [030](./030-character-types.md) | Character Types in Population Seeding and Classification | Accepted |
+| [031](./031-population-retention-outcome-caps.md) | Population Retention Caps on Outcome Classification | Proposed |
