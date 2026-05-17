@@ -5,7 +5,7 @@
 
 ## Context
 
-`Simulation.seed()` (`src/App/Simulation.ts:147`) applies a fixed set of uniform ranges per stat and intent (per ARD 021). Every initial person is statistically identical to every other in expectation. There is no way to study how a population composed of, say, 10% high-intelligence high-learning-intent persons ("engineers") and 5% high-killing-intent persons ("criminals") behaves differently from a uniform baseline — but composition is plausibly a primary collapse/thrive driver. The `--config` system (`src/App/index.ts:28`) already deep-merges user JSON over defaults but only exposes `simulation.{persons,ticks,seed}` and the `variables` overrides; it cannot reshape the seeded distribution. `docs/future-ideas.md:110` flags this as a wanted feature ("Population archetypes / composed mixes").
+`Simulation.seed()` (`src/App/Simulation.ts:147`) applies a fixed set of uniform ranges per stat and intent (per ARD 021). Every initial person is statistically identical to every other in expectation. There is no way to study how a population composed of, say, 80% HANDY-style Commoners and 20% Elites behaves differently from a uniform baseline — but composition is the primary collapse/thrive driver in every framework the project cites (HANDY's two-class model, Turchin's structural-demographic theory). The `--config` system (`src/App/index.ts:28`) already deep-merges user JSON over defaults but only exposes `simulation.{persons,ticks,seed}` and the `variables` overrides; it cannot reshape the seeded distribution. `docs/future-ideas.md:110` flags this as a wanted feature ("Population archetypes / composed mixes"). The catalog of recommended archetypes, with citations, lives in `docs/research-character-types.md` — the ARD only defines the mechanism.
 
 ## Decision
 
@@ -17,24 +17,30 @@ Add `simulation.personTypes` as a string → type-definition map:
 {
   "simulation": {
     "personTypes": {
-      "engineer": {
-        "percentage": 0.1,
+      "producer": {
+        "percentage": 0.7,
         "ranges": {
           "intelligence": [7, 11],
-          "learningIntent": [0.5, 1.0]
+          "learningIntent": [0.5, 1.0],
+          "stealingIntent": [0, 0.05],
+          "killingIntent": [0, 0.02]
         }
       },
-      "criminal": {
-        "percentage": 0.05,
+      "extractor": {
+        "percentage": 0.15,
         "ranges": {
-          "killingIntent": [0.2, 0.5],
-          "stealingIntent": [0.5, 1.0]
+          "charisma": [7, 11],
+          "stealingIntent": [0.5, 1.0],
+          "lyingIntent": [0.5, 1.0],
+          "resources": [200, 500]
         }
       }
     }
   }
 }
 ```
+
+The example shows the canonical HANDY two-class scenario (Producer = commoner, Extractor = elite). The full proposed catalog of six archetypes — Producer, Extractor, Warrior, Inventor, Cooperator, Fragile — is documented in `docs/research-character-types.md` with citations and per-type range rationale.
 
 Type names are arbitrary strings chosen by the config author. There is no built-in registry. `ranges` is a partial override map: any field absent from `ranges` falls back to the default `Simulation.seed()` distribution. Each `[min, max]` is applied as `min + rng() * (max - min)` for float fields and `randomInt(rng, min, max)` for integer fields — the field's existing seeding type wins.
 
@@ -108,3 +114,4 @@ None — calibration is fully in the user-supplied config.
 - `src/tests/Helpers/Reporters.test.ts` — per-type section appears when types supplied; section omitted when not; delta column reports growth/shrinkage
 - `CLAUDE.md` — add to "Key design decisions" and "What's implemented"
 - `docs/future-ideas.md` — move "Population archetypes / composed mixes" (line 110) to Discarded, noting this ARD subsumes it
+- `docs/research-character-types.md` (created with this ARD) — catalogs the proposed Producer/Extractor/Warrior/Inventor/Cooperator/Fragile archetypes with citations and range rationale; canonical experiment scenarios live there, not in the ARD
