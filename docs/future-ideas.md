@@ -14,18 +14,9 @@ The model can't answer collapse vs. thriving without these, or has a known bug s
 
 ### Mechanics
 
-**Newborn initial stat seeding**
-`new Person([p1, p2])` produces `constitution = 0`; `DisasterEvent` and `IllnessEvent` divide by it, so a newborn would crash or be killed instantly. Childbirth must seed initial stats (possibly inheriting from parents, see "Intergenerational transmission") before adding the person.
-
 **Voluntary cooperation / helping event**
 The current event set is extractive or destructive. `helpsPeople` exists but no event uses it. Without positive-sum interactions, the model can only show decline, not thriving.
 
-
-**Reputation / trust effects**
-Victimization is recorded but has no behavioral consequence on the victim. Without a feedback loop, antisocial behavior can't degrade social cohesion. (The "Generalized trust" version below subsumes this — pick one.)
-
-**Resource consumption / cost of living**
-Resources only move up (gather) or down (disaster); no subsistence drain. A non-worker stays at 0 forever; a worker accumulates without bound. Most collapse theories start with subsistence shortfall — without per-tick consumption (and starvation at zero), the model can't exhibit resource-driven collapse.
 
 **Long-term environmental drift**
 `naturalResourceCeiling` is fixed; the pool always regenerates back to it. Tainter/Diamond collapse hinges on declining carrying capacity (soil exhaustion, climate shift). Options: ceiling drifts down stochastically, decays with cumulative extraction, or `NATURAL_RESOURCE_REGEN_RATE` itself drifts.
@@ -82,10 +73,7 @@ Happiness from resources should be log-shaped, not linear. Without diminishing r
 Happiness depends on resources relative to peers. A `(myResources - localMedian) / localMedian` term makes inequality directly costly to wellbeing rather than only correlated via Gini. Requires a proximity definition.
 
 **Generalized trust as a per-person stat (Putnam)**
-Per-person trust score, damaged by appearing in others' StealingRecord/KillingRecord and slowly restored by neutral interactions. Gates positive-sum events. (Richer version of "Reputation / trust effects" above.)
-
-**Intergenerational transmission of intents (Bandura)**
-`new Person([p1, p2])` ignores parents. Heritability for behavioral dispositions is 0.3–0.5 (twin/adoption studies); social learning adds parental influence. Children's starting intents drawn near a parental mean (with noise) is the minimal version. Without it, every generation re-rolls the cultural slate.
+Victimization is currently recorded but has no behavioral consequence on the victim — antisocial behavior can't degrade social cohesion. A per-person trust score damaged by appearing in others' StealingRecord/KillingRecord and slowly restored by neutral interactions would close that loop and gate positive-sum events.
 
 ### Social structure
 
@@ -160,5 +148,13 @@ Considered and rejected without rising to ARD-level discussion. Each entry: name
 **Altruistic punishment (Fehr & Gächter)** — 2026-05-17 — Superseded by ARD 035 jail system, which provides community-level retribution without requiring individual resource expenditure.
 
 **Strain theory: aspiration–means gap (Agnew)** — 2026-05-17 — Subsumed by ARD 036 resource-pressure situational multiplier on steal probability, which implements the core strain-theory mechanism (scarcity → elevated theft likelihood) without requiring a cohort-median reference class.
+
+**Newborn initial stat seeding** — 2026-05-17 — Implemented: ARD 037 (`ChildbirthEvent` seeds child stats/intents via parental heritability — stats regress toward population mean, intents regress toward zero).
+
+**Intergenerational transmission of intents (Bandura)** — 2026-05-17 — Subsumed by ARD 037 (parental-mean regression with separate stat and intent coefficients implements the heritability and social-learning channels in one mechanism).
+
+**Resource consumption / cost of living** — 2026-05-17 — Implemented: ARD 024 (`ConsumptionEvent` with age-scaled costs, child subsidy via living parents, starvation→illness at zero resources).
+
+**Reputation / trust effects** — 2026-05-17 — Consolidated into "Generalized trust as a per-person stat (Putnam)" in Very useful; the two entries described the same feedback loop with different framings.
 
 **Loss aversion in intent updates (Kahneman & Tversky)** — 2026-05-17 — The core stat→intent feedback is addressed by ARD 036: permanent emboldening on undetected theft covers behavioral escalation; resource-pressure and happiness-pressure situational multipliers cover the circumstance-driven response. The asymmetric permanent update on resource loss specifically (losses raise intent faster than gains lower it) is not implemented; desistance (intent decay from stable conditions) is noted in future-ideas under behavioral feedback.

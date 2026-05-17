@@ -54,9 +54,56 @@ export default class ChildbirthEvent implements IEvent {
     partner.resources = Math.max(0, partner.resources - Variables.CHILDBIRTH_BIRTH_COST);
 
     const child = new Person([person, partner]);
+    this.seedNewborn(child, person, partner);
     person.hasChildren.push(child);
     partner.hasChildren.push(child);
     simulation.add(child);
     simulation.recordBirth();
+  }
+
+  /**
+   * Seed a newborn's stats and intents from parental heritability (ARD 037).
+   * Stats regress toward NEWBORN_STAT_POPULATION_MEAN; intents regress toward zero.
+   * Intents clamp to [0, 1] for semantic validity; stats are unclamped (calibration owns positivity).
+   *
+   * @param child - newborn person to seed
+   * @param p1 - first parent
+   * @param p2 - second parent
+   */
+  private seedNewborn(child: Person, p1: Person, p2: Person): void {
+    child.intelligence = this.drawStat((p1.intelligence + p2.intelligence) / 2);
+    child.constitution = this.drawStat((p1.constitution + p2.constitution) / 2);
+    child.charisma = this.drawStat((p1.charisma + p2.charisma) / 2);
+
+    child.learningIntent = this.drawIntent((p1.learningIntent + p2.learningIntent) / 2);
+    child.exerciseIntent = this.drawIntent((p1.exerciseIntent + p2.exerciseIntent) / 2);
+    child.stealingIntent = this.drawIntent((p1.stealingIntent + p2.stealingIntent) / 2);
+    child.lyingIntent = this.drawIntent((p1.lyingIntent + p2.lyingIntent) / 2);
+    child.killingIntent = this.drawIntent((p1.killingIntent + p2.killingIntent) / 2);
+  }
+
+  /**
+   * Draw a newborn stat: regression toward population mean plus uniform noise.
+   *
+   * @param parentMean - average of the two parents' stat values
+   * @returns child stat value (unclamped — calibration ensures positivity)
+   */
+  private drawStat(parentMean: number): number {
+    const mean = Variables.NEWBORN_STAT_POPULATION_MEAN;
+    return mean
+      + (parentMean - mean) * Variables.HERITABILITY_STAT_COEFFICIENT
+      + (this.rng() * 2 - 1) * Variables.HERITABILITY_STAT_NOISE_RANGE;
+  }
+
+  /**
+   * Draw a newborn intent: regression toward zero plus uniform noise, clamped to [0, 1].
+   *
+   * @param parentMean - average of the two parents' intent values
+   * @returns child intent value in [0, 1]
+   */
+  private drawIntent(parentMean: number): number {
+    const raw = parentMean * Variables.HERITABILITY_INTENT_COEFFICIENT
+      + (this.rng() * 2 - 1) * Variables.HERITABILITY_INTENT_NOISE_RANGE;
+    return Math.max(0, Math.min(1, raw));
   }
 }

@@ -236,11 +236,11 @@ Formation (when unpartnered): `prob = BASE_RELATIONSHIP_RATE × (1 + charisma ×
 Dissolution (when partnered): flat `BASE_BREAKUP_RATE` per tick; mutually clears both fields.
 Partner death (via `Simulation.kill()`) clears the surviving partner's field.
 
-#### ChildbirthEvent (ARD 029)
+#### ChildbirthEvent (ARD 029, ARD 037)
 Fires only when both partners are living; deduplicated to the lower-index partner.
 `p = BASE_CHILDBIRTH_RATE × ageModifier(coupleMaxAge, 26, 12, 0.02) × illnessFactor × resourceFactor × happinessFactor`
 Couple aggregates: max illness, min resources, max age, avg happiness.
-On birth: deducts `CHILDBIRTH_BIRTH_COST` from each parent (floored at 0); creates `new Person([p1, p2])`; calls `simulation.add(child)`.
+On birth: deducts `CHILDBIRTH_BIRTH_COST` from each parent (floored at 0); creates `new Person([p1, p2])`; seeds newborn stats and intents via parental heritability (ARD 037: stats regress toward `NEWBORN_STAT_POPULATION_MEAN` with strength `HERITABILITY_STAT_COEFFICIENT` plus uniform noise; intents regress toward 0 with weaker strength `HERITABILITY_INTENT_COEFFICIENT` plus noise, clamped to `[0, 1]`); calls `simulation.add(child)`.
 
 #### KillEvent (ARD 027, ARD 035, ARD 036)
 Intent gate inside `execute()` (requires simulation access for Gini and happiness).
