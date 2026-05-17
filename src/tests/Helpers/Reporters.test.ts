@@ -29,7 +29,6 @@ function makeSnapshot(
   const deathsByIllness = overrides.deathsByIllness ?? 0;
   const deathsByDisaster = overrides.deathsByDisaster ?? 0;
   const deathsBySuicide = overrides.deathsBySuicide ?? 0;
-  const deathsByOldAge = overrides.deathsByOldAge ?? 0;
   const births = overrides.births ?? 0;
 
   return {
@@ -40,13 +39,11 @@ function makeSnapshot(
     deathsByIllness,
     deathsByDisaster,
     deathsBySuicide,
-    deathsByOldAge,
     cumulativeDeaths: (prev?.cumulativeDeaths ?? 0) + deaths,
     cumulativeDeathsByMurder: (prev?.cumulativeDeathsByMurder ?? 0) + deathsByMurder,
     cumulativeDeathsByIllness: (prev?.cumulativeDeathsByIllness ?? 0) + deathsByIllness,
     cumulativeDeathsByDisaster: (prev?.cumulativeDeathsByDisaster ?? 0) + deathsByDisaster,
     cumulativeDeathsBySuicide: (prev?.cumulativeDeathsBySuicide ?? 0) + deathsBySuicide,
-    cumulativeDeathsByOldAge: (prev?.cumulativeDeathsByOldAge ?? 0) + deathsByOldAge,
     averageResources: overrides.averageResources ?? 50,
     resourceGini: overrides.resourceGini ?? 0.3,
     averageHappiness: overrides.averageHappiness ?? 5.0,
@@ -58,6 +55,10 @@ function makeSnapshot(
     births,
     cumulativeBirths: (prev?.cumulativeBirths ?? 0) + births,
     communityPool: overrides.communityPool ?? 0,
+    averageIllness: overrides.averageIllness ?? 0,
+    employmentRate: overrides.employmentRate ?? 0,
+    stealsCommitted: overrides.stealsCommitted ?? 0,
+    jailedPopulation: overrides.jailedPopulation ?? 0,
   };
 }
 
@@ -222,7 +223,6 @@ describe('formatDecadeSummary', () => {
     endPopulation: 97,
     populationDelta: -3,
     totalDeaths: 4,
-    deathsByOldAge: 0,
     deathsByIllness: 2,
     deathsBySuicide: 1,
     deathsByKilling: 0,
@@ -258,7 +258,6 @@ describe('formatDecadeSummary', () => {
     expect(line).toContain('sui:1');
     expect(line).toContain('kill:0');
     expect(line).toContain('dis:1');
-    expect(line).toContain('age:0');
   });
 
   it('formats positive populationDelta with + sign', () => {
@@ -273,7 +272,6 @@ describe('classifyOutcome', () => {
     endPopulation: 90,
     populationDelta: -10,
     totalDeaths: 10,
-    deathsByOldAge: 0,
     deathsByIllness: 5,
     deathsBySuicide: 3,
     deathsByKilling: 1,
@@ -348,7 +346,7 @@ describe('classifyOutcome', () => {
 describe('explainOutcome', () => {
   const base: TenYearSummary = {
     endTick: 100, endPopulation: 90, populationDelta: -10, totalDeaths: 10,
-    deathsByOldAge: 0, deathsByIllness: 5, deathsBySuicide: 3,
+    deathsByIllness: 5, deathsBySuicide: 3,
     deathsByKilling: 1, deathsByDisaster: 1,
     avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
     avgNaturalResources: 5000, peakResourceGini: 0.40, births: 0,
@@ -490,7 +488,6 @@ describe('formatEndReport', () => {
       endPopulation: 90,
       populationDelta: -10,
       totalDeaths: 10,
-      deathsByOldAge: 2,
       deathsByIllness: 4,
       deathsBySuicide: 2,
       deathsByKilling: 1,
@@ -515,7 +512,7 @@ describe('formatEndReport', () => {
   it('omits COHORT SURVIVAL section when no personTypes (ARD 030)', () => {
     const decade: TenYearSummary = {
       endTick: 10, endPopulation: 90, populationDelta: -10, totalDeaths: 10,
-      deathsByOldAge: 2, deathsByIllness: 4, deathsBySuicide: 2,
+      deathsByIllness: 4, deathsBySuicide: 2,
       deathsByKilling: 1, deathsByDisaster: 1,
       avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 5000, peakResourceGini: 0.40, births: 0,
@@ -528,7 +525,7 @@ describe('formatEndReport', () => {
   it('includes Reason line below OUTCOME (ARD 016 / ARD 031)', () => {
     const decade: TenYearSummary = {
       endTick: 100, endPopulation: 90, populationDelta: -10, totalDeaths: 10,
-      deathsByOldAge: 2, deathsByIllness: 4, deathsBySuicide: 2,
+      deathsByIllness: 4, deathsBySuicide: 2,
       deathsByKilling: 1, deathsByDisaster: 1,
       avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 5000, peakResourceGini: 0.40, births: 5,
@@ -541,7 +538,7 @@ describe('formatEndReport', () => {
   it('shows EXTINCTION outcome with extinct-as-of callout when population reaches 0 (ARD 031)', () => {
     const decade: TenYearSummary = {
       endTick: 50, endPopulation: 0, populationDelta: -100, totalDeaths: 100,
-      deathsByOldAge: 5, deathsByIllness: 50, deathsBySuicide: 20,
+      deathsByIllness: 50, deathsBySuicide: 20,
       deathsByKilling: 15, deathsByDisaster: 10,
       avgResourceGini: 0.40, avgResources: 5, avgHappiness: 1.0,
       avgNaturalResources: 8000, peakResourceGini: 0.55, births: 0,
@@ -557,7 +554,7 @@ describe('formatEndReport', () => {
   it('omits SURVIVORS section when no living persons (ARD 031)', () => {
     const decade: TenYearSummary = {
       endTick: 50, endPopulation: 0, populationDelta: -100, totalDeaths: 100,
-      deathsByOldAge: 5, deathsByIllness: 50, deathsBySuicide: 20,
+      deathsByIllness: 50, deathsBySuicide: 20,
       deathsByKilling: 15, deathsByDisaster: 10,
       avgResourceGini: 0.40, avgResources: 5, avgHappiness: 1.0,
       avgNaturalResources: 8000, peakResourceGini: 0.55, births: 0,
@@ -570,7 +567,7 @@ describe('formatEndReport', () => {
   it('includes SURVIVORS section when there are living persons (ARD 031)', () => {
     const decade: TenYearSummary = {
       endTick: 100, endPopulation: 1, populationDelta: -99, totalDeaths: 99,
-      deathsByOldAge: 0, deathsByIllness: 50, deathsBySuicide: 20,
+      deathsByIllness: 50, deathsBySuicide: 20,
       deathsByKilling: 19, deathsByDisaster: 10,
       avgResourceGini: 0.30, avgResources: 30, avgHappiness: 5.0,
       avgNaturalResources: 5000, peakResourceGini: 0.40, births: 0,
@@ -588,7 +585,7 @@ describe('formatEndReport', () => {
   it('includes Inventions line in RESOURCES section (ARD 032)', () => {
     const decade: TenYearSummary = {
       endTick: 100, endPopulation: 80, populationDelta: -20, totalDeaths: 20,
-      deathsByOldAge: 5, deathsByIllness: 10, deathsBySuicide: 2,
+      deathsByIllness: 10, deathsBySuicide: 2,
       deathsByKilling: 2, deathsByDisaster: 1,
       avgResourceGini: 0.30, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 7000, peakResourceGini: 0.40, births: 5,
@@ -605,7 +602,7 @@ describe('formatEndReport', () => {
   it('includes Births and net in POPULATION section (ARD 033)', () => {
     const decade: TenYearSummary = {
       endTick: 100, endPopulation: 95, populationDelta: -5, totalDeaths: 25,
-      deathsByOldAge: 5, deathsByIllness: 10, deathsBySuicide: 5,
+      deathsByIllness: 10, deathsBySuicide: 5,
       deathsByKilling: 3, deathsByDisaster: 2,
       avgResourceGini: 0.30, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 5000, peakResourceGini: 0.40, births: 20,
@@ -620,7 +617,7 @@ describe('formatEndReport', () => {
   it('includes Births column in DECADE SUMMARY TABLE (ARD 033)', () => {
     const decade: TenYearSummary = {
       endTick: 10, endPopulation: 100, populationDelta: 0, totalDeaths: 3,
-      deathsByOldAge: 0, deathsByIllness: 2, deathsBySuicide: 0,
+      deathsByIllness: 2, deathsBySuicide: 0,
       deathsByKilling: 1, deathsByDisaster: 0,
       avgResourceGini: 0.30, avgResources: 50, avgHappiness: 5.0,
       avgNaturalResources: 8000, peakResourceGini: 0.35, births: 3,
@@ -633,7 +630,7 @@ describe('formatEndReport', () => {
   it('includes COHORT SURVIVAL section when personTypes are supplied (ARD 030)', () => {
     const decade: TenYearSummary = {
       endTick: 10, endPopulation: 90, populationDelta: -10, totalDeaths: 10,
-      deathsByOldAge: 2, deathsByIllness: 4, deathsBySuicide: 2,
+      deathsByIllness: 4, deathsBySuicide: 2,
       deathsByKilling: 1, deathsByDisaster: 1,
       avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 5000, peakResourceGini: 0.40, births: 0,

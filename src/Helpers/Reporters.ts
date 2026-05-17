@@ -29,7 +29,6 @@ export function buildTenYearSummary(
   const preCumulativeByIllness = first.cumulativeDeathsByIllness - first.deathsByIllness;
   const preCumulativeByDisaster = first.cumulativeDeathsByDisaster - first.deathsByDisaster;
   const preCumulativeBySuicide = first.cumulativeDeathsBySuicide - first.deathsBySuicide;
-  const preCumulativeByOldAge = first.cumulativeDeathsByOldAge - first.deathsByOldAge;
   const preCumulativeBirths = first.cumulativeBirths - first.births;
 
   const totalDeaths = last.cumulativeDeaths - preCumulativeDeaths;
@@ -37,7 +36,6 @@ export function buildTenYearSummary(
   const deathsByIllness = last.cumulativeDeathsByIllness - preCumulativeByIllness;
   const deathsByDisaster = last.cumulativeDeathsByDisaster - preCumulativeByDisaster;
   const deathsBySuicide = last.cumulativeDeathsBySuicide - preCumulativeBySuicide;
-  const deathsByOldAge = last.cumulativeDeathsByOldAge - preCumulativeByOldAge;
   const births = last.cumulativeBirths - preCumulativeBirths;
 
   const avgResourceGini = avg(window.map(s => s.resourceGini));
@@ -52,7 +50,6 @@ export function buildTenYearSummary(
     endPopulation: last.population,
     populationDelta: last.population - startPopulation,
     totalDeaths,
-    deathsByOldAge,
     deathsByIllness,
     deathsBySuicide,
     deathsByKilling,
@@ -99,7 +96,7 @@ export function formatDecadeSummary(summary: TenYearSummary): string {
     `Births: ${summary.births}  ` +
     `Deaths: ${summary.totalDeaths} ` +
     `(ill:${summary.deathsByIllness} sui:${summary.deathsBySuicide} ` +
-    `kill:${summary.deathsByKilling} dis:${summary.deathsByDisaster} age:${summary.deathsByOldAge})`
+    `kill:${summary.deathsByKilling} dis:${summary.deathsByDisaster})`
   );
 }
 
@@ -321,7 +318,6 @@ export function formatEndReport(
   const bySuicide = decadeHistory.reduce((s, d) => s + d.deathsBySuicide, 0);
   const byKilling = decadeHistory.reduce((s, d) => s + d.deathsByKilling, 0);
   const byDisaster = decadeHistory.reduce((s, d) => s + d.deathsByDisaster, 0);
-  const byOldAge = decadeHistory.reduce((s, d) => s + d.deathsByOldAge, 0);
   const netPop = final.endPopulation - startPopulation;
   const netPopStr = netPop >= 0 ? `+${netPop}` : String(netPop);
 
@@ -364,7 +360,7 @@ export function formatEndReport(
     '',
     'POPULATION',
     `  Start: ${startPopulation}  End: ${final.endPopulation}  Births: ${totalBirths}  Deaths: ${totalDeaths}   (net: ${netPopStr})`,
-    `  By cause — illness: ${byIllness}  suicide: ${bySuicide}  killing: ${byKilling}  disaster: ${byDisaster}  old age: ${byOldAge}`,
+    `  By cause — illness: ${byIllness}  suicide: ${bySuicide}  killing: ${byKilling}  disaster: ${byDisaster}`,
     '',
     'INEQUALITY (Gini)',
     `  Start: ${first.avgResourceGini.toFixed(2)}  End: ${final.avgResourceGini.toFixed(2)}  Peak: ${peakGiniDecade.peakResourceGini.toFixed(2)} (Yr ${String(peakGiniDecade.endTick).padStart(3, '0')})`,

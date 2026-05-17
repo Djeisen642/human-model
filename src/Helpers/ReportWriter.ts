@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import Handlebars from 'handlebars';
 import Simulation from '../App/Simulation';
 import { classifyOutcome, formatEndReport } from './Reporters';
 
@@ -53,29 +54,63 @@ function buildHTML(
   const history = simulation.history;
   const decadeHistory = simulation.decadeHistory;
 
-  const ticks_ = history.map(s => s.tick);
-  const giniSeries = history.map(s => s.resourceGini.toFixed(4));
-  const populationSeries = history.map(s => s.population);
-  const birthsSeries = history.map(s => s.births);
-  const avgResourceSeries = history.map(s => s.averageResources.toFixed(2));
-  const naturalResourceSeries = history.map(s => s.naturalResources.toFixed(2));
-  const ceilingSeries = history.map(s => s.naturalResourceCeiling.toFixed(2));
-  const efficiencySeries = history.map(s => s.extractionEfficiency.toFixed(4));
-  const communityPoolSeries = history.map(s => s.communityPool.toFixed(2));
-  const happinessSeries = history.map(s => s.averageHappiness.toFixed(4));
-  const killingIntentSeries = history.map(s =>
-    (s.population > 0 ? s.aggregateKillingIntent / s.population : 0).toFixed(5),
-  );
-  const stealingIntentSeries = history.map(s =>
-    (s.population > 0 ? s.aggregateStealingIntent / s.population : 0).toFixed(5),
-  );
-
   const decadeLabels = decadeHistory.map(d => `Yr ${d.endTick}`);
+
+  const aggregatedHistory = decadeHistory.map((d, i) => {
+    const startTick = i === 0 ? 0 : decadeHistory[i - 1].endTick;
+    const endTick = d.endTick;
+    const chunk = history.slice(startTick, endTick);
+    
+    const mean = (arr: number[]) => arr.length === 0 ? 0 : arr.reduce((a, b) => a + b, 0) / arr.length;
+
+    return {
+      gini: d.avgResourceGini.toFixed(4),
+      population: d.endPopulation,
+      births: d.births,
+      avgResources: d.avgResources.toFixed(2),
+      naturalResources: d.avgNaturalResources.toFixed(2),
+      ceiling: mean(chunk.map(c => c.naturalResourceCeiling)).toFixed(2),
+      communityPool: d.avgCommunityPool.toFixed(2),
+      happiness: d.avgHappiness.toFixed(4),
+      illness: mean(chunk.map(c => c.averageIllness)).toFixed(4),
+      employmentRate: mean(chunk.map(c => c.employmentRate)).toFixed(4),
+      killingIntent: mean(chunk.map(c => c.population > 0 ? c.aggregateKillingIntent / c.population : 0)).toFixed(5),
+      stealingIntent: mean(chunk.map(c => c.population > 0 ? c.aggregateStealingIntent / c.population : 0)).toFixed(5),
+      jailed: mean(chunk.map(c => c.jailedPopulation)).toFixed(1),
+      murders: chunk.reduce((sum, c) => sum + c.deathsByMurder, 0),
+      steals: chunk.reduce((sum, c) => sum + c.stealsCommitted, 0),
+      deathsIllness: d.deathsByIllness,
+      deathsSuicide: d.deathsBySuicide,
+      deathsMurder: d.deathsByKilling,
+      deathsDisaster: d.deathsByDisaster
+    };
+  });
+
+  const ticks_ = decadeLabels;
+  const giniSeries = aggregatedHistory.map(a => a.gini);
+  const populationSeries = aggregatedHistory.map(a => a.population);
+  const birthsSeries = aggregatedHistory.map(a => a.births);
+  const avgResourceSeries = aggregatedHistory.map(a => a.avgResources);
+  const naturalResourceSeries = aggregatedHistory.map(a => a.naturalResources);
+  const ceilingSeries = aggregatedHistory.map(a => a.ceiling);
+  const communityPoolSeries = aggregatedHistory.map(a => a.communityPool);
+  const happinessSeries = aggregatedHistory.map(a => a.happiness);
+  const illnessSeries_ = aggregatedHistory.map(a => a.illness);
+  const employmentSeries = aggregatedHistory.map(a => a.employmentRate);
+  const killingIntentSeries = aggregatedHistory.map(a => a.killingIntent);
+  const stealingIntentSeries = aggregatedHistory.map(a => a.stealingIntent);
+  const jailedSeries = aggregatedHistory.map(a => a.jailed);
+  const murdersPerTickSeries = aggregatedHistory.map(a => a.murders);
+  const stealsPerTickSeries = aggregatedHistory.map(a => a.steals);
+  const deathsIllnessTickSeries = aggregatedHistory.map(a => a.deathsIllness);
+  const deathsSuicideTickSeries = aggregatedHistory.map(a => a.deathsSuicide);
+  const deathsMurderTickSeries = aggregatedHistory.map(a => a.deathsMurder);
+  const deathsDisasterTickSeries = aggregatedHistory.map(a => a.deathsDisaster);
+
   const illnessSeries = decadeHistory.map(d => d.deathsByIllness);
   const suicideSeries = decadeHistory.map(d => d.deathsBySuicide);
   const killingSeries = decadeHistory.map(d => d.deathsByKilling);
   const disasterSeries = decadeHistory.map(d => d.deathsByDisaster);
-  const oldAgeSeries = decadeHistory.map(d => d.deathsByOldAge);
 
   const embeddedData = JSON.stringify({
     meta: { seed, ticks, n, outcome },
@@ -91,6 +126,14 @@ function buildHTML(
       births: s.births,
       averageHappiness: s.averageHappiness,
       communityPool: s.communityPool,
+      averageIllness: s.averageIllness,
+      employmentRate: s.employmentRate,
+      stealsCommitted: s.stealsCommitted,
+      jailedPopulation: s.jailedPopulation,
+      deathsByMurder: s.deathsByMurder,
+      deathsByIllness: s.deathsByIllness,
+      deathsBySuicide: s.deathsBySuicide,
+      deathsByDisaster: s.deathsByDisaster,
     })),
   });
 
@@ -140,268 +183,46 @@ function buildHTML(
     scales: { x: { grid: { color: '#f0f0f0' } }, y: { grid: { color: '#f0f0f0' } }${extras} }
   }`;
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Simulation Report — Seed ${seed} — ${outcome}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-      background: #f7f8fa;
-      color: #1a1a2e;
-      min-height: 100vh;
-    }
-    .page-header {
-      background: #1a1a2e;
-      color: #fff;
-      padding: 1.5rem 2rem;
-      border-bottom: 4px solid ${outcomeColor};
-    }
-    .page-header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; }
-    .page-header .meta { margin-top: 0.4rem; font-size: 0.85rem; color: #aab; display: flex; gap: 1.5rem; flex-wrap: wrap; }
-    .meta-pill {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 999px;
-      padding: 0.2rem 0.7rem;
-      font-size: 0.8rem;
-    }
-    .outcome-badge {
-      display: inline-block;
-      background: ${outcomeColor};
-      color: #fff;
-      font-size: 0.85rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      border-radius: 6px;
-      padding: 0.3rem 0.9rem;
-      margin-top: 0.9rem;
-    }
-    .main { max-width: 1120px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
-    .section-title {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #888;
-      margin: 2.5rem 0 1rem;
-    }
-    .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
-    .charts-grid .span-full { grid-column: 1 / -1; }
-    .card {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
-      padding: 1.25rem 1.5rem 1.5rem;
-    }
-    pre {
-      background: #1a1a2e;
-      color: #c9d1d9;
-      padding: 1.25rem 1.5rem;
-      border-radius: 10px;
-      overflow-x: auto;
-      font-size: 0.78rem;
-      line-height: 1.65;
-      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-      tab-size: 2;
-    }
-    @media (max-width: 700px) {
-      .charts-grid { grid-template-columns: 1fr; }
-      .charts-grid .span-full { grid-column: 1; }
-      .page-header { padding: 1.25rem; }
-    }
-  </style>
-</head>
-<body>
-  <header class="page-header">
-    <h1>Human Model — Simulation Report</h1>
-    <div class="meta">
-      <span class="meta-pill">Seed ${seed}</span>
-      <span class="meta-pill">${ticks} ticks</span>
-      <span class="meta-pill">${n} initial persons</span>
-    </div>
-    <div class="outcome-badge">${outcome}</div>
-  </header>
+  const templateSource = fs.readFileSync(path.join(__dirname, 'report-template.hbs'), 'utf8');
+  const template = Handlebars.compile(templateSource);
 
-  <main class="main">
-    <div class="section-title">Time Series</div>
-    <div class="charts-grid">
-      <div class="card"><canvas id="giniChart"></canvas></div>
-      <div class="card"><canvas id="populationChart"></canvas></div>
-      <div class="card"><canvas id="resourcesChart"></canvas></div>
-      <div class="card"><canvas id="happinessChart"></canvas></div>
-      <div class="card span-full"><canvas id="poolDynamicsChart"></canvas></div>
-      <div class="card span-full"><canvas id="intentChart"></canvas></div>
-      <div class="card span-full"><canvas id="deathsChart"></canvas></div>
-    </div>
-
-    <div class="section-title">Raw Output</div>
-    <pre>${consoleReport}</pre>
-  </main>
-
-  <script>
-    ${chartDefaults}
-    const _data = ${embeddedData};
-    const tickLabels = ${JSON.stringify(ticks_)};
-
-    new Chart(document.getElementById('giniChart'), {
-      type: 'line',
-      data: {
-        labels: tickLabels,
-        datasets: [{ label: 'Resource Gini', data: ${JSON.stringify(giniSeries)},
-          borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.06)',
-          fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }]
-      },
-      options: ${chartOptions('Inequality (Gini) Over Time', ', y: { min: 0, max: 1, grid: { color: \'#f0f0f0\' } }')}
-    });
-
-    new Chart(document.getElementById('populationChart'), {
-      type: 'line',
-      data: {
-        labels: tickLabels,
-        datasets: [
-          { label: 'Population', data: ${JSON.stringify(populationSeries)},
-            borderColor: '#2980b9', backgroundColor: 'rgba(41,128,185,0.06)',
-            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
-          { label: 'Births per Tick', data: ${JSON.stringify(birthsSeries)},
-            borderColor: '#16a085', backgroundColor: 'transparent',
-            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [4,3], yAxisID: 'y2' }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          title: { display: true, text: 'Population & Births Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
-          legend: { position: 'bottom' }
-        },
-        scales: {
-          x: { grid: { color: '#f0f0f0' } },
-          y: { position: 'left', grid: { color: '#f0f0f0' } },
-          y2: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true }
-        }
-      }
-    });
-
-    new Chart(document.getElementById('resourcesChart'), {
-      type: 'line',
-      data: {
-        labels: tickLabels,
-        datasets: [
-          { label: 'Avg Resources / Person', data: ${JSON.stringify(avgResourceSeries)},
-            borderColor: '#27ae60', backgroundColor: 'rgba(39,174,96,0.06)',
-            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
-          { label: 'Natural Resources Pool', data: ${JSON.stringify(naturalResourceSeries)},
-            borderColor: '#8e44ad', backgroundColor: 'transparent',
-            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [5,3], yAxisID: 'y2' }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          title: { display: true, text: 'Resources Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
-          legend: { position: 'bottom' }
-        },
-        scales: {
-          x: { grid: { color: '#f0f0f0' } },
-          y: { position: 'left', grid: { color: '#f0f0f0' } },
-          y2: { position: 'right', grid: { drawOnChartArea: false } }
-        }
-      }
-    });
-
-    new Chart(document.getElementById('happinessChart'), {
-      type: 'line',
-      data: {
-        labels: tickLabels,
-        datasets: [{ label: 'Avg Happiness', data: ${JSON.stringify(happinessSeries)},
-          borderColor: '#f39c12', backgroundColor: 'rgba(243,156,18,0.06)',
-          fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }]
-      },
-      options: ${chartOptions('Happiness Over Time', ', y: { min: 0, grid: { color: "#f0f0f0" } }')}
-    });
-
-    new Chart(document.getElementById('poolDynamicsChart'), {
-      type: 'line',
-      data: {
-        labels: tickLabels,
-        datasets: [
-          { label: 'Natural Resources', data: ${JSON.stringify(naturalResourceSeries)},
-            borderColor: '#8e44ad', backgroundColor: 'rgba(142,68,173,0.06)',
-            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
-          { label: 'Resource Ceiling', data: ${JSON.stringify(ceilingSeries)},
-            borderColor: '#34495e', backgroundColor: 'transparent',
-            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [5,3] },
-          { label: 'Extraction Efficiency', data: ${JSON.stringify(efficiencySeries)},
-            borderColor: '#e67e22', backgroundColor: 'transparent',
-            tension: 0.2, pointRadius: 0, borderWidth: 2, yAxisID: 'y2' },
-          { label: 'Community Pool', data: ${JSON.stringify(communityPoolSeries)},
-            borderColor: '#1abc9c', backgroundColor: 'transparent',
-            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [3,2], yAxisID: 'y3' }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          title: { display: true, text: 'Resource Pool Dynamics', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
-          legend: { position: 'bottom' }
-        },
-        scales: {
-          x: { grid: { color: '#f0f0f0' } },
-          y: { position: 'left', grid: { color: '#f0f0f0' } },
-          y2: { position: 'right', grid: { drawOnChartArea: false } },
-          y3: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true, display: false }
-        }
-      }
-    });
-
-    new Chart(document.getElementById('intentChart'), {
-      type: 'line',
-      data: {
-        labels: tickLabels,
-        datasets: [
-          { label: 'Avg Killing Intent', data: ${JSON.stringify(killingIntentSeries)},
-            borderColor: '#c0392b', backgroundColor: 'rgba(192,57,43,0.06)',
-            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
-          { label: 'Avg Stealing Intent', data: ${JSON.stringify(stealingIntentSeries)},
-            borderColor: '#7d3c98', backgroundColor: 'rgba(125,60,152,0.06)',
-            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }
-        ]
-      },
-      options: ${chartOptions('Antisocial Intent Per Capita', ', y: { min: 0, grid: { color: "#f0f0f0" } }')}
-    });
-
-    new Chart(document.getElementById('deathsChart'), {
-      type: 'bar',
-      data: {
-        labels: ${JSON.stringify(decadeLabels)},
-        datasets: [
-          { label: 'Illness',  data: ${JSON.stringify(illnessSeries)},  backgroundColor: 'rgba(230,126,34,0.85)' },
-          { label: 'Suicide',  data: ${JSON.stringify(suicideSeries)},  backgroundColor: 'rgba(142,68,173,0.85)' },
-          { label: 'Killing',  data: ${JSON.stringify(killingSeries)},  backgroundColor: 'rgba(231,76,60,0.85)' },
-          { label: 'Disaster', data: ${JSON.stringify(disasterSeries)}, backgroundColor: 'rgba(44,62,80,0.85)' },
-          { label: 'Old Age',  data: ${JSON.stringify(oldAgeSeries)},   backgroundColor: 'rgba(149,165,166,0.85)' }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          title: { display: true, text: 'Deaths by Cause per Decade', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
-          legend: { position: 'bottom' }
-        },
-        scales: {
-          x: { stacked: true, grid: { color: '#f0f0f0' } },
-          y: { stacked: true, grid: { color: '#f0f0f0' } }
-        }
-      }
-    });
-  </script>
-</body>
-</html>`;
+  return template({
+    seed,
+    ticks,
+    n,
+    outcome,
+    outcomeColor,
+    consoleReport,
+    chartDefaults,
+    embeddedData,
+    ticks_: JSON.stringify(ticks_),
+    giniSeries: JSON.stringify(giniSeries),
+    populationSeries: JSON.stringify(populationSeries),
+    birthsSeries: JSON.stringify(birthsSeries),
+    avgResourceSeries: JSON.stringify(avgResourceSeries),
+    naturalResourceSeries: JSON.stringify(naturalResourceSeries),
+    ceilingSeries: JSON.stringify(ceilingSeries),
+    communityPoolSeries: JSON.stringify(communityPoolSeries),
+    happinessSeries: JSON.stringify(happinessSeries),
+    illnessSeries_: JSON.stringify(illnessSeries_),
+    employmentSeries: JSON.stringify(employmentSeries),
+    killingIntentSeries: JSON.stringify(killingIntentSeries),
+    stealingIntentSeries: JSON.stringify(stealingIntentSeries),
+    jailedSeries: JSON.stringify(jailedSeries),
+    murdersPerTickSeries: JSON.stringify(murdersPerTickSeries),
+    stealsPerTickSeries: JSON.stringify(stealsPerTickSeries),
+    deathsIllnessTickSeries: JSON.stringify(deathsIllnessTickSeries),
+    deathsSuicideTickSeries: JSON.stringify(deathsSuicideTickSeries),
+    deathsMurderTickSeries: JSON.stringify(deathsMurderTickSeries),
+    deathsDisasterTickSeries: JSON.stringify(deathsDisasterTickSeries),
+    decadeLabels: JSON.stringify(decadeLabels),
+    illnessSeries: JSON.stringify(illnessSeries),
+    suicideSeries: JSON.stringify(suicideSeries),
+    killingSeries: JSON.stringify(killingSeries),
+    disasterSeries: JSON.stringify(disasterSeries),
+    giniOptions: chartOptions('Inequality (Gini) Over Time', ', y: { min: 0, max: 1, grid: { color: \'#f0f0f0\' } }'),
+    happinessOptions: chartOptions('Happiness Over Time', ', y: { min: 0, grid: { color: "#f0f0f0" } }'),
+    intentOptions: chartOptions('Antisocial Intent Per Capita', ', y: { min: 0, grid: { color: "#f0f0f0" } }'),
+    jailOptions: chartOptions('Jailed Population Over Time', ', y: { beginAtZero: true, grid: { color: "#f0f0f0" } }')
+  });
 }
