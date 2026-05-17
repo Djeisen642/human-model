@@ -46,9 +46,13 @@ Each agent represents one individual. All fields are per-person; collections are
 | `stealingIntent` | number | [0, 0.3) | Probability weight for StealEvent |
 | `lyingIntent` | number | [0, 0.3) | Probability weight for LyingEvent |
 | `killingIntent` | number | [0, 0.1) | Probability weight for KillEvent |
+| `causeOfDeath` | DeathRecord \| null | — | Null while alive; set on death (cause + optional killer reference) |
 | `hasChildren` | Person[] | — | Biological children (living or deceased) |
-| `killed` | KillingRecord[] | — | Persons this agent killed |
-| `parents` | Person[] | — | Biological parents (readonly) |
+| `childOf` | Person[] | — | Biological parents (readonly) |
+| `killed` | Map\<Person, KillingRecord\> | — | Persons this agent killed, keyed by victim |
+| `amountStolen` | StealingRecord[] | — | Theft records (victim, amount, age at time) |
+| `peopleLiedTo` | Set\<Person\> | — | Targets of lying (populated by future LyingEvent) |
+| `helpsPeople` | TYPE_OF_HELP enum | — | Helping disposition (currently unused; reserved for cooperation mechanic) |
 
 `happiness` is a computed getter (not stored): job (±3–5 for working-age), resources (threshold-based by age group, children use parents' average), relationship (+3), age >65 (−1), illness (−round(illness × 5)); floor 0.
 
@@ -93,12 +97,12 @@ Each tick executes in this order:
    8. `ChildbirthEvent` — birth (unconditional, dedup by index)
    9. `KillEvent` — homicide attempt (unconditional; intent gate inside execute())
    10. `MisfortuneEvent` — illness death then suicide check (unconditional)
-   11. `EnrollmentEvent` **or** `GraduationEvent` (mutually exclusive by condition)
-   12. `ExerciseEvent` — intent-gated (`exerciseIntent × ageModifier`)
-   13. `LearnEvent` — intent-gated (`learningIntent × ageModifier`)
-   14. `StealEvent` — intent-gated (`stealingIntent × ageModifier`)
-   15. `WindfallEvent` — probability-gated (`BASE_WINDFALL_RATE × ageModifier`)
-   16. `InventionEvent` — intelligence-scaled probability gate
+   11. `ExerciseEvent` — intent-gated (`exerciseIntent × ageModifier`)
+   12. `LearnEvent` — intent-gated (`learningIntent × ageModifier`)
+   13. `EnrollmentEvent` **or** `GraduationEvent` (mutually exclusive by condition)
+   14. `WindfallEvent` — probability-gated (`BASE_WINDFALL_RATE × ageModifier`)
+   15. `InventionEvent` — intelligence-scaled probability gate
+   16. `StealEvent` — intent-gated (`stealingIntent × ageModifier`)
 4. **`simulation.snapshot()`** — records per-tick aggregate metrics.
 5. **Every 10 ticks:** `buildTenYearSummary()` appended to `decadeHistory`; one-line console summary printed.
 
