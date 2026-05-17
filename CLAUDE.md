@@ -207,6 +207,8 @@ At the end of every session — whether it changed code or only docs/ARDs — ve
 
 **After changing code:** update "What's implemented" and "What's not implemented yet". Read source files to verify — don't rely on memory.
 
+**After a structural model change** (new event added/removed, agent fields added/removed, scheduling order changes, initialization logic changes): update `docs/odd-protocol.md` to match. Calibration-only changes (tweaking constants in `Variables.ts`) do not require an ODD update.
+
 Before closing: does each section match reality? Is the Architecture section accurate about what's a stub vs. real?
 
 Also before closing, do a brief integrity scan of the code changed this session:
