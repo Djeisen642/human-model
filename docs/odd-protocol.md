@@ -67,7 +67,8 @@ One shared environment object. No spatial structure; all agent interactions are 
 |---|---|---|
 | `naturalResources` | number | Current extractable pool |
 | `naturalResourceCeiling` | number | Maximum pool size (can grow via InventionEvent) |
-| `extractionEfficiency` | number | Pool cost per unit gathered (≥ 0.01; modified by InventionEvent) |
+| `extractionProductivity` | number | Multiplier on gather output and pool drain (≥ `EXTRACTION_PRODUCTIVITY_FLOOR`; modified by InventionEvent; ARD 039) |
+| `communityPool` | number | Tax/forfeiture/estate fund; pays welfare and prisoner gather (ARD 034, 041, 042) |
 | `living` | Person[] | Agents currently alive |
 | `deceased` | Person[] | Agents who have died (retained for record-keeping) |
 | `history` | TickSnapshot[] | Per-tick aggregate metrics |
@@ -187,7 +188,8 @@ Education seeding by age:
 **Environment initialization:**
 - `naturalResources = NATURAL_RESOURCE_CEILING_INITIAL`
 - `naturalResourceCeiling = NATURAL_RESOURCE_CEILING_INITIAL`
-- `extractionEfficiency = 1.0`
+- `extractionProductivity = EXTRACTION_PRODUCTIVITY_INITIAL` (1.0)
+- `communityPool = 0`
 
 When `personTypes` is supplied, `floor(n × percentage)` persons of each named type are seeded with stat ranges from that type's definition rather than the defaults above (ARD 030). Remaining persons are seeded with defaults.
 
@@ -219,9 +221,11 @@ Two independent rolls per tick:
 `ageRisk = 1 + age / ILLNESS_AGE_RISK_DIVISOR` (linear, monotonically increasing).
 `illness` clamped to `[0, 1]` after both rolls.
 
-#### GatherResourcesEvent (ARD 011)
-`extracted = min(experience × (BASE_GATHER_AMOUNT + intelligence × INTELLIGENCE_GATHER_SCALAR), pool / extractionEfficiency)`
-Pool loses `extracted × extractionEfficiency`.
+#### GatherResourcesEvent (ARD 011, superseded by ARD 039)
+Strictly conservative:
+`output = experience × (BASE_GATHER_AMOUNT + intelligence × INTELLIGENCE_GATHER_SCALAR) × extractionProductivity`
+`extracted = min(output, naturalResources)`
+Person gains `extracted`; pool loses `extracted` (no factor).
 
 #### ConsumptionEvent (ARD 024)
 Children with living parents pay `resources × CONSUMPTION_CHILD_RESOURCE_RATE` (starvation cannot fire while parents live — implicit subsidy). Orphaned children and adults pay `CONSUMPTION_BASE × ageMultiplier` (1.0 adult; `CONSUMPTION_ELDER_MULTIPLIER` at age ≥ `CONSUMPTION_ELDER_MIN_AGE`). Resources floor at 0; if cost > 0 and resources = 0, `STARVATION_ILLNESS_RATE` is added to illness.
@@ -284,21 +288,27 @@ Detection: `prob = BASE_DETECT_RATE_STEAL × (1 + priorCrimes × DETECTION_CRIME
 - Detected: forfeits `JAIL_RESOURCE_FORFEIT_FRACTION` of thief's resources to `communityPool`; `jailedTicksRemaining += JAIL_TICKS_STEAL`.
 - Not detected: `stealingIntent = min(stealingIntent + STEALING_EMBOLDEN_INCREMENT, STEALING_INTENT_CAP)`.
 
-#### JailEvent (ARD 035)
+#### JailEvent (ARD 035, ARD 041)
 Replaces the normal gather/consume cycle for agents with `jailedTicksRemaining > 0`.
-Adds `JAIL_GATHER_AMOUNT` flat to `person.resources`; deducts `JAIL_CONSUMPTION_AMOUNT` flat. Resources floored at 0. If jail consumption exceeds resources after gather, `STARVATION_ILLNESS_RATE` is added to illness (same starvation path as ConsumptionEvent).
+`granted = min(JAIL_GATHER_AMOUNT, communityPool)` is debited from `communityPool` and credited to `person.resources`. Then `JAIL_CONSUMPTION_AMOUNT` is deducted. Resources floored at 0. If jail consumption exceeds resources after gather, `STARVATION_ILLNESS_RATE` is added to illness (same path as ConsumptionEvent). When `communityPool` is empty, no gather occurs and starvation fires.
 
-#### WindfallEvent (ARD 028)
+#### WindfallEvent (ARD 028, ARD 040)
 Probability gate at factory: `prob = BASE_WINDFALL_RATE × ageModifier(58, 20, 0.05)`.
-Adds `WINDFALL_BASE_AMOUNT + rng() × WINDFALL_VARIANCE` to `person.resources`.
+`drawn = WINDFALL_BASE_AMOUNT + rng() × WINDFALL_VARIANCE`; `granted = min(drawn, naturalResources)` is debited from the pool and credited to `person.resources`. When the pool is empty, the windfall yields 0.
 
-#### InventionEvent (ARD 007)
+#### InventionEvent (ARD 007, ARD 039)
 Gate: `prob = BASE_INVENTION_RATE × intelligence × ageModifier(40, 45, 0.1)`.
 Weighted random draw — one of three outcomes:
-- Depletion-faster: `extractionEfficiency *= 1 + delta`
-- Depletion-slower: `extractionEfficiency *= 1 - delta`
+- Depletion-faster (tech boom): `extractionProductivity *= 1 + delta`
+- Depletion-slower (austerity tech): `extractionProductivity *= 1 - delta`
 - Ceiling-growth: `naturalResourceCeiling += delta × ceiling`
-`delta = intelligence × INVENTION_MAGNITUDE_SCALAR`; `extractionEfficiency` floored at 0.01.
+`delta = intelligence × INVENTION_MAGNITUDE_SCALAR`; `extractionProductivity` floored at `EXTRACTION_PRODUCTIVITY_FLOOR`.
+
+#### Simulation.kill — estate distribution (ARD 042)
+On any death, before clearing partner reference or filtering `living`:
+- Compute living children: `hasChildren.filter(c => c.causeOfDeath === null)`.
+- Apply shares `(ESTATE_COMMUNITY_SHARE, ESTATE_PARTNER_SHARE, ESTATE_CHILDREN_SHARE)`. Missing-heir share consolidates to the other individual heir (partner ↔ children). With no individual heirs, the full estate goes to `communityPool`.
+- Estate-zero is a no-op. Cause-blind — murder does not redirect resources to the killer.
 
 #### Age modifier (ARD 008)
 `ageModifier(age, peakAge, scale, floor) = max(floor, exp(−(age − peakAge)² / (2 × scale²)))`

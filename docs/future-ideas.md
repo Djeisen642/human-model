@@ -75,6 +75,9 @@ Happiness depends on resources relative to peers. A `(myResources - localMedian)
 **Generalized trust as a per-person stat (Putnam)**
 Victimization is currently recorded but has no behavioral consequence on the victim — antisocial behavior can't degrade social cohesion. A per-person trust score damaged by appearing in others' StealingRecord/KillingRecord and slowly restored by neutral interactions would close that loop and gate positive-sum events.
 
+**Killer happiness boost on successful kill**
+ARD 042 keeps the victim's estate cause-blind (killer receives nothing from the murder itself), but a successful kill currently produces no reward signal at all for the killer — only the cost of detection risk. Killing should yield a transient happiness gain (frustration release, dominance, antagonism) that decays over several ticks. Because `happiness` is a computed getter (ARD 014), the implementation needs a new stored field (e.g., `recentKillBoost` with per-tick decay) folded into the happiness formula. The decision is non-trivial: magnitude, decay rate, and whether the boost stacks across multiple kills are all design choices worth their own ARD. Identified during ARD 042 discussion.
+
 ### Social structure
 
 **Proximity (Tobler; Christakis & Fowler contagion)**

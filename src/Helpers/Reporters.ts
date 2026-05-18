@@ -280,7 +280,7 @@ export function formatSurvivorSection(s: SurvivorSummary): string[] {
  * @param seededTypeCounts - count of persons assigned to each type at seed time
  * @param living - current living population, for end-of-run type classification
  * @param extinctionTick - tick at which population first reached 0; undefined unless EXTINCTION
- * @param extractionEfficiency - final extractionEfficiency value (ARD 032)
+ * @param extractionProductivity - final extractionProductivity value (ARD 032)
  * @param inventionCounts - cumulative invention firings by branch (ARD 032)
  * @param inventionCounts.faster - count of depletion-faster firings
  * @param inventionCounts.slower - count of depletion-slower firings
@@ -299,7 +299,7 @@ export function formatEndReport(
   seededTypeCounts: Record<string, number> = {},
   living: Person[] = [],
   extinctionTick?: number,
-  extractionEfficiency = 1.0,
+  extractionProductivity = 1.0,
   inventionCounts: { faster: number; slower: number; ceiling: number } = { faster: 0, slower: 0, ceiling: 0 },
   communityPool = 0,
 ): string {
@@ -371,7 +371,7 @@ export function formatEndReport(
     `  Natural resources remaining: ${Math.round(naturalResources)} / ${Math.round(naturalResourceCeiling)} ceiling`,
     `  Community pool: ${Math.round(communityPool)}`,
     `  Inventions: ${inventionCounts.faster} faster  ${inventionCounts.slower} slower  ${inventionCounts.ceiling} ceiling   ` +
-      `(final efficiency: ${extractionEfficiency.toFixed(2)}, ceiling: ${Math.round(naturalResourceCeiling)})`,
+      `(final efficiency: ${extractionProductivity.toFixed(2)}, ceiling: ${Math.round(naturalResourceCeiling)})`,
     '',
     'HAPPINESS',
     `  Avg happiness: ${first.avgHappiness.toFixed(1)} → ${final.avgHappiness.toFixed(1)}`,

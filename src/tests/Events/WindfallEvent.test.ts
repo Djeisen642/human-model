@@ -75,4 +75,44 @@ describe('WindfallEvent', () => {
       }
     });
   });
+
+  describe('pool sourcing (ARD 040)', () => {
+    it('pool drain equals personal gain', () => {
+      const sim = new Simulation();
+      sim.naturalResources = 1000;
+      const person = new Person([]);
+      person.resources = 0;
+      sim.add(person);
+
+      new WindfallEvent(() => 0.5).execute(person, sim);
+
+      expect(person.resources).toBeCloseTo(1000 - sim.naturalResources);
+    });
+
+    it('grants nothing when pool is empty', () => {
+      const sim = new Simulation();
+      sim.naturalResources = 0;
+      const person = new Person([]);
+      person.resources = 0;
+      sim.add(person);
+
+      new WindfallEvent(() => 0).execute(person, sim);
+
+      expect(person.resources).toBe(0);
+      expect(sim.naturalResources).toBe(0);
+    });
+
+    it('clamps grant to whatever pool can supply', () => {
+      const sim = new Simulation();
+      sim.naturalResources = 2;
+      const person = new Person([]);
+      person.resources = 0;
+      sim.add(person);
+
+      new WindfallEvent(() => 1).execute(person, sim);
+
+      expect(sim.naturalResources).toBe(0);
+      expect(person.resources).toBe(2);
+    });
+  });
 });
