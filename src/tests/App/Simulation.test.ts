@@ -120,6 +120,136 @@ describe('Simulation', () => {
     });
   });
 
+  describe('estate split on death (ARD 042)', () => {
+    it('partner + children: applies the three-way split', () => {
+      const sim = new Simulation();
+      const decedent = new Person([]);
+      const partner = new Person([]);
+      const child1 = new Person([]);
+      const child2 = new Person([]);
+      decedent.resources = 100;
+      decedent.isInRelationshipWith = partner;
+      partner.isInRelationshipWith = decedent;
+      decedent.hasChildren.push(child1, child2);
+      sim.add(decedent);
+      sim.add(partner);
+      sim.add(child1);
+      sim.add(child2);
+
+      sim.kill(decedent, Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      expect(sim.communityPool).toBeCloseTo(100 * Variables.ESTATE_COMMUNITY_SHARE);
+      expect(partner.resources).toBeCloseTo(100 * Variables.ESTATE_PARTNER_SHARE);
+      expect(child1.resources).toBeCloseTo((100 * Variables.ESTATE_CHILDREN_SHARE) / 2);
+      expect(child2.resources).toBeCloseTo((100 * Variables.ESTATE_CHILDREN_SHARE) / 2);
+      expect(decedent.resources).toBe(0);
+    });
+
+    it('partner only: partner absorbs the children share', () => {
+      const sim = new Simulation();
+      const decedent = new Person([]);
+      const partner = new Person([]);
+      decedent.resources = 100;
+      decedent.isInRelationshipWith = partner;
+      partner.isInRelationshipWith = decedent;
+      sim.add(decedent);
+      sim.add(partner);
+
+      sim.kill(decedent, Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      expect(partner.resources).toBeCloseTo(100 * (Variables.ESTATE_PARTNER_SHARE + Variables.ESTATE_CHILDREN_SHARE));
+      expect(sim.communityPool).toBeCloseTo(100 * Variables.ESTATE_COMMUNITY_SHARE);
+    });
+
+    it('children only: children equally split the partner + children shares', () => {
+      const sim = new Simulation();
+      const decedent = new Person([]);
+      const child1 = new Person([]);
+      const child2 = new Person([]);
+      decedent.resources = 100;
+      decedent.hasChildren.push(child1, child2);
+      sim.add(decedent);
+      sim.add(child1);
+      sim.add(child2);
+
+      sim.kill(decedent, Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      const expectedPerChild = (100 * (Variables.ESTATE_PARTNER_SHARE + Variables.ESTATE_CHILDREN_SHARE)) / 2;
+      expect(child1.resources).toBeCloseTo(expectedPerChild);
+      expect(child2.resources).toBeCloseTo(expectedPerChild);
+      expect(sim.communityPool).toBeCloseTo(100 * Variables.ESTATE_COMMUNITY_SHARE);
+    });
+
+    it('deceased children are excluded from inheritance', () => {
+      const sim = new Simulation();
+      const decedent = new Person([]);
+      const livingChild = new Person([]);
+      const deadChild = new Person([]);
+      decedent.resources = 100;
+      decedent.hasChildren.push(livingChild, deadChild);
+      sim.add(decedent);
+      sim.add(livingChild);
+      sim.add(deadChild);
+      sim.kill(deadChild, Constants.CAUSE_OF_DEATH.ILLNESS);
+      const poolAfterDeadChild = sim.communityPool;
+
+      sim.kill(decedent, Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      const expectedForLivingChild = 100 * (Variables.ESTATE_PARTNER_SHARE + Variables.ESTATE_CHILDREN_SHARE);
+      expect(livingChild.resources).toBeCloseTo(expectedForLivingChild);
+      expect(sim.communityPool).toBeCloseTo(poolAfterDeadChild + 100 * Variables.ESTATE_COMMUNITY_SHARE);
+    });
+
+    it('no heirs: 100% to community pool', () => {
+      const sim = new Simulation();
+      const decedent = new Person([]);
+      decedent.resources = 100;
+      sim.add(decedent);
+
+      sim.kill(decedent, Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      expect(sim.communityPool).toBeCloseTo(100);
+      expect(decedent.resources).toBe(0);
+    });
+
+    it('zero-resource estate: no-op (no changes to heirs or pool)', () => {
+      const sim = new Simulation();
+      const decedent = new Person([]);
+      const partner = new Person([]);
+      decedent.resources = 0;
+      partner.resources = 50;
+      decedent.isInRelationshipWith = partner;
+      partner.isInRelationshipWith = decedent;
+      sim.add(decedent);
+      sim.add(partner);
+
+      sim.kill(decedent, Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      expect(partner.resources).toBe(50);
+      expect(sim.communityPool).toBe(0);
+    });
+
+    it('murder: killer receives nothing from victim estate', () => {
+      const sim = new Simulation();
+      const killer = new Person([]);
+      const victim = new Person([]);
+      victim.resources = 100;
+      killer.resources = 10;
+      sim.add(killer);
+      sim.add(victim);
+
+      sim.kill(victim, Constants.CAUSE_OF_DEATH.MURDER, killer);
+
+      expect(killer.resources).toBe(10);
+      expect(sim.communityPool).toBeCloseTo(100);
+    });
+
+    it('estate constants sum to 1.0', () => {
+      const sum = Variables.ESTATE_COMMUNITY_SHARE + Variables.ESTATE_PARTNER_SHARE + Variables.ESTATE_CHILDREN_SHARE;
+      expect(sum).toBeCloseTo(1.0);
+    });
+  });
+
   describe('snapshot', () => {
     it('should append to history each call', () => {
       const sim = new Simulation();
@@ -457,9 +587,9 @@ describe('Simulation', () => {
       expect(sim.naturalResourceCeiling).toBe(Variables.NATURAL_RESOURCE_CEILING_INITIAL);
     });
 
-    it('should initialize extractionEfficiency to 1.0', () => {
+    it('should initialize extractionProductivity to 1.0', () => {
       const sim = new Simulation();
-      expect(sim.extractionEfficiency).toBe(1.0);
+      expect(sim.extractionProductivity).toBe(1.0);
     });
 
     it('regenerate should increase naturalResources by NATURAL_RESOURCE_REGEN_RATE', () => {
@@ -496,12 +626,12 @@ describe('Simulation', () => {
       expect(snap.naturalResources).toBe(3_000);
     });
 
-    it('snapshot captures extractionEfficiency and naturalResourceCeiling (ARD 032)', () => {
+    it('snapshot captures extractionProductivity and naturalResourceCeiling (ARD 032)', () => {
       const sim = new Simulation();
-      sim.extractionEfficiency = 0.65;
+      sim.extractionProductivity = 0.65;
       sim.naturalResourceCeiling = 5_500;
       const snap = sim.snapshot();
-      expect(snap.extractionEfficiency).toBe(0.65);
+      expect(snap.extractionProductivity).toBe(0.65);
       expect(snap.naturalResourceCeiling).toBe(5_500);
     });
 

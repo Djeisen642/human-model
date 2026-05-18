@@ -50,7 +50,7 @@ function makeSnapshot(
     aggregateKillingIntent: 0,
     aggregateStealingIntent: 0,
     naturalResources: overrides.naturalResources ?? 8000,
-    extractionEfficiency: overrides.extractionEfficiency ?? 1.0,
+    extractionProductivity: overrides.extractionProductivity ?? 1.0,
     naturalResourceCeiling: overrides.naturalResourceCeiling ?? 10000,
     births,
     cumulativeBirths: (prev?.cumulativeBirths ?? 0) + births,

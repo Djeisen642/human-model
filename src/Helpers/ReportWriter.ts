@@ -122,7 +122,7 @@ function buildHTML(
       averageResources: s.averageResources,
       naturalResources: s.naturalResources,
       naturalResourceCeiling: s.naturalResourceCeiling,
-      extractionEfficiency: s.extractionEfficiency,
+      extractionProductivity: s.extractionProductivity,
       births: s.births,
       averageHappiness: s.averageHappiness,
       communityPool: s.communityPool,
@@ -149,7 +149,7 @@ function buildHTML(
     simulation.seededTypeCounts,
     simulation.getLiving(),
     extinctionTick !== undefined ? extinctionTick + 1 : undefined,
-    simulation.extractionEfficiency,
+    simulation.extractionProductivity,
     {
       faster: simulation.inventionFasterCount,
       slower: simulation.inventionSlowerCount,

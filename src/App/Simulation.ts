@@ -51,7 +51,7 @@ export interface TickSnapshot {
   /** Remaining natural resource pool at end of tick (after this tick's regen and extraction). */
   naturalResources: number;
   /** Pool cost per unit gathered at end of tick; modified by InventionEvent. ARD 032. */
-  extractionEfficiency: number;
+  extractionProductivity: number;
   /** Maximum accessible resources at end of tick; grown by InventionEvent. ARD 032. */
   naturalResourceCeiling: number;
   /** Births this tick. ARD 033. */
@@ -82,8 +82,8 @@ export default class Simulation {
   naturalResources: number = Variables.NATURAL_RESOURCE_CEILING_INITIAL;
   /** Maximum accessible resources; grows via InventionEvent. */
   naturalResourceCeiling: number = Variables.NATURAL_RESOURCE_CEILING_INITIAL;
-  /** Pool cost per unit gathered; starts at 1.0, modified by InventionEvent. Floor: 0.01. */
-  extractionEfficiency = 1.0;
+  /** Productivity multiplier on gather output and pool drain; higher = more output and faster drain. Modified by InventionEvent. See ARD 039. */
+  extractionProductivity: number = Variables.EXTRACTION_PRODUCTIVITY_INITIAL;
 
   /** Person types in effect for this run; empty when none were configured. Used by reporting. */
   personTypes: PersonTypes = {};
@@ -140,14 +140,18 @@ export default class Simulation {
   }
 
   /**
-   * Moves `person` from living to deceased, records cause of death, and
-   * adds a KillingRecord to the killer when applicable.
+   * Moves `person` from living to deceased, distributes their estate between
+   * community pool, surviving partner, and living children, records cause of
+   * death, and adds a KillingRecord to the killer when applicable. Estate
+   * distribution is cause-blind — the killer receives no share. See ARD 042.
    *
    * @param person - person who died
    * @param cause - cause of death (Constants.CAUSE_OF_DEATH)
    * @param killer - murderer, required when cause is MURDER
    */
   kill(person: Person, cause: number, killer?: Person): void {
+    this.distributeEstate(person);
+
     if (person.isInRelationshipWith !== null) {
       person.isInRelationshipWith.isInRelationshipWith = null;
       person.isInRelationshipWith = null;
@@ -159,6 +163,52 @@ export default class Simulation {
     this.living = this.living.filter(p => p !== person);
     this.deceased.push(person);
     this.tickDeathCauses.push(cause);
+  }
+
+  /**
+   * Distributes `person.resources` across community pool, surviving partner,
+   * and living children per ARD 042 shares. Missing-heir shares consolidate to
+   * the other individual heir before falling back to community. Zeroes
+   * `person.resources` after distribution. No-op when the estate is zero.
+   *
+   * @param person - deceased person (still holding their balance and relationships)
+   */
+  private distributeEstate(person: Person): void {
+    const estate = person.resources;
+    if (estate <= 0) return;
+
+    const partner = person.isInRelationshipWith;
+    const livingChildren = person.hasChildren.filter(c => c.causeOfDeath === null);
+    const hasPartner = partner !== null;
+    const hasChildren = livingChildren.length > 0;
+
+    let partnerShare = 0;
+    let childrenShare = 0;
+    let communityShare = Variables.ESTATE_COMMUNITY_SHARE;
+
+    if (hasPartner && hasChildren) {
+      partnerShare = Variables.ESTATE_PARTNER_SHARE;
+      childrenShare = Variables.ESTATE_CHILDREN_SHARE;
+    } else if (hasPartner) {
+      partnerShare = Variables.ESTATE_PARTNER_SHARE + Variables.ESTATE_CHILDREN_SHARE;
+    } else if (hasChildren) {
+      childrenShare = Variables.ESTATE_PARTNER_SHARE + Variables.ESTATE_CHILDREN_SHARE;
+    } else {
+      communityShare = 1;
+    }
+
+    this.communityPool += estate * communityShare;
+    if (partnerShare > 0 && partner !== null) {
+      partner.resources += estate * partnerShare;
+    }
+    if (childrenShare > 0 && hasChildren) {
+      const perChild = (estate * childrenShare) / livingChildren.length;
+      for (const child of livingChildren) {
+        child.resources += perChild;
+      }
+    }
+
+    person.resources = 0;
   }
 
   /**
@@ -371,7 +421,7 @@ export default class Simulation {
       aggregateKillingIntent,
       aggregateStealingIntent,
       naturalResources: this.naturalResources,
-      extractionEfficiency: this.extractionEfficiency,
+      extractionProductivity: this.extractionProductivity,
       naturalResourceCeiling: this.naturalResourceCeiling,
       births,
       cumulativeBirths,

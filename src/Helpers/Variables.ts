@@ -21,9 +21,13 @@ export default class Variables {
   static NATURAL_RESOURCE_CEILING_INITIAL = 10_000;
   /** Pool replenishment per tick, capped at the current ceiling. */
   static NATURAL_RESOURCE_REGEN_RATE = 50;
-  /** Relative weight for invention outcome: extraction efficiency worsens. */
+  /** Initial extraction productivity multiplier on gather. 1.0 = no boost or drag. See ARD 039. */
+  static EXTRACTION_PRODUCTIVITY_INITIAL = 1.0;
+  /** Lower floor on extraction productivity; prevents the slower-invention branch from making gather permanently impossible. See ARD 039. */
+  static EXTRACTION_PRODUCTIVITY_FLOOR = 0.01;
+  /** Relative weight for invention outcome: productivity rises (tech boom — more output, faster pool drain). See ARD 039. */
   static INVENTION_DEPLETION_FASTER_WEIGHT = 1;
-  /** Relative weight for invention outcome: extraction efficiency improves. */
+  /** Relative weight for invention outcome: productivity falls (austerity tech — less output, slower pool drain). See ARD 039. */
   static INVENTION_DEPLETION_SLOWER_WEIGHT = 1;
   /** Relative weight for invention outcome: resource ceiling grows. */
   static INVENTION_CEILING_GROWTH_WEIGHT = 1;
@@ -278,6 +282,14 @@ export default class Variables {
   static COMMUNITY_POOL_RESERVE_FRACTION = 0.20;
   /** Fraction of a convicted person's resources forfeited to the community pool on jailing (ARD 035). */
   static JAIL_RESOURCE_FORFEIT_FRACTION = 0.80;
+
+  // Estate inheritance constants (ARD 042) — shares must sum to 1.0.
+  /** Share of a deceased person's resources transferred to the community pool. Always applies. */
+  static ESTATE_COMMUNITY_SHARE = 0.40;
+  /** Share of a deceased person's resources transferred to the surviving partner; absorbs the children share when there are no living children. */
+  static ESTATE_PARTNER_SHARE = 0.35;
+  /** Share of a deceased person's resources split equally across living children; absorbs the partner share when there is no surviving partner. */
+  static ESTATE_CHILDREN_SHARE = 0.25;
 
   // Disaster event constants (ARD 012)
   /** Probability that a disaster fires in any given tick (~1 in 10 ticks). */

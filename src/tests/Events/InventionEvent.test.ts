@@ -9,17 +9,17 @@ describe('InventionEvent', () => {
     + Variables.INVENTION_CEILING_GROWTH_WEIGHT;
 
   describe('depletion-faster outcome', () => {
-    it('increases extractionEfficiency when roll < INVENTION_DEPLETION_FASTER_WEIGHT', () => {
+    it('increases extractionProductivity when roll < INVENTION_DEPLETION_FASTER_WEIGHT', () => {
       const sim = new Simulation();
       const person = new Person([]);
       person.intelligence = 5;
       sim.add(person);
-      const before = sim.extractionEfficiency;
+      const before = sim.extractionProductivity;
 
       // rng() * totalWeight = 0 < INVENTION_DEPLETION_FASTER_WEIGHT → faster branch
       new InventionEvent(() => 0).execute(person, sim);
 
-      expect(sim.extractionEfficiency).toBeGreaterThan(before);
+      expect(sim.extractionProductivity).toBeGreaterThan(before);
     });
 
     it('delta scales with intelligence: higher intelligence → larger efficiency increase', () => {
@@ -36,37 +36,37 @@ describe('InventionEvent', () => {
       new InventionEvent(() => 0).execute(person1, sim1);
       new InventionEvent(() => 0).execute(person2, sim2);
 
-      expect(sim2.extractionEfficiency).toBeGreaterThan(sim1.extractionEfficiency);
+      expect(sim2.extractionProductivity).toBeGreaterThan(sim1.extractionProductivity);
     });
 
   });
 
   describe('depletion-slower outcome', () => {
-    it('decreases extractionEfficiency when roll in slower range', () => {
+    it('decreases extractionProductivity when roll in slower range', () => {
       const sim = new Simulation();
       const person = new Person([]);
       person.intelligence = 5;
       sim.add(person);
-      const before = sim.extractionEfficiency;
+      const before = sim.extractionProductivity;
 
       // rng() * totalWeight should be in [FASTER_WEIGHT, FASTER_WEIGHT + SLOWER_WEIGHT)
       // With equal weights of 1, totalWeight=3: need rng in [1/3, 2/3)
       // rng = 0.5 → roll = 1.5, which is in [1, 2) → slower branch
       new InventionEvent(() => 0.5).execute(person, sim);
 
-      expect(sim.extractionEfficiency).toBeLessThan(before);
+      expect(sim.extractionProductivity).toBeLessThan(before);
     });
 
-    it('floors extractionEfficiency at 0.01 even with high intelligence', () => {
+    it('floors extractionProductivity at 0.01 even with high intelligence', () => {
       const sim = new Simulation();
       const person = new Person([]);
       person.intelligence = 10;
       sim.add(person);
-      sim.extractionEfficiency = 0.001;
+      sim.extractionProductivity = 0.001;
 
       new InventionEvent(() => 0.5).execute(person, sim);
 
-      expect(sim.extractionEfficiency).toBeGreaterThanOrEqual(0.01);
+      expect(sim.extractionProductivity).toBeGreaterThanOrEqual(0.01);
     });
   });
 
@@ -178,13 +178,13 @@ describe('InventionEvent', () => {
       const person = new Person([]);
       person.intelligence = 5;
       sim.add(person);
-      const before = sim.extractionEfficiency;
+      const before = sim.extractionProductivity;
 
       // rng() * totalWeight just below FASTER_WEIGHT → use rng just below 1/totalWeight
       const rng = (Variables.INVENTION_DEPLETION_FASTER_WEIGHT - 0.0001) / totalWeight;
       new InventionEvent(() => rng).execute(person, sim);
 
-      expect(sim.extractionEfficiency).toBeGreaterThan(before);
+      expect(sim.extractionProductivity).toBeGreaterThan(before);
     });
 
     it('depletion-slower branch fires at roll just at FASTER_WEIGHT boundary', () => {
@@ -192,13 +192,13 @@ describe('InventionEvent', () => {
       const person = new Person([]);
       person.intelligence = 5;
       sim.add(person);
-      const before = sim.extractionEfficiency;
+      const before = sim.extractionProductivity;
 
       // rng() * totalWeight exactly = FASTER_WEIGHT → slower branch
       const rng = Variables.INVENTION_DEPLETION_FASTER_WEIGHT / totalWeight;
       new InventionEvent(() => rng).execute(person, sim);
 
-      expect(sim.extractionEfficiency).toBeLessThan(before);
+      expect(sim.extractionProductivity).toBeLessThan(before);
     });
   });
 });

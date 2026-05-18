@@ -6,10 +6,11 @@ import { RNG } from '../Helpers/Types';
 
 /**
  * Intelligence-gated event: inventor produces one of three outcomes via
- * weighted random draw. May accelerate depletion, reduce it, or grow the
- * resource ceiling. Net effect on civilizational health is emergent.
- * `extractionEfficiency` is floored at 0.01.
- * See ARD 007.
+ * weighted random draw. May raise productivity (tech boom — more output and
+ * faster pool drain), lower productivity (austerity tech — less output and
+ * slower pool drain), or grow the resource ceiling. Net effect on
+ * civilizational health is emergent. `extractionProductivity` is floored at
+ * `EXTRACTION_PRODUCTIVITY_FLOOR`. See ARD 007 and ARD 039.
  */
 export default class InventionEvent implements IEvent {
   /** @param rng - random number source injected at construction */
@@ -34,15 +35,15 @@ export default class InventionEvent implements IEvent {
     if (roll < Variables.INVENTION_DEPLETION_FASTER_WEIGHT) {
       // Math.max floor is unreachable here: (1 + delta) with delta >= 0 never decreases a positive value.
       // Kept for defensive symmetry with the slower branch.
-      simulation.extractionEfficiency = Math.max(
-        0.01,
-        simulation.extractionEfficiency * (1 + delta),
+      simulation.extractionProductivity = Math.max(
+        Variables.EXTRACTION_PRODUCTIVITY_FLOOR,
+        simulation.extractionProductivity * (1 + delta),
       );
       simulation.inventionFasterCount++;
     } else if (roll < Variables.INVENTION_DEPLETION_FASTER_WEIGHT + Variables.INVENTION_DEPLETION_SLOWER_WEIGHT) {
-      simulation.extractionEfficiency = Math.max(
-        0.01,
-        simulation.extractionEfficiency * (1 - delta),
+      simulation.extractionProductivity = Math.max(
+        Variables.EXTRACTION_PRODUCTIVITY_FLOOR,
+        simulation.extractionProductivity * (1 - delta),
       );
       simulation.inventionSlowerCount++;
     } else {

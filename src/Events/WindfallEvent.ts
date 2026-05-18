@@ -5,23 +5,27 @@ import Variables from '../Helpers/Variables';
 import { RNG } from '../Helpers/Types';
 
 /**
- * Unconditional (probability-gated at factory): adds a flat random resource bump.
- * Flat magnitude is the counter-force to KillEvent's and StealEvent's
- * inequality-widening effects. See ARD 028.
+ * Probability-gated at factory: draws a uniform random "lucky find" from the
+ * natural resource pool and credits it to the person. Strictly conservative —
+ * pool drain equals personal gain; when the pool is empty, no windfall fires.
+ * Acts as the inequality counter-force to KillEvent and StealEvent.
+ * See ARD 028 (original) and ARD 040 (pool-sourced).
  */
 export default class WindfallEvent implements IEvent {
   /** @param rng - random number source injected at construction */
   constructor(private rng: RNG) {}
 
   /**
-   * Add a uniform random draw in [WINDFALL_BASE_AMOUNT, WINDFALL_BASE_AMOUNT + WINDFALL_VARIANCE]
-   * to the person's resources.
+   * Debit a uniform random draw in [WINDFALL_BASE_AMOUNT, WINDFALL_BASE_AMOUNT + WINDFALL_VARIANCE]
+   * from the pool and credit it to the person. Clamped to whatever the pool can supply.
    *
    * @param person - the recipient
-   * @param simulation - unused; present to satisfy IEvent
+   * @param simulation - simulation whose pool funds the windfall
    */
   execute(person: Person, simulation: Simulation): void {
-    void simulation;
-    person.resources += Variables.WINDFALL_BASE_AMOUNT + this.rng() * Variables.WINDFALL_VARIANCE;
+    const drawn = Variables.WINDFALL_BASE_AMOUNT + this.rng() * Variables.WINDFALL_VARIANCE;
+    const granted = Math.min(drawn, simulation.naturalResources);
+    simulation.naturalResources -= granted;
+    person.resources += granted;
   }
 }

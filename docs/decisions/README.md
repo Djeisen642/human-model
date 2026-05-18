@@ -120,7 +120,7 @@ When in doubt:
 | [008](./008-age-modifiers.md) | Age-Based Modifiers | Accepted |
 | [009](./009-happiness-model.md) | Happiness Model | Superseded by ARD 014 |
 | [010](./010-eventfactory-routing.md) | EventFactory Routing | Accepted |
-| [011](./011-gather-resources-event.md) | GatherResourcesEvent | Accepted |
+| [011](./011-gather-resources-event.md) | GatherResourcesEvent | Superseded by ARD 039 |
 | [012](./012-disaster-event.md) | Disaster | Accepted |
 | [013](./013-misfortune-event.md) | MisfortuneEvent | Superseded by ARD 019 |
 | [014](./014-happiness-model-revision.md) | Happiness Model Revision | Accepted |
@@ -137,7 +137,7 @@ When in doubt:
 | [025](./025-relationship-event.md) | RelationshipEvent | Accepted |
 | [026](./026-steal-event.md) | StealEvent | Proposed |
 | [027](./027-kill-event.md) | KillEvent | Accepted |
-| [028](./028-windfall-event.md) | WindfallEvent | Accepted |
+| [028](./028-windfall-event.md) | WindfallEvent | Superseded by ARD 040 |
 | [029](./029-childbirth-event.md) | ChildbirthEvent | Accepted |
 | [030](./030-character-types.md) | Character Types in Population Seeding and Classification | Accepted |
 | [031](./031-survivor-composition-and-extinction.md) | Survivor Composition and EXTINCTION Outcome | Accepted |
@@ -148,3 +148,7 @@ When in doubt:
 | [036](./036-dynamic-intent-multipliers.md) | Dynamic Intent Multipliers and Theft Emboldening | Accepted |
 | [037](./037-newborn-stat-seeding.md) | Newborn Stat Seeding via Parental Heritability | Accepted |
 | [038](./038-handlebars-html-generation.md) | Handlebars HTML Generation | Accepted |
+| [039](./039-gather-productivity-model.md) | GatherResourcesEvent Productivity Model | Accepted |
+| [040](./040-windfall-from-pool.md) | WindfallEvent Sourced From Natural Resource Pool | Accepted |
+| [041](./041-jail-from-community-pool.md) | JailEvent Gather Funded From Community Pool | Accepted |
+| [042](./042-estate-inheritance-split.md) | Estate Inheritance Split On Death | Accepted |

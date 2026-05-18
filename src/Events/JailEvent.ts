@@ -5,22 +5,26 @@ import Variables from '../Helpers/Variables';
 
 /**
  * Replaces the normal gather/consume cycle for incarcerated persons.
- * Adds JAIL_GATHER_AMOUNT flat to resources and deducts JAIL_CONSUMPTION_AMOUNT flat.
- * Resources floor at 0. If net consumption exceeds gather, starvation illness accumulates
- * via the same path as ConsumptionEvent.
- * See ARD 035.
+ * Each tick, draws up to JAIL_GATHER_AMOUNT from `communityPool` (clamped to
+ * what the pool can supply) and deducts JAIL_CONSUMPTION_AMOUNT flat.
+ * Resources floor at 0. If net consumption exceeds gather, starvation illness
+ * accumulates via the same path as ConsumptionEvent. When the community pool
+ * is empty, the prisoner receives nothing and starves through the existing
+ * consumption check.
+ * See ARD 035 (original) and ARD 041 (community-pool sourcing).
  */
 export default class JailEvent implements IEvent {
   /**
-   * Execute flat jail economics for this tick.
+   * Execute jail economics for this tick.
    * Starvation illness fires when resources would go negative after deduction.
    *
    * @param person - the incarcerated person
-   * @param simulation - current simulation state
+   * @param simulation - current simulation state (communityPool is debited in place)
    */
   execute(person: Person, simulation: Simulation): void {
-    void simulation;
-    person.resources += Variables.JAIL_GATHER_AMOUNT;
+    const granted = Math.min(Variables.JAIL_GATHER_AMOUNT, simulation.communityPool);
+    simulation.communityPool -= granted;
+    person.resources += granted;
 
     const cost = Variables.JAIL_CONSUMPTION_AMOUNT;
     if (person.resources < cost) {

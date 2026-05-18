@@ -78,7 +78,7 @@ console.log(formatEndReport(
   simulation.seededTypeCounts,
   simulation.getLiving(),
   extinctionTick !== undefined ? extinctionTick + 1 : undefined,
-  simulation.extractionEfficiency,
+  simulation.extractionProductivity,
   {
     faster: simulation.inventionFasterCount,
     slower: simulation.inventionSlowerCount,
