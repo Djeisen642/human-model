@@ -577,9 +577,13 @@ describe('Simulation', () => {
   });
 
   describe('resource pool', () => {
-    it('should initialize naturalResources to NATURAL_RESOURCE_CEILING_INITIAL', () => {
+    it('should initialize naturalResources to NATURAL_RESOURCES_INITIAL (ARD 044)', () => {
       const sim = new Simulation();
-      expect(sim.naturalResources).toBe(Variables.NATURAL_RESOURCE_CEILING_INITIAL);
+      expect(sim.naturalResources).toBe(Variables.NATURAL_RESOURCES_INITIAL);
+    });
+
+    it('NATURAL_RESOURCES_INITIAL defaults to NATURAL_RESOURCE_CEILING_INITIAL for back-compat', () => {
+      expect(Variables.NATURAL_RESOURCES_INITIAL).toBe(Variables.NATURAL_RESOURCE_CEILING_INITIAL);
     });
 
     it('should initialize naturalResourceCeiling to NATURAL_RESOURCE_CEILING_INITIAL', () => {
@@ -592,11 +596,34 @@ describe('Simulation', () => {
       expect(sim.extractionProductivity).toBe(1.0);
     });
 
-    it('regenerate should increase naturalResources by NATURAL_RESOURCE_REGEN_RATE', () => {
+    it('regenerate should increase naturalResources by ceiling × NATURAL_RESOURCE_REGEN_FRACTION (ARD 043)', () => {
       const sim = new Simulation();
       sim.naturalResources = 100;
+      const expectedRegen = sim.naturalResourceCeiling * Variables.NATURAL_RESOURCE_REGEN_FRACTION;
       sim.regenerate();
-      expect(sim.naturalResources).toBe(100 + Variables.NATURAL_RESOURCE_REGEN_RATE);
+      expect(sim.naturalResources).toBeCloseTo(100 + expectedRegen);
+    });
+
+    it('regenerate scales with the current ceiling', () => {
+      const small = new Simulation();
+      small.naturalResourceCeiling = 1000;
+      small.naturalResources = 0;
+      small.regenerate();
+
+      const large = new Simulation();
+      large.naturalResourceCeiling = 10000;
+      large.naturalResources = 0;
+      large.regenerate();
+
+      expect(large.naturalResources).toBeCloseTo(small.naturalResources * 10);
+    });
+
+    it('regenerate produces zero when ceiling is zero', () => {
+      const sim = new Simulation();
+      sim.naturalResourceCeiling = 0;
+      sim.naturalResources = 0;
+      sim.regenerate();
+      expect(sim.naturalResources).toBe(0);
     });
 
     it('regenerate should not exceed naturalResourceCeiling', () => {

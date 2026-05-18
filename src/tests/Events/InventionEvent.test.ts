@@ -49,24 +49,22 @@ describe('InventionEvent', () => {
       sim.add(person);
       const before = sim.extractionProductivity;
 
-      // rng() * totalWeight should be in [FASTER_WEIGHT, FASTER_WEIGHT + SLOWER_WEIGHT)
-      // With equal weights of 1, totalWeight=3: need rng in [1/3, 2/3)
-      // rng = 0.5 → roll = 1.5, which is in [1, 2) → slower branch
-      new InventionEvent(() => 0.5).execute(person, sim);
+      // With weights 1:1:2 (ARD 043), totalWeight=4: slower window is rng in [0.25, 0.5).
+      new InventionEvent(() => 0.3).execute(person, sim);
 
       expect(sim.extractionProductivity).toBeLessThan(before);
     });
 
-    it('floors extractionProductivity at 0.01 even with high intelligence', () => {
+    it('floors extractionProductivity at EXTRACTION_PRODUCTIVITY_FLOOR even with high intelligence', () => {
       const sim = new Simulation();
       const person = new Person([]);
       person.intelligence = 10;
       sim.add(person);
       sim.extractionProductivity = 0.001;
 
-      new InventionEvent(() => 0.5).execute(person, sim);
+      new InventionEvent(() => 0.3).execute(person, sim);
 
-      expect(sim.extractionProductivity).toBeGreaterThanOrEqual(0.01);
+      expect(sim.extractionProductivity).toBeGreaterThanOrEqual(Variables.EXTRACTION_PRODUCTIVITY_FLOOR);
     });
   });
 
@@ -79,7 +77,7 @@ describe('InventionEvent', () => {
       const before = sim.naturalResourceCeiling;
 
       // rng() * totalWeight >= FASTER_WEIGHT + SLOWER_WEIGHT
-      // With equal weights totalWeight=3: need rng >= 2/3 → use 0.99
+      // With weights 1:1:2 (ARD 043) totalWeight=4: ceiling branch fires when rng >= 0.5 → 0.99 is safely inside.
       new InventionEvent(() => 0.99).execute(person, sim);
 
       expect(sim.naturalResourceCeiling).toBeGreaterThan(before);
@@ -147,8 +145,9 @@ describe('InventionEvent', () => {
     });
 
     it('slower branch increments inventionSlowerCount only', () => {
+      // Weights 1:1:2 (ARD 043): slower window is rng in [0.25, 0.5)
       const { sim, person } = setup();
-      new InventionEvent(() => 0.5).execute(person, sim);
+      new InventionEvent(() => 0.3).execute(person, sim);
       expect(sim.inventionFasterCount).toBe(0);
       expect(sim.inventionSlowerCount).toBe(1);
       expect(sim.inventionCeilingCount).toBe(0);

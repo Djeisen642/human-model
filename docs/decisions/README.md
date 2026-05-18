@@ -152,3 +152,5 @@ When in doubt:
 | [040](./040-windfall-from-pool.md) | WindfallEvent Sourced From Natural Resource Pool | Accepted |
 | [041](./041-jail-from-community-pool.md) | JailEvent Gather Funded From Community Pool | Accepted |
 | [042](./042-estate-inheritance-split.md) | Estate Inheritance Split On Death | Accepted |
+| [043](./043-regen-coupled-to-ceiling.md) | Natural Resource Regeneration Coupled To Ceiling | Accepted |
+| [044](./044-initial-natural-resources-constant.md) | Separate Initial Natural Resources Constant | Accepted |

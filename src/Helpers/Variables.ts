@@ -17,10 +17,12 @@ export default class Variables {
   /** Controls steepness of the U-shaped mortality curve. */
   static AGE_DEATH_CURVATURE = 0.001;
 
-  /** Starting size of the natural resource pool (also the initial ceiling). */
+  /** Initial size of the natural resource pool at t=0; defaults to the ceiling but can be set independently for scarcity scenarios. See ARD 044. */
+  static NATURAL_RESOURCES_INITIAL = 10_000;
+  /** Initial carrying capacity (maximum accessible pool). See ARD 007. */
   static NATURAL_RESOURCE_CEILING_INITIAL = 10_000;
-  /** Pool replenishment per tick, capped at the current ceiling. */
-  static NATURAL_RESOURCE_REGEN_RATE = 50;
+  /** Per-tick pool replenishment as a fraction of the current ceiling; clamped at ceiling. See ARD 043. */
+  static NATURAL_RESOURCE_REGEN_FRACTION = 0.03;
   /** Initial extraction productivity multiplier on gather. 1.0 = no boost or drag. See ARD 039. */
   static EXTRACTION_PRODUCTIVITY_INITIAL = 1.0;
   /** Lower floor on extraction productivity; prevents the slower-invention branch from making gather permanently impossible. See ARD 039. */
@@ -29,8 +31,8 @@ export default class Variables {
   static INVENTION_DEPLETION_FASTER_WEIGHT = 1;
   /** Relative weight for invention outcome: productivity falls (austerity tech — less output, slower pool drain). See ARD 039. */
   static INVENTION_DEPLETION_SLOWER_WEIGHT = 1;
-  /** Relative weight for invention outcome: resource ceiling grows. */
-  static INVENTION_CEILING_GROWTH_WEIGHT = 1;
+  /** Relative weight for invention outcome: resource ceiling grows. Weighted higher than productivity branches so invention serves as the population-cap unlock. See ARD 043. */
+  static INVENTION_CEILING_GROWTH_WEIGHT = 2;
   /** Scales inventor's intelligence into the magnitude of any invention effect. */
   static INVENTION_MAGNITUDE_SCALAR = 0.05;
   /** Per-tick base probability of an invention, multiplied by intelligence (1–10) and ageModifier. At intelligence=10, peak age: ~2% per tick. */

@@ -92,7 +92,7 @@ One shared environment object. No spatial structure; all agent interactions are 
 
 Each tick executes in this order:
 
-1. **`simulation.regenerate()`** — natural-resource pool replenishes by `NATURAL_RESOURCE_REGEN_RATE`, capped at `naturalResourceCeiling`.
+1. **`simulation.regenerate()`** — natural-resource pool replenishes by `naturalResourceCeiling × NATURAL_RESOURCE_REGEN_FRACTION`, clamped at `naturalResourceCeiling` (ARD 043).
 2. **`DisasterEvent`** — fires once per tick (not per agent); probabilistic trigger; random subset of living agents may be killed or lose resources.
 3. **`simulation.collectTax(living)`** — deducts `TAX_RATE × resources` from each living agent; credited to `communityPool` (ARD 034).
 4. **Jail countdown** — for each living agent, if `jailedTicksRemaining > 0`, decrement by 1. Happens before EventFactory so the decremented value governs this tick's event set (ARD 035).
@@ -186,7 +186,7 @@ Education seeding by age:
 - age ≥ 25: `isWorkingOnEd = NONE`; completed education seeded hierarchically: HS at 85%, then BACHELORS at 40% conditional, MASTERS at 25% conditional, PHD at 20% conditional.
 
 **Environment initialization:**
-- `naturalResources = NATURAL_RESOURCE_CEILING_INITIAL`
+- `naturalResources = NATURAL_RESOURCES_INITIAL` (defaults to ceiling initial; settable independently for scarcity scenarios — ARD 044)
 - `naturalResourceCeiling = NATURAL_RESOURCE_CEILING_INITIAL`
 - `extractionProductivity = EXTRACTION_PRODUCTIVITY_INITIAL` (1.0)
 - `communityPool = 0`
@@ -315,7 +315,7 @@ On any death, before clearing partner reference or filtering `living`:
 Bell-curve weight applied to event probabilities. Each event has its own peak/scale/floor constants in `Variables.ts`.
 
 #### Natural resource regeneration
-`naturalResources = min(naturalResources + NATURAL_RESOURCE_REGEN_RATE, naturalResourceCeiling)`
+`naturalResources = min(naturalResources + naturalResourceCeiling × NATURAL_RESOURCE_REGEN_FRACTION, naturalResourceCeiling)` (ARD 043)
 Called once at the start of each tick before any agent events.
 
 ---
