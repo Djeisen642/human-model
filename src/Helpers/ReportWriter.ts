@@ -32,8 +32,10 @@ export function writeReportHTML(simulation: Simulation, n: number, ticks: number
 
   const html = buildHTML(simulation, n, ticks, seed, outcome);
   fs.writeFileSync(filepath, html, 'utf8');
+  const url = `file://${filepath}`;
+  const link = `]8;;${url}${filepath}]8;;`;
   // eslint-disable-next-line no-console
-  console.log(`Report written to: ${filepath}`);
+  console.log(`Report written to: ${link}`);
 }
 
 /**
