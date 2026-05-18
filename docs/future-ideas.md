@@ -19,13 +19,13 @@ The current event set is extractive or destructive. `helpsPeople` exists but no 
 
 
 **Long-term environmental drift**
-`naturalResourceCeiling` is fixed; the pool always regenerates back to it. Tainter/Diamond collapse hinges on declining carrying capacity (soil exhaustion, climate shift). Options: ceiling drifts down stochastically, decays with cumulative extraction, or `NATURAL_RESOURCE_REGEN_RATE` itself drifts.
+`naturalResourceCeiling` only grows (via invention); the pool always regenerates back to ceiling × fraction. Tainter/Diamond collapse hinges on declining carrying capacity (soil exhaustion, climate shift). Options: ceiling drifts down stochastically, decays with cumulative extraction, or `NATURAL_RESOURCE_REGEN_FRACTION` itself drifts.
 
 **InventionEvent: unbounded extractionEfficiency upper end**
 The depletion-faster branch multiplies `extractionEfficiency` with no cap. With `intelligence=10` (`delta=0.5`), a few sequential inventions push efficiency high enough to drain the pool in a handful of ticks, collapsing the simulation rapidly regardless of other factors. Needs a `MAX_EXTRACTION_EFFICIENCY` constant or a diminishing-returns multiplier.
 
 **InventionEvent: unbounded ceiling growth (thrive-lock)**
-Repeated ceiling-growth inventions compound — `ceiling *= (1 + delta)` effectively — and can grow the pool large enough that resource scarcity is permanently eliminated. Removes the collapse-via-depletion pathway from the model. A ceiling cap or per-tick regen cap (so a higher ceiling doesn't fully prevent scarcity dynamics) would restore balance.
+Repeated ceiling-growth inventions compound — `ceiling *= (1 + delta)` effectively. After ARD 043 ceiling growth also drives regen, so runaway ceiling can permanently eliminate scarcity. A `MAX_NATURAL_RESOURCE_CEILING` cap or diminishing-returns multiplier on ceiling growth would preserve the collapse-via-depletion pathway.
 
 **InventionEvent: asymmetric faster/slower compounding**
 After N faster and N slower outcomes, `efficiency * (1+d)^N * (1-d)^N = efficiency * (1-d²)^N`. Paired outcomes don't cancel — efficiency drifts toward 0.01 over time. At equal weights this creates a slow resource-saving bias that wasn't in ARD 007. May be desirable (civilization learns to use less) or unintended; worth a deliberate decision.

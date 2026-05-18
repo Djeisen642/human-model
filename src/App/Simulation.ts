@@ -78,8 +78,8 @@ export default class Simulation {
   /** One summary per completed decade; appended by LooperSingleton every 10 ticks. */
   readonly decadeHistory: TenYearSummary[] = [];
 
-  /** Current available natural resource pool; depleted by gathering. */
-  naturalResources: number = Variables.NATURAL_RESOURCE_CEILING_INITIAL;
+  /** Current available natural resource pool; depleted by gathering. See ARD 044. */
+  naturalResources: number = Variables.NATURAL_RESOURCES_INITIAL;
   /** Maximum accessible resources; grows via InventionEvent. */
   naturalResourceCeiling: number = Variables.NATURAL_RESOURCE_CEILING_INITIAL;
   /** Productivity multiplier on gather output and pool drain; higher = more output and faster drain. Modified by InventionEvent. See ARD 039. */
@@ -315,12 +315,15 @@ export default class Simulation {
   }
 
   /**
-   * Replenishes naturalResources by NATURAL_RESOURCE_REGEN_RATE, capped at naturalResourceCeiling.
+   * Replenishes naturalResources by `naturalResourceCeiling × NATURAL_RESOURCE_REGEN_FRACTION`,
+   * clamped at the ceiling. Couples regen to carrying capacity so ceiling-growth inventions
+   * meaningfully unlock new sustainable population. See ARD 043.
    * Call once at the start of each tick before events run.
    */
   regenerate(): void {
+    const regen = this.naturalResourceCeiling * Variables.NATURAL_RESOURCE_REGEN_FRACTION;
     this.naturalResources = Math.min(
-      this.naturalResources + Variables.NATURAL_RESOURCE_REGEN_RATE,
+      this.naturalResources + regen,
       this.naturalResourceCeiling,
     );
   }
