@@ -177,9 +177,7 @@ See `docs/decisions/` for the reasoning behind each architectural choice.
 
 ## What's not implemented yet
 
-Pick up here, roughly in dependency order:
-
-1. **Lying event** — modifies targets' intent fields; effectiveness scaled by `charisma`. Needs ARD discussion before implementation.
+The event set is complete. See `docs/future-ideas.md` for candidates that may be added in future work.
 
 ## Age profiles for new events
 
@@ -201,7 +199,6 @@ Reference profiles (from ARD 008):
 | Killing | 24 | 30 | 0.05 |
 | Relationships | 26 | 35 | 0.1 |
 | Invention | 40 | 45 | 0.1 |
-| Lying | 32 | 40 | 0.1 |
 | Graduation | 22 | 30 | 0.15 |
 
 ## Keeping CLAUDE.md current
