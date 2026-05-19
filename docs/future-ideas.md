@@ -75,9 +75,6 @@ Happiness depends on resources relative to peers. A `(myResources - localMedian)
 **Generalized trust as a per-person stat (Putnam)**
 Victimization is currently recorded but has no behavioral consequence on the victim — antisocial behavior can't degrade social cohesion. A per-person trust score damaged by appearing in others' StealingRecord/KillingRecord and slowly restored by neutral interactions would close that loop and gate positive-sum events.
 
-**Killer happiness boost on successful kill**
-ARD 042 keeps the victim's estate cause-blind (killer receives nothing from the murder itself), but a successful kill currently produces no reward signal at all for the killer — only the cost of detection risk. Killing should yield a transient happiness gain (frustration release, dominance, antagonism) that decays over several ticks. Because `happiness` is a computed getter (ARD 014), the implementation needs a new stored field (e.g., `recentKillBoost` with per-tick decay) folded into the happiness formula. The decision is non-trivial: magnitude, decay rate, and whether the boost stacks across multiple kills are all design choices worth their own ARD. Identified during ARD 042 discussion.
-
 ### Social structure
 
 **Proximity (Tobler; Christakis & Fowler contagion)**
@@ -163,3 +160,5 @@ Considered and rejected without rising to ARD-level discussion. Each entry: name
 **Loss aversion in intent updates (Kahneman & Tversky)** — 2026-05-17 — The core stat→intent feedback is addressed by ARD 036: permanent emboldening on undetected theft covers behavioral escalation; resource-pressure and happiness-pressure situational multipliers cover the circumstance-driven response. The asymmetric permanent update on resource loss specifically (losses raise intent faster than gains lower it) is not implemented; desistance (intent decay from stable conditions) is noted in future-ideas under behavioral feedback.
 
 **Lying event** — 2026-05-19 — Dropped without ARD; the social-manipulation/intent-contagion pathway it would have covered is not a current priority and the event set is otherwise complete.
+
+**Killer happiness boost on successful kill** — 2026-05-19 — Implemented: ARD 046 (transient `killHappinessBoost` field with per-tick decay, folded into the happiness getter alongside the analogous `helpHappinessBoost` from HelpEvent).
