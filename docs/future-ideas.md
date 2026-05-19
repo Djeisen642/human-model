@@ -8,39 +8,37 @@ Items are grouped by priority — a working judgment, not a commitment. Promote,
 
 ---
 
-## Required for completion
+## High priority
 
-The model can't answer collapse vs. thriving without these, or has a known bug surfacing once a planned event lands.
+Known correctness issues that can produce degenerate outcomes — runaway values, thrive-lock, or collapse-lock — before the collapse/thrive signal has time to develop. Should be addressed before drawing conclusions from long runs.
+
+### Mechanics
+
+**Stat caps and age-based decay**
+`constitution` and `intelligence` only increment. A 90-year-old who exercised yearly has runaway constitution, and `DisasterEvent` divides by it — making lifelong exercisers near-immortal. Need caps and probably age-based decay reinforcing the U-shaped mortality curve.
+
+**InventionEvent: unbounded extractionProductivity upper end**
+The depletion-faster branch multiplies `extractionProductivity` with no cap. With `intelligence=10` (`delta=0.5`), a few sequential inventions push productivity high enough to drain the pool in a handful of ticks, collapsing the simulation regardless of other factors. Needs a `MAX_EXTRACTION_PRODUCTIVITY` constant or a diminishing-returns multiplier.
+
+**InventionEvent: unbounded ceiling growth (thrive-lock)**
+Repeated ceiling-growth inventions compound — `ceiling *= (1 + delta)` effectively. After ARD 043 ceiling growth also drives regen, so runaway ceiling can permanently eliminate scarcity. A `MAX_NATURAL_RESOURCE_CEILING` cap or diminishing-returns multiplier would preserve the collapse-via-depletion pathway.
+
+**InventionEvent: asymmetric faster/slower compounding**
+After N faster and N slower outcomes, `efficiency * (1+d)^N * (1-d)^N = efficiency * (1-d²)^N`. Paired outcomes don't cancel — efficiency drifts toward 0.01 over time. Creates a slow resource-saving bias that wasn't in ARD 007; may be desirable or unintended, but should be a deliberate choice.
+
+---
+
+## Very useful
+
+Sharpens the collapse/thrive signal or experimental setup, but does not cause degenerate outcomes on its own.
 
 ### Mechanics
 
 **Long-term environmental drift**
 `naturalResourceCeiling` only grows (via invention); the pool always regenerates back to ceiling × fraction. Tainter/Diamond collapse hinges on declining carrying capacity (soil exhaustion, climate shift). Options: ceiling drifts down stochastically, decays with cumulative extraction, or `NATURAL_RESOURCE_REGEN_FRACTION` itself drifts.
 
-**InventionEvent: unbounded extractionEfficiency upper end**
-The depletion-faster branch multiplies `extractionEfficiency` with no cap. With `intelligence=10` (`delta=0.5`), a few sequential inventions push efficiency high enough to drain the pool in a handful of ticks, collapsing the simulation rapidly regardless of other factors. Needs a `MAX_EXTRACTION_EFFICIENCY` constant or a diminishing-returns multiplier.
-
-**InventionEvent: unbounded ceiling growth (thrive-lock)**
-Repeated ceiling-growth inventions compound — `ceiling *= (1 + delta)` effectively. After ARD 043 ceiling growth also drives regen, so runaway ceiling can permanently eliminate scarcity. A `MAX_NATURAL_RESOURCE_CEILING` cap or diminishing-returns multiplier on ceiling growth would preserve the collapse-via-depletion pathway.
-
-**InventionEvent: asymmetric faster/slower compounding**
-After N faster and N slower outcomes, `efficiency * (1+d)^N * (1-d)^N = efficiency * (1-d²)^N`. Paired outcomes don't cancel — efficiency drifts toward 0.01 over time. At equal weights this creates a slow resource-saving bias that wasn't in ARD 007. May be desirable (civilization learns to use less) or unintended; worth a deliberate decision.
-
-**Stat caps and age-based decay**
-`constitution` and `intelligence` only increment. A 90-year-old who exercised yearly has runaway constitution, and `DisasterEvent` divides by it — making lifelong exercisers near-immortal. Need caps and probably age-based decay reinforcing the U-shaped mortality curve.
-
-### Research / Output
-
 **Termination conditions**
-Currently a fixed tick count. Need population=0, collapse-detected (Gini threshold + declining population over N ticks), or manual options to claim "collapse" vs. "ran out of ticks."
-
----
-
-## Very useful
-
-Sharpens the collapse/thrive signal or experimental setup, but the model can produce defensible results without it.
-
-### Mechanics
+Currently a fixed tick count. Worth adding: population=0 (already fires EXTINCTION but doesn't halt early), collapse-detected (Gini threshold + declining population over N ticks), or a flag to halt when outcome is determined rather than running to the end.
 
 **Resource inheritance on death**
 Dead persons' `resources` vanish. Inheritance (heirs receive a fraction) or estate taxes (a portion to a shared pool) gives accumulated wealth a second-order effect on Gini — concentrated wealth steepens inequality, redistribution dampens it.
@@ -129,27 +127,13 @@ Cognitive cap on stable relationships (~150 in the original argument). Distinct 
 
 Considered and rejected without rising to ARD-level discussion. Each entry: name, date dropped, one-sentence reason. Decisions formal enough to merit an ARD belong in `docs/decisions/` instead.
 
-**Education payoff on stats** — 2026-05-16 — Implemented: ARD 021 (intelligence +1 at graduation) and ARD 022 (education multiplier on job-gain probability).
-
 **Seeding strategy as experimental variable** — 2026-05-17 — Subsumed by ARD 030 (`simulation.personTypes` config with per-type stat ranges and percentage quotas).
-
-**Profile-based population seeding** — 2026-05-17 — Implemented: ARD 030 (config-driven `simulation.personTypes` with predicate-based classification at end-of-run). Catalog of recommended archetypes in `docs/research-character-types.md`.
-
-**Extinction as a distinct outcome label** — 2026-05-17 — Implemented: ARD 031 (`EXTINCTION` outcome added to `classifyOutcome`; `Extinct as of Yr NNN` callout in the end report).
-
-**Partial-decade summary at run end** — 2026-05-17 — Implemented: ARD 031 (`LooperSingleton` appends a partial `TenYearSummary` to `decadeHistory` after the loop when `ticks % 10 !== 0`).
-
-**Redistribution pool (tax + estate)** — 2026-05-17 — Tax + welfare distribution implemented as ARD 034 (flat `TAX_RATE`, orphan and poverty eligibility, 20% reserve); estate taxation remains a future idea under "Resource inheritance on death."
 
 **Altruistic punishment (Fehr & Gächter)** — 2026-05-17 — Superseded by ARD 035 jail system, which provides community-level retribution without requiring individual resource expenditure.
 
 **Strain theory: aspiration–means gap (Agnew)** — 2026-05-17 — Subsumed by ARD 036 resource-pressure situational multiplier on steal probability, which implements the core strain-theory mechanism (scarcity → elevated theft likelihood) without requiring a cohort-median reference class.
 
-**Newborn initial stat seeding** — 2026-05-17 — Implemented: ARD 037 (`ChildbirthEvent` seeds child stats/intents via parental heritability — stats regress toward population mean, intents regress toward zero).
-
 **Intergenerational transmission of intents (Bandura)** — 2026-05-17 — Subsumed by ARD 037 (parental-mean regression with separate stat and intent coefficients implements the heritability and social-learning channels in one mechanism).
-
-**Resource consumption / cost of living** — 2026-05-17 — Implemented: ARD 024 (`ConsumptionEvent` with age-scaled costs, child subsidy via living parents, starvation→illness at zero resources).
 
 **Reputation / trust effects** — 2026-05-17 — Consolidated into "Generalized trust as a per-person stat (Putnam)" in Very useful; the two entries described the same feedback loop with different framings.
 
