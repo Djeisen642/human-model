@@ -259,11 +259,12 @@ describe('Person', () => {
       person.resources = 0;
       person.age = 70;
       person.illness = 1;
-      // Without boosts this is already 0; boosts lift it above 0
+      // Base happiness is deeply negative; boosts do not overcome the deficit
       person.helpHappinessBoost = 2;
       person.killHappinessBoost = 1;
 
-      expect(person.happiness).toBe(3);
+      // Floor applies — result is 0, not negative
+      expect(person.happiness).toBe(0);
     });
 
     it('zero boosts leave happiness unchanged', () => {
