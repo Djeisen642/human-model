@@ -228,6 +228,56 @@ describe('Person', () => {
 
       expect(worst.happiness).toBe(0);
     });
+
+    it('adds helpHappinessBoost to happiness', () => {
+      const person = new Person([]);
+      person.resources = 50;
+      person.age = 30;
+      person.hasJob = true;
+
+      const base = person.happiness;
+      person.helpHappinessBoost = 3;
+
+      expect(person.happiness).toBe(base + 3);
+    });
+
+    it('adds killHappinessBoost to happiness', () => {
+      const person = new Person([]);
+      person.resources = 50;
+      person.age = 30;
+      person.hasJob = true;
+
+      const base = person.happiness;
+      person.killHappinessBoost = 2;
+
+      expect(person.happiness).toBe(base + 2);
+    });
+
+    it('floor still applies when boosts are present', () => {
+      const person = new Person([]);
+      person.hasJob = false;
+      person.resources = 0;
+      person.age = 70;
+      person.illness = 1;
+      // Without boosts this is already 0; boosts lift it above 0
+      person.helpHappinessBoost = 2;
+      person.killHappinessBoost = 1;
+
+      expect(person.happiness).toBe(3);
+    });
+
+    it('zero boosts leave happiness unchanged', () => {
+      const person = new Person([]);
+      person.resources = 50;
+      person.age = 30;
+      person.hasJob = true;
+      person.helpHappinessBoost = 0;
+      person.killHappinessBoost = 0;
+
+      const base = person.happiness;
+
+      expect(person.happiness).toBe(base);
+    });
   });
 
   describe('ageMortalityModifier', () => {

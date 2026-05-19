@@ -562,4 +562,86 @@ describe('KillEvent', () => {
       expect(killer.killingIntent).toBe(intentBefore);
     });
   });
+
+  describe('kill happiness boost (ARD 046)', () => {
+    it('sets killHappinessBoost on a confirmed kill', () => {
+      const sim = new Simulation();
+      const killer = new Person([]);
+      const victim = new Person([]);
+      killer.killingIntent = 1.0;
+      killer.age = 24;
+      killer.resources = 100;
+      victim.resources = 0;
+      victim.constitution = 1;
+      sim.add(killer);
+      sim.add(victim);
+
+      // rng: attempt=0, getRandomOther=0, success=0, detection=0.99 (no jail)
+      let callCount = 0;
+      const rng = () => { callCount++; if (callCount === 4) return 0.99; return 0; };
+      new KillEvent(rng).execute(killer, sim);
+
+      expect(killer.killHappinessBoost).toBeCloseTo(Variables.KILL_HAPPINESS_BOOST);
+    });
+
+    it('does not set killHappinessBoost when the attempt roll fails', () => {
+      const sim = new Simulation();
+      const killer = new Person([]);
+      const victim = new Person([]);
+      killer.killingIntent = 0.01;
+      killer.age = 24;
+      killer.resources = 100;
+      victim.resources = 0;
+      victim.constitution = 1;
+      sim.add(killer);
+      sim.add(victim);
+
+      // rng always 0.99 → attempt roll fails (0.99 >= 0.01)
+      new KillEvent(() => 0.99).execute(killer, sim);
+
+      expect(killer.killHappinessBoost).toBe(0);
+    });
+
+    it('does not set killHappinessBoost when the success roll fails', () => {
+      const sim = new Simulation();
+      const killer = new Person([]);
+      const victim = new Person([]);
+      killer.killingIntent = 1.0;
+      killer.age = 24;
+      killer.resources = 100;
+      victim.resources = 0;
+      victim.constitution = 10; // successProb = KILL_SUCCESS_BASE / 10 = 0.05
+      sim.add(killer);
+      sim.add(victim);
+
+      // attempt=0 (passes), getRandomOther=0, success=0.99 (fails)
+      let callCount = 0;
+      const rng = () => { callCount++; if (callCount <= 2) return 0; return 0.99; };
+      new KillEvent(rng).execute(killer, sim);
+
+      expect(killer.killHappinessBoost).toBe(0);
+    });
+
+    it('killHappinessBoost stacks up to KILL_HAPPINESS_MAX', () => {
+      const sim = new Simulation();
+      const killer = new Person([]);
+      const victim = new Person([]);
+      killer.killingIntent = 1.0;
+      killer.age = 24;
+      killer.resources = 100;
+      victim.resources = 0;
+      victim.constitution = 1;
+      sim.add(killer);
+      sim.add(victim);
+
+      killer.killHappinessBoost = Variables.KILL_HAPPINESS_MAX - 0.1;
+
+      // rng: attempt=0, getRandomOther=0, success=0, detection=0.99
+      let callCount = 0;
+      const rng = () => { callCount++; if (callCount === 4) return 0.99; return 0; };
+      new KillEvent(rng).execute(killer, sim);
+
+      expect(killer.killHappinessBoost).toBeCloseTo(Variables.KILL_HAPPINESS_MAX);
+    });
+  });
 });

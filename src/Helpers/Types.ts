@@ -13,6 +13,7 @@ export const OVERRIDABLE_FIELDS = [
   'stealingIntent',
   'lyingIntent',
   'killingIntent',
+  'helpingIntent',
 ] as const;
 
 export type OverridableField = typeof OVERRIDABLE_FIELDS[number];

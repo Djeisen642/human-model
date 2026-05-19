@@ -14,10 +14,6 @@ The model can't answer collapse vs. thriving without these, or has a known bug s
 
 ### Mechanics
 
-**Voluntary cooperation / helping event**
-The current event set is extractive or destructive. `helpsPeople` exists but no event uses it. Without positive-sum interactions, the model can only show decline, not thriving.
-
-
 **Long-term environmental drift**
 `naturalResourceCeiling` only grows (via invention); the pool always regenerates back to ceiling × fraction. Tainter/Diamond collapse hinges on declining carrying capacity (soil exhaustion, climate shift). Options: ceiling drifts down stochastically, decays with cumulative extraction, or `NATURAL_RESOURCE_REGEN_FRACTION` itself drifts.
 

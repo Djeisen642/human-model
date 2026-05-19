@@ -1,5 +1,6 @@
 import LooperSingleton from '../../App/LooperSingleton';
 import Person from '../../App/Person';
+import Variables from '../../Helpers/Variables';
 
 const silent = () => {};
 
@@ -113,6 +114,44 @@ describe('LooperSingleton', () => {
       const living = [person];
       for (const p of living) { if (p.jailedTicksRemaining > 0) p.jailedTicksRemaining--; }
       expect(person.jailedTicksRemaining).toBe(0);
+    });
+  });
+
+  describe('happiness boost decay (ARD 046)', () => {
+    it('helpHappinessBoost decreases by HELP_HAPPINESS_DECAY each tick', () => {
+      const person = new Person([]);
+      person.helpHappinessBoost = Variables.HELP_HAPPINESS_BOOST;
+
+      person.helpHappinessBoost = Math.max(0, person.helpHappinessBoost - Variables.HELP_HAPPINESS_DECAY);
+      expect(person.helpHappinessBoost).toBeCloseTo(
+        Variables.HELP_HAPPINESS_BOOST - Variables.HELP_HAPPINESS_DECAY,
+      );
+    });
+
+    it('helpHappinessBoost never goes below 0', () => {
+      const person = new Person([]);
+      person.helpHappinessBoost = 0;
+
+      person.helpHappinessBoost = Math.max(0, person.helpHappinessBoost - Variables.HELP_HAPPINESS_DECAY);
+      expect(person.helpHappinessBoost).toBe(0);
+    });
+
+    it('killHappinessBoost decreases by KILL_HAPPINESS_DECAY each tick', () => {
+      const person = new Person([]);
+      person.killHappinessBoost = Variables.KILL_HAPPINESS_BOOST;
+
+      person.killHappinessBoost = Math.max(0, person.killHappinessBoost - Variables.KILL_HAPPINESS_DECAY);
+      expect(person.killHappinessBoost).toBeCloseTo(
+        Variables.KILL_HAPPINESS_BOOST - Variables.KILL_HAPPINESS_DECAY,
+      );
+    });
+
+    it('killHappinessBoost never goes below 0', () => {
+      const person = new Person([]);
+      person.killHappinessBoost = 0;
+
+      person.killHappinessBoost = Math.max(0, person.killHappinessBoost - Variables.KILL_HAPPINESS_DECAY);
+      expect(person.killHappinessBoost).toBe(0);
     });
   });
 });

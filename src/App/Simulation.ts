@@ -242,7 +242,8 @@ export default class Simulation {
    * Default ranges: age [15, 50), resources [0, 100), experience [0, age],
    * intelligence/constitution/charisma [1, 10],
    * learningIntent/exerciseIntent [0, 1),
-   * stealingIntent/lyingIntent [0, 0.3), killingIntent [0, 0.1).
+   * stealingIntent/lyingIntent [0, 0.3), killingIntent [0, 0.1),
+   * helpingIntent [0, 0.5) — higher ceiling than antisocial intents (ARD 045).
    *
    * When `personTypes` is supplied, `floor(n * percentage)` persons are assigned
    * to each declared type; the assignment array is Fisher-Yates shuffled so
@@ -310,6 +311,7 @@ export default class Simulation {
       person.stealingIntent = drawField(rng, 'stealingIntent', ranges, 0, 0.3);
       person.lyingIntent = drawField(rng, 'lyingIntent', ranges, 0, 0.3);
       person.killingIntent = drawField(rng, 'killingIntent', ranges, 0, 0.1);
+      person.helpingIntent = drawField(rng, 'helpingIntent', ranges, 0, 0.5);
       this.add(person);
     }
   }

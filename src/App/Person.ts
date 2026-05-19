@@ -28,8 +28,14 @@ export default class Person {
   stealingIntent = 0;
   lyingIntent = 0;
   killingIntent = 0;
+  /** Probability gate for HelpEvent; seeded higher than antisocial intents. See ARD 045. */
+  helpingIntent = 0;
   /** Ticks remaining in current jail sentence; 0 means free. Decremented by LooperSingleton each tick before EventFactory. See ARD 035. */
   jailedTicksRemaining = 0;
+  /** Transient happiness boost from a recent successful help; decays each tick. See ARD 046. */
+  helpHappinessBoost = 0;
+  /** Transient happiness boost from a recent confirmed kill; decays each tick. See ARD 046. */
+  killHappinessBoost = 0;
 
   /**
    * Person Constructor
@@ -64,7 +70,8 @@ export default class Person {
   }
 
   /**
-   * Happiness score computed from job, resources, relationship status, age, and health.
+   * Happiness score computed from job, resources, relationship status, age, health,
+   * and transient boosts from recent helping or killing (ARD 046).
    * Children under 18 use parents' average resources; elderly over 65 face higher thresholds.
    * Job penalty only applies to working-age adults (18–65). Floor is 0.
    *
@@ -101,6 +108,9 @@ export default class Person {
 
     // Health: illness in [0, 1]; 0 = healthy, 1 = very ill
     happiness -= Math.round(this.illness * 5);
+
+    // Transient boosts from recent helping and killing; both decay to zero over time
+    happiness += this.helpHappinessBoost + this.killHappinessBoost;
 
     return Math.max(0, happiness);
   }

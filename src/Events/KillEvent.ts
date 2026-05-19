@@ -23,7 +23,8 @@ export default class KillEvent implements IEvent {
    * No-op if no other person exists or the attempt roll fails.
    * Rolls: attempt (killingIntent × ageModifier × Gini boost × happiness pressure),
    * then success (KILL_SUCCESS_BASE / victim.constitution).
-   * On success: delegates to simulation.kill(), then runs detection check.
+   * On success: delegates to simulation.kill(), sets killHappinessBoost (ARD 046),
+   * then runs detection check.
    *
    * @param person - the potential killer
    * @param simulation - current simulation state
@@ -50,6 +51,11 @@ export default class KillEvent implements IEvent {
     const successProb = Variables.KILL_SUCCESS_BASE / Math.max(1, victim.constitution);
     if (this.rng() < successProb) {
       simulation.kill(victim, Constants.CAUSE_OF_DEATH.MURDER, person);
+
+      person.killHappinessBoost = Math.min(
+        person.killHappinessBoost + Variables.KILL_HAPPINESS_BOOST,
+        Variables.KILL_HAPPINESS_MAX,
+      );
 
       const priorCrimes = person.amountStolen.length + person.killed.size;
       const detectProb = Variables.BASE_DETECT_RATE_KILL
