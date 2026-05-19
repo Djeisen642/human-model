@@ -119,27 +119,13 @@ Cognitive cap on stable relationships (~150 in the original argument). Distinct 
 
 Considered and rejected without rising to ARD-level discussion. Each entry: name, date dropped, one-sentence reason. Decisions formal enough to merit an ARD belong in `docs/decisions/` instead.
 
-**Education payoff on stats** — 2026-05-16 — Implemented: ARD 021 (intelligence +1 at graduation) and ARD 022 (education multiplier on job-gain probability).
-
 **Seeding strategy as experimental variable** — 2026-05-17 — Subsumed by ARD 030 (`simulation.personTypes` config with per-type stat ranges and percentage quotas).
-
-**Profile-based population seeding** — 2026-05-17 — Implemented: ARD 030 (config-driven `simulation.personTypes` with predicate-based classification at end-of-run). Catalog of recommended archetypes in `docs/research-character-types.md`.
-
-**Extinction as a distinct outcome label** — 2026-05-17 — Implemented: ARD 031 (`EXTINCTION` outcome added to `classifyOutcome`; `Extinct as of Yr NNN` callout in the end report).
-
-**Partial-decade summary at run end** — 2026-05-17 — Implemented: ARD 031 (`LooperSingleton` appends a partial `TenYearSummary` to `decadeHistory` after the loop when `ticks % 10 !== 0`).
-
-**Redistribution pool (tax + estate)** — 2026-05-17 — Tax + welfare distribution implemented as ARD 034 (flat `TAX_RATE`, orphan and poverty eligibility, 20% reserve); estate taxation remains a future idea under "Resource inheritance on death."
 
 **Altruistic punishment (Fehr & Gächter)** — 2026-05-17 — Superseded by ARD 035 jail system, which provides community-level retribution without requiring individual resource expenditure.
 
 **Strain theory: aspiration–means gap (Agnew)** — 2026-05-17 — Subsumed by ARD 036 resource-pressure situational multiplier on steal probability, which implements the core strain-theory mechanism (scarcity → elevated theft likelihood) without requiring a cohort-median reference class.
 
-**Newborn initial stat seeding** — 2026-05-17 — Implemented: ARD 037 (`ChildbirthEvent` seeds child stats/intents via parental heritability — stats regress toward population mean, intents regress toward zero).
-
 **Intergenerational transmission of intents (Bandura)** — 2026-05-17 — Subsumed by ARD 037 (parental-mean regression with separate stat and intent coefficients implements the heritability and social-learning channels in one mechanism).
-
-**Resource consumption / cost of living** — 2026-05-17 — Implemented: ARD 024 (`ConsumptionEvent` with age-scaled costs, child subsidy via living parents, starvation→illness at zero resources).
 
 **Reputation / trust effects** — 2026-05-17 — Consolidated into "Generalized trust as a per-person stat (Putnam)" in Very useful; the two entries described the same feedback loop with different framings.
 
