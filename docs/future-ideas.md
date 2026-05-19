@@ -8,26 +8,34 @@ Items are grouped by priority — a working judgment, not a commitment. Promote,
 
 ---
 
-## Very useful
+## High priority
 
-Sharpens the collapse/thrive signal or experimental setup, but the model can produce defensible results without it.
+Known correctness issues that can produce degenerate outcomes — runaway values, thrive-lock, or collapse-lock — before the collapse/thrive signal has time to develop. Should be addressed before drawing conclusions from long runs.
 
 ### Mechanics
 
 **Stat caps and age-based decay**
 `constitution` and `intelligence` only increment. A 90-year-old who exercised yearly has runaway constitution, and `DisasterEvent` divides by it — making lifelong exercisers near-immortal. Need caps and probably age-based decay reinforcing the U-shaped mortality curve.
 
-**Long-term environmental drift**
-`naturalResourceCeiling` only grows (via invention); the pool always regenerates back to ceiling × fraction. Tainter/Diamond collapse hinges on declining carrying capacity (soil exhaustion, climate shift). Options: ceiling drifts down stochastically, decays with cumulative extraction, or `NATURAL_RESOURCE_REGEN_FRACTION` itself drifts.
-
 **InventionEvent: unbounded extractionProductivity upper end**
-The depletion-faster branch multiplies `extractionProductivity` with no cap. With `intelligence=10` (`delta=0.5`), a few sequential inventions push productivity high enough to drain the pool in a handful of ticks, collapsing the simulation rapidly regardless of other factors. Needs a `MAX_EXTRACTION_PRODUCTIVITY` constant or a diminishing-returns multiplier.
+The depletion-faster branch multiplies `extractionProductivity` with no cap. With `intelligence=10` (`delta=0.5`), a few sequential inventions push productivity high enough to drain the pool in a handful of ticks, collapsing the simulation regardless of other factors. Needs a `MAX_EXTRACTION_PRODUCTIVITY` constant or a diminishing-returns multiplier.
 
 **InventionEvent: unbounded ceiling growth (thrive-lock)**
-Repeated ceiling-growth inventions compound — `ceiling *= (1 + delta)` effectively. After ARD 043 ceiling growth also drives regen, so runaway ceiling can permanently eliminate scarcity. A `MAX_NATURAL_RESOURCE_CEILING` cap or diminishing-returns multiplier on ceiling growth would preserve the collapse-via-depletion pathway.
+Repeated ceiling-growth inventions compound — `ceiling *= (1 + delta)` effectively. After ARD 043 ceiling growth also drives regen, so runaway ceiling can permanently eliminate scarcity. A `MAX_NATURAL_RESOURCE_CEILING` cap or diminishing-returns multiplier would preserve the collapse-via-depletion pathway.
 
 **InventionEvent: asymmetric faster/slower compounding**
-After N faster and N slower outcomes, `efficiency * (1+d)^N * (1-d)^N = efficiency * (1-d²)^N`. Paired outcomes don't cancel — efficiency drifts toward 0.01 over time. At equal weights this creates a slow resource-saving bias that wasn't in ARD 007. May be desirable (civilization learns to use less) or unintended; worth a deliberate decision.
+After N faster and N slower outcomes, `efficiency * (1+d)^N * (1-d)^N = efficiency * (1-d²)^N`. Paired outcomes don't cancel — efficiency drifts toward 0.01 over time. Creates a slow resource-saving bias that wasn't in ARD 007; may be desirable or unintended, but should be a deliberate choice.
+
+---
+
+## Very useful
+
+Sharpens the collapse/thrive signal or experimental setup, but does not cause degenerate outcomes on its own.
+
+### Mechanics
+
+**Long-term environmental drift**
+`naturalResourceCeiling` only grows (via invention); the pool always regenerates back to ceiling × fraction. Tainter/Diamond collapse hinges on declining carrying capacity (soil exhaustion, climate shift). Options: ceiling drifts down stochastically, decays with cumulative extraction, or `NATURAL_RESOURCE_REGEN_FRACTION` itself drifts.
 
 **Termination conditions**
 Currently a fixed tick count. Worth adding: population=0 (already fires EXTINCTION but doesn't halt early), collapse-detected (Gini threshold + declining population over N ticks), or a flag to halt when outcome is determined rather than running to the end.
