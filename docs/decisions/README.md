@@ -154,3 +154,4 @@ When in doubt:
 | [042](./042-estate-inheritance-split.md) | Estate Inheritance Split On Death | Accepted |
 | [043](./043-regen-coupled-to-ceiling.md) | Natural Resource Regeneration Coupled To Ceiling | Accepted |
 | [044](./044-initial-natural-resources-constant.md) | Separate Initial Natural Resources Constant | Accepted |
+| [045](./045-help-event.md) | HelpEvent — Voluntary Resource Transfer | Proposed |
