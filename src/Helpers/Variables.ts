@@ -249,10 +249,6 @@ export default class Variables {
   static INVENTION_AGE_SCALE = 45;
   static INVENTION_AGE_FLOOR = 0.1;
 
-  static LYING_PEAK_AGE = 32;
-  static LYING_AGE_SCALE = 40;
-  static LYING_AGE_FLOOR = 0.1;
-
   static GRADUATION_PEAK_AGE = 22;
   static GRADUATION_AGE_SCALE = 30;
   static GRADUATION_AGE_FLOOR = 0.15;
