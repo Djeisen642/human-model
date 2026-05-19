@@ -148,6 +148,28 @@ export default class Variables {
   /** Probability of a fatal outcome when victim has constitution=1; divided by victim.constitution at execution time. */
   static KILL_SUCCESS_BASE = 0.5;
 
+  // HelpEvent constants (ARD 045)
+  /** Scales charisma into help probability above intent alone; same magnitude as STEAL_CHARISMA_SCALAR for symmetric treatment. */
+  static HELP_CHARISMA_SCALAR = 0.05;
+  /** Fraction of helper's resources given per event; calibrated symmetric with STEAL_FRACTION so a single help offsets roughly one steal. */
+  static HELP_FRACTION = 0.1;
+  /** Hard ceiling on a single transfer; prevents destabilising wealth movements from very wealthy helpers. */
+  static HELP_MAX_AMOUNT = 10;
+
+  // Transient happiness boosts (ARD 046)
+  /** Happiness added per successful help; modest warm-glow signal. */
+  static HELP_HAPPINESS_BOOST = 2;
+  /** Maximum accumulated help boost; caps at roughly the job-employment bonus. */
+  static HELP_HAPPINESS_MAX = 5;
+  /** Happiness subtracted from help boost each tick; controls warm-glow duration (boost / decay = ticks). */
+  static HELP_HAPPINESS_DECAY = 0.5;
+  /** Happiness added per confirmed kill; stronger immediate signal than helping. */
+  static KILL_HAPPINESS_BOOST = 3;
+  /** Maximum accumulated kill boost; same ceiling as help boost. */
+  static KILL_HAPPINESS_MAX = 5;
+  /** Happiness subtracted from kill boost each tick; decays faster than help to reflect brief arousal. */
+  static KILL_HAPPINESS_DECAY = 1.0;
+
   // StealEvent constants (ARD 026)
   /** Scales charisma into steal probability; small so zero-charisma persons can still steal. Charisma range 1–10 adds 5–50% above intent alone. */
   static STEAL_CHARISMA_SCALAR = 0.05;
@@ -248,6 +270,10 @@ export default class Variables {
   static INVENTION_PEAK_AGE = 40;
   static INVENTION_AGE_SCALE = 45;
   static INVENTION_AGE_FLOOR = 0.1;
+
+  static HELP_PEAK_AGE = 40;
+  static HELP_AGE_SCALE = 40;
+  static HELP_AGE_FLOOR = 0.1;
 
   static GRADUATION_PEAK_AGE = 22;
   static GRADUATION_AGE_SCALE = 30;

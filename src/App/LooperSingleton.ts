@@ -3,6 +3,7 @@ import SeededRandom from '../Helpers/SeededRandom';
 import EventFactory from '../Events/EventFactory';
 import DisasterEvent from '../Events/DisasterEvent';
 import { buildTenYearSummary, formatDecadeSummary, formatSimulationHeader } from '../Helpers/Reporters';
+import Variables from '../Helpers/Variables';
 import { PersonTypes, RNG } from '../Helpers/Types';
 
 export default class LooperSingleton {
@@ -43,6 +44,8 @@ export default class LooperSingleton {
       simulation.collectTax(living);
       for (const person of living) {
         if (person.jailedTicksRemaining > 0) person.jailedTicksRemaining--;
+        person.helpHappinessBoost = Math.max(0, person.helpHappinessBoost - Variables.HELP_HAPPINESS_DECAY);
+        person.killHappinessBoost = Math.max(0, person.killHappinessBoost - Variables.KILL_HAPPINESS_DECAY);
       }
       for (const person of living) {
         for (const event of factory.getEventsFor(person)) {

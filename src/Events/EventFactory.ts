@@ -13,6 +13,7 @@ import GraduationEvent from './GraduationEvent';
 import EnrollmentEvent from './EnrollmentEvent';
 import RelationshipEvent from './RelationshipEvent';
 import ChildbirthEvent from './ChildbirthEvent';
+import HelpEvent from './HelpEvent';
 import StealEvent from './StealEvent';
 import KillEvent from './KillEvent';
 import WindfallEvent from './WindfallEvent';
@@ -39,7 +40,8 @@ export default class EventFactory {
    * Jailed persons receive only [AgeEvent, IllnessEvent, JailEvent].
    * Free persons: unconditional order AgeEvent → ExperienceEvent → IllnessEvent →
    * GatherResourcesEvent → ConsumptionEvent → JobEvent → RelationshipEvent →
-   * KillEvent → MisfortuneEvent, plus intent-gated events appended after.
+   * KillEvent → MisfortuneEvent, plus intent-gated events appended after
+   * (HelpEvent, ExerciseEvent, LearnEvent, StealEvent and others).
    *
    * @param person - person whose intents determine event selection
    * @returns events to execute for this tick
@@ -98,6 +100,13 @@ export default class EventFactory {
       * person.intelligence
       * ageModifier(person.age, Variables.INVENTION_PEAK_AGE, Variables.INVENTION_AGE_SCALE, Variables.INVENTION_AGE_FLOOR)) {
       events.push(new InventionEvent(this.rng));
+    }
+
+    const helpProb = person.helpingIntent
+      * (1 + person.charisma * Variables.HELP_CHARISMA_SCALAR)
+      * ageModifier(person.age, Variables.HELP_PEAK_AGE, Variables.HELP_AGE_SCALE, Variables.HELP_AGE_FLOOR);
+    if (this.rng() < helpProb) {
+      events.push(new HelpEvent(this.rng));
     }
 
     const resourcePressure = Math.max(
