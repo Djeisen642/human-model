@@ -1,6 +1,6 @@
 # ARD 045: HelpEvent — Voluntary Resource Transfer
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-19
 
 ## Context
@@ -14,7 +14,7 @@ Add `HelpEvent` (implements `IEvent`), intent-gated in `EventFactory`. The helpe
 **New field on `Person`:**
 
 ```typescript
-helpingIntent = 0; // seeded to [0, 0.5) in Simulation.seed()
+helpingIntent = 0; // seeded in Simulation.seed() alongside other intents
 ```
 
 `helpsPeople` (`TYPE_OF_HELP` enum) is left unchanged — it encodes a future *type* of help specialisation (medical, educational, etc.) that is out of scope here.
@@ -58,9 +58,9 @@ Target is drawn by `getRandomOther` (existing method). If the drawn target holds
 | `HELP_AGE_SCALE` | Controls how steeply helping falls off from peak age |
 | `HELP_AGE_FLOOR` | Minimum age modifier; elderly persons still help, just less often |
 
-**Calibration intent:** At median `helpingIntent` (~0.25) and median charisma (~5), gate probability at peak age should produce a help event roughly every three to five ticks — frequent enough that `helpingIntent` is a meaningful counter-force to `stealingIntent`, infrequent enough that a helper is not systematically drained. `HELP_FRACTION` and `HELP_MAX_AMOUNT` should be calibrated so a typical transfer offsets roughly one tick of gathering disadvantage for the recipient, symmetric with `StealEvent`'s calibration intent (ARD 026).
+**Calibration intent:** At median `helpingIntent` and median charisma, gate probability at peak age should produce a help event roughly every three to five ticks — frequent enough that `helpingIntent` is a meaningful counter-force to `stealingIntent`, infrequent enough that a helper is not systematically drained. `HELP_FRACTION` and `HELP_MAX_AMOUNT` should be calibrated so a typical transfer offsets roughly one tick of gathering disadvantage for the recipient, symmetric with `StealEvent`'s calibration intent (ARD 026).
 
-**Seeding range:** `helpingIntent` seeded to `[0, 0.5)` — higher ceiling than `stealingIntent` `[0, 0.3)` and `killingIntent` `[0, 0.1)` to reflect that generosity is more common in real populations than theft or violence.
+**Seeding range:** `helpingIntent` should be seeded to a range with a higher ceiling than the antisocial intent fields (`stealingIntent`, `killingIntent`), reflecting that generosity is more prevalent in real populations than theft or violence. The exact range is a calibration placeholder in `Simulation.seed()`.
 
 ## Reasoning
 
@@ -75,7 +75,7 @@ Target is drawn by `getRandomOther` (existing method). If the drawn target holds
 ## Consequences
 
 - `src/App/Person.ts` — add `helpingIntent = 0` field
-- `src/App/Simulation.ts` — seed `helpingIntent` to `[0, 0.5)` in `seed()`, alongside other intents
+- `src/App/Simulation.ts` — seed `helpingIntent` in `seed()` alongside other intents, with a higher ceiling than the antisocial intent fields
 - `src/Events/HelpEvent.ts` — new file implementing `IEvent`; takes `rng` in constructor
 - `src/Events/EventFactory.ts` — add intent gate for `HelpEvent` using `helpingIntent`, charisma multiplier, and help age profile; wire unconditionally (like `StealEvent`, fired when gate passes)
 - `src/Helpers/Variables.ts` — add `HELP_CHARISMA_SCALAR`, `HELP_FRACTION`, `HELP_MAX_AMOUNT`, `HELP_PEAK_AGE`, `HELP_AGE_SCALE`, `HELP_AGE_FLOOR`

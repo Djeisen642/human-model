@@ -154,5 +154,5 @@ When in doubt:
 | [042](./042-estate-inheritance-split.md) | Estate Inheritance Split On Death | Accepted |
 | [043](./043-regen-coupled-to-ceiling.md) | Natural Resource Regeneration Coupled To Ceiling | Accepted |
 | [044](./044-initial-natural-resources-constant.md) | Separate Initial Natural Resources Constant | Accepted |
-| [045](./045-help-event.md) | HelpEvent — Voluntary Resource Transfer | Proposed |
-| [046](./046-transient-happiness-boosts.md) | Transient Happiness Boosts from Helping and Killing | Proposed |
+| [045](./045-help-event.md) | HelpEvent — Voluntary Resource Transfer | Accepted |
+| [046](./046-transient-happiness-boosts.md) | Transient Happiness Boosts from Helping and Killing | Accepted |

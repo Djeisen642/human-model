@@ -1,6 +1,6 @@
 # ARD 046: Transient Happiness Boosts from Helping and Killing
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-19
 
 ## Context
