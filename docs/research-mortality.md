@@ -1,4 +1,4 @@
-# Research: Mortality Model (Suicide, Illness, and the Missing Natural-Death Path)
+# Research: Mortality Model (Suicide, Illness, and Absent Old-Age Mortality)
 
 Gathered to assess whether the death mechanics encoded in ARD 013 → ARD 019 (suicide),
 ARD 018 (illness as live state), and the `CAUSE_OF_DEATH` enum are calibrated to anything
@@ -115,12 +115,23 @@ These are calibration/structure recommendations, not a spec — each non-obvious
 own ARD (suicide recalibration supersedes the suicide branch lineage; a natural-death path is a
 new mechanic and enum value).
 
-1. **Add a baseline age-driven natural-death path (highest value).** Introduce
-   `CAUSE_OF_DEATH.NATURAL` (or `OLD_AGE`) and a Gompertz-style baseline:
-   `naturalDeathProb = BASE_NATURAL_MORTALITY * person.ageMortalityModifier`, calibrated so that
-   q(x) at ages 65/80/90 lands near the SSA values above. This gives the elderly a realistic
-   exit that is *not* suicide and lets the age curve (ARD 008) finally do its job. Without it,
-   any reduction in suicide just makes the population immortal.
+1. **Make illness the age-mortality channel (highest value) — do not add a separate "natural"
+   cause.** "Old age" / "natural causes" is not a real distinct cause of death: WHO ICD guidance
+   discourages it, and age-related death is overwhelmingly *disease-mediated* — aging raises the
+   incidence and severity of the illnesses that actually kill (heart disease, cancer, infection,
+   organ failure). The model already has the correct, age-shaped channel —
+   `illnessDeathProb = illness * ILLNESS_DEATH_SCALAR * ageMortalityModifier` — it simply never
+   fires because illness never accumulates. Fix the onset/recovery balance so chronic illness
+   builds up in the old (raise `BASE_ILLNESS_ONSET` and/or make `BASE_ILLNESS_RECOVERY` decay
+   with age), calibrated so the resulting illness-death q(x) at ages 65/80/90 lands near the SSA
+   values above. This gives the elderly a realistic, disease-mediated exit through the existing
+   channel — no new `CAUSE_OF_DEATH.NATURAL` and no parallel mortality formula to calibrate
+   against illness.
+
+   *(A genuine senescence/frailty residual does exist at extreme ages — multi-system decline
+   with no single dominant disease — but it is a small share concentrated at 90+ and is better
+   folded into illness, e.g. recovery decaying toward zero in the very old, than modeled as a
+   separate death path.)*
 
 2. **Recalibrate `SUICIDE_PROBABILITY_SCALE` down by ~1–2 orders of magnitude.** Target: at
    *typical* happiness (~6) the rate should be in the ~0.01–0.05%/yr band (a few × the global
@@ -130,24 +141,18 @@ new mechanic and enum value).
    meaningfully below some happiness floor) rather than the current `1/(h+1)` curve, which
    assigns nontrivial risk to everyone.
 
-3. **Re-tune illness so it can carry disease mortality once suicide stops masking it.** Either
-   raise `BASE_ILLNESS_ONSET` / lower `BASE_ILLNESS_RECOVERY`, or make recovery age-decaying, so
-   that chronic illness actually accumulates in the old. Target: with suicide reduced, illness +
-   natural death together should reproduce a plausible cause-of-death split (disease the plurality,
-   suicide ~1–2%, homicide a small share, disaster episodic).
-
-4. **Validation target.** After recalibration, a healthy ("STABLE"/"THRIVING") run should show a
-   cause-of-death mix in the rough ballpark of: natural/illness ≫ suicide, suicide ~1–3% of
-   deaths, homicide a few %, with population dynamics now responding to Gini and pool health
-   rather than to the happiness→suicide curve. Re-run the seed sweep above and confirm suicide
-   share drops from ~80% to single digits.
+3. **Validation target.** After recalibration, a healthy ("STABLE"/"THRIVING") run should show a
+   cause-of-death mix in the rough ballpark of: illness ≫ suicide, suicide ~1–3% of deaths,
+   homicide a few %, disaster episodic — with the age-modified illness channel doing the heavy
+   lifting in old age, and population dynamics now responding to Gini and pool health rather than
+   to the happiness→suicide curve. Re-run the seed sweep above and confirm suicide share drops
+   from ~80% to single digits.
 
 ## Suggested constants for the ARDs
 
 | Constant | Current | Suggested direction | Rationale |
 |---|---|---|---|
 | `SUICIDE_PROBABILITY_SCALE` | 0.03 | ~0.0003–0.001 | Bring happiness≈6 rate to ~0.01–0.05%/yr; cap happiness=0 at ≤~1%/yr |
-| `BASE_NATURAL_MORTALITY` | — (new) | tune to SSA q(x) | Gives a non-suicide old-age exit; lets `ageMortalityModifier` drive deaths |
-| `BASE_ILLNESS_ONSET` | 0.05 | raise, or age-scale recovery | Let chronic illness accumulate in the old once suicide no longer masks it |
-| `BASE_ILLNESS_RECOVERY` | 0.40 | lower / age-decay | Same; current 8–17× dominance over onset keeps illness near zero |
-| `ILLNESS_DEATH_SCALAR` | 0.08 | re-tune after onset/recovery | Severity→death conversion, meaningful only once illness can accumulate |
+| `BASE_ILLNESS_ONSET` | 0.05 | raise, or age-scale recovery | Let chronic illness accumulate in the old so the age-modified illness channel carries old-age mortality |
+| `BASE_ILLNESS_RECOVERY` | 0.40 | lower / age-decay | Current 8–17× dominance over onset keeps illness near zero; age-decaying recovery also absorbs the frailty residual |
+| `ILLNESS_DEATH_SCALAR` | 0.08 | re-tune after onset/recovery | Severity→death conversion (already × `ageMortalityModifier`); meaningful only once illness can accumulate |
