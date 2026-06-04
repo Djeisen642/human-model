@@ -66,8 +66,8 @@ One shared environment object. No spatial structure; all agent interactions are 
 | Variable | Type | Description |
 |---|---|---|
 | `naturalResources` | number | Current extractable pool |
-| `naturalResourceCeiling` | number | Maximum pool size (can grow via InventionEvent) |
-| `extractionProductivity` | number | Multiplier on gather output and pool drain (≥ `EXTRACTION_PRODUCTIVITY_FLOOR`; modified by InventionEvent; ARD 039) |
+| `naturalResourceCeiling` | number | Maximum pool size (can grow via InventionEvent, capped at `MAX_NATURAL_RESOURCE_CEILING`; ARD 047) |
+| `extractionProductivity` | number | Multiplier on gather output and pool drain, bounded to `[EXTRACTION_PRODUCTIVITY_FLOOR, MAX_EXTRACTION_PRODUCTIVITY]`; modified by InventionEvent; ARD 039, ARD 047 |
 | `communityPool` | number | Tax/forfeiture/estate fund; pays welfare and prisoner gather (ARD 034, 041, 042) |
 | `living` | Person[] | Agents currently alive |
 | `deceased` | Person[] | Agents who have died (retained for record-keeping) |
@@ -296,13 +296,13 @@ Replaces the normal gather/consume cycle for agents with `jailedTicksRemaining >
 Probability gate at factory: `prob = BASE_WINDFALL_RATE × ageModifier(58, 20, 0.05)`.
 `drawn = WINDFALL_BASE_AMOUNT + rng() × WINDFALL_VARIANCE`; `granted = min(drawn, naturalResources)` is debited from the pool and credited to `person.resources`. When the pool is empty, the windfall yields 0.
 
-#### InventionEvent (ARD 007, ARD 039)
+#### InventionEvent (ARD 007, ARD 039, ARD 047)
 Gate: `prob = BASE_INVENTION_RATE × intelligence × ageModifier(40, 45, 0.1)`.
 Weighted random draw — one of three outcomes:
-- Depletion-faster (tech boom): `extractionProductivity *= 1 + delta`
-- Depletion-slower (austerity tech): `extractionProductivity *= 1 - delta`
-- Ceiling-growth: `naturalResourceCeiling += delta × ceiling`
-`delta = intelligence × INVENTION_MAGNITUDE_SCALAR`; `extractionProductivity` floored at `EXTRACTION_PRODUCTIVITY_FLOOR`.
+- Depletion-faster (tech boom): `extractionProductivity *= 1 + delta`, clamped at `MAX_EXTRACTION_PRODUCTIVITY`
+- Depletion-slower (austerity tech): `extractionProductivity /= 1 + delta` (exact inverse of faster, so a faster/slower pair cancels — no toward-floor drift), floored at `EXTRACTION_PRODUCTIVITY_FLOOR`
+- Ceiling-growth: `naturalResourceCeiling += delta × ceiling`, clamped at `MAX_NATURAL_RESOURCE_CEILING`
+`delta = intelligence × INVENTION_MAGNITUDE_SCALAR`. Productivity is a bounded multiplicative random walk on `[EXTRACTION_PRODUCTIVITY_FLOOR, MAX_EXTRACTION_PRODUCTIVITY]` (ARD 047).
 
 #### Simulation.kill — estate distribution (ARD 042)
 On any death, before clearing partner reference or filtering `living`:

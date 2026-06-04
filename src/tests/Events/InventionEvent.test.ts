@@ -171,6 +171,58 @@ describe('InventionEvent', () => {
     });
   });
 
+  describe('bounds and symmetry (ARD 047)', () => {
+    it('faster branch never exceeds MAX_EXTRACTION_PRODUCTIVITY', () => {
+      const sim = new Simulation();
+      const person = new Person([]);
+      person.intelligence = 10;
+      sim.add(person);
+      sim.extractionProductivity = Variables.MAX_EXTRACTION_PRODUCTIVITY;
+
+      new InventionEvent(() => 0).execute(person, sim);
+
+      expect(sim.extractionProductivity).toBe(Variables.MAX_EXTRACTION_PRODUCTIVITY);
+    });
+
+    it('faster branch clamps an over-cap result down to MAX_EXTRACTION_PRODUCTIVITY', () => {
+      const sim = new Simulation();
+      const person = new Person([]);
+      person.intelligence = 10;
+      sim.add(person);
+      sim.extractionProductivity = Variables.MAX_EXTRACTION_PRODUCTIVITY - 0.001;
+
+      new InventionEvent(() => 0).execute(person, sim);
+
+      expect(sim.extractionProductivity).toBeLessThanOrEqual(Variables.MAX_EXTRACTION_PRODUCTIVITY);
+    });
+
+    it('ceiling branch never exceeds MAX_NATURAL_RESOURCE_CEILING', () => {
+      const sim = new Simulation();
+      const person = new Person([]);
+      person.intelligence = 10;
+      sim.add(person);
+      sim.naturalResourceCeiling = Variables.MAX_NATURAL_RESOURCE_CEILING;
+
+      new InventionEvent(() => 0.99).execute(person, sim);
+
+      expect(sim.naturalResourceCeiling).toBe(Variables.MAX_NATURAL_RESOURCE_CEILING);
+    });
+
+    it('a faster invention followed by a slower one with the same delta cancels exactly', () => {
+      const sim = new Simulation();
+      const person = new Person([]);
+      person.intelligence = 5;
+      sim.add(person);
+      const before = sim.extractionProductivity;
+
+      const event = new InventionEvent(() => 0); // faster
+      event.execute(person, sim);
+      new InventionEvent(() => 0.3).execute(person, sim); // slower, same delta (intelligence unchanged)
+
+      expect(sim.extractionProductivity).toBeCloseTo(before, 10);
+    });
+  });
+
   describe('outcome weight boundaries', () => {
     it('depletion-faster branch fires at roll just below FASTER_WEIGHT', () => {
       const sim = new Simulation();
