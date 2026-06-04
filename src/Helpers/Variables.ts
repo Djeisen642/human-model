@@ -42,6 +42,20 @@ export default class Variables {
   /** Per-tick base probability of an invention, multiplied by intelligence (1–10) and ageModifier. At intelligence=10, peak age: ~2% per tick. */
   static BASE_INVENTION_RATE = 0.002;
 
+  // StatDecayEvent constants (ARD 048)
+  /** Hard upper bound on constitution; caps ExerciseEvent increments. Calibration intent: high enough that a lifelong exerciser reaches an elevated ceiling; low enough that DisasterEvent and IllnessEvent retain meaningful mortality at any age. */
+  static CONSTITUTION_MAX = 20;
+  /** Age before which constitution decay probability is zero. Physical decline is negligible before this age. */
+  static CONSTITUTION_DECAY_START_AGE = 30;
+  /** Per-tick constitution decay probability per year past CONSTITUTION_DECAY_START_AGE. Calibration intent: ~1% annual at age 50, ~4% at age 70, matching 10–15%/decade (50–70) and 25–40%/decade (70+) from sarcopenia research. */
+  static CONSTITUTION_DECAY_BASE_RATE = 0.001;
+  /** Hard upper bound on intelligence; caps LearnEvent and GraduationEvent increments. Calibration intent: same principle as CONSTITUTION_MAX. */
+  static INTELLIGENCE_MAX = 20;
+  /** Age before which intelligence decay probability is zero. Cognitive decline onset is later than physical. */
+  static INTELLIGENCE_DECAY_START_AGE = 40;
+  /** Per-tick intelligence decay probability per year past INTELLIGENCE_DECAY_START_AGE. Calibration intent: lighter than constitution; ~0.7% annual at age 50, ~2% at age 70, matching ~5%/decade fluid-intelligence decline in midlife studies. */
+  static INTELLIGENCE_DECAY_BASE_RATE = 0.0007;
+
   // IllnessEvent constants (ARD 018)
   /** Onset probability at ageRisk=1, constitution=1. */
   static BASE_ILLNESS_ONSET = 0.05;

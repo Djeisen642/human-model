@@ -32,8 +32,8 @@ Each agent represents one individual. All fields are per-person; collections are
 | `age` | integer | ≥ 0 | Years lived |
 | `resources` | number | ≥ 0 | Accumulated material wealth |
 | `experience` | number | [0, EXPERIENCE_CAP] | Practical knowledge; governs gathering |
-| `intelligence` | integer | ≥ 1 | Cognitive ability; affects learning and invention |
-| `constitution` | integer | ≥ 1 | Physical resilience; affects illness and disaster survival |
+| `intelligence` | integer | [1, INTELLIGENCE_MAX] | Cognitive ability; affects learning and invention; decays with age via StatDecayEvent (ARD 048) |
+| `constitution` | integer | [1, CONSTITUTION_MAX] | Physical resilience; affects illness and disaster survival; decays with age via StatDecayEvent (ARD 048) |
 | `charisma` | integer | ≥ 1 | Social influence; affects jobs, relationships, stealing |
 | `illness` | number | [0, 1] | Current illness severity; 0 = healthy, 1 = critically ill |
 | `happiness` | computed | ≥ 0 | Derived from job, resources, relationship, age, illness |
@@ -102,7 +102,8 @@ Each tick executes in this order:
      1. `AgeEvent`
      2. `IllnessEvent`
      3. `JailEvent` — flat gather/consume replacing normal economy events (ARD 035)
-     4. `MisfortuneEvent`
+     4. `StatDecayEvent` — age-based constitution/intelligence decay (ARD 048)
+     5. `MisfortuneEvent`
    - **If free (`jailedTicksRemaining === 0` when EventFactory is called):**
      1. `AgeEvent` — increments age
      2. `ExperienceEvent` — experience growth/decay (unconditional)
@@ -120,6 +121,7 @@ Each tick executes in this order:
      14. `WindfallEvent` — probability-gated
      15. `InventionEvent` — intelligence-scaled probability gate
      16. `StealEvent` — intent-gated with resource-pressure multiplier (ARD 036); detection + emboldening inside execute() (ARD 035, ARD 036)
+     17. `StatDecayEvent` — always appended last; age-based constitution/intelligence decay (ARD 048)
 6. **`simulation.distributeWelfare(living)`** — distributes `communityPool × (1 − COMMUNITY_POOL_RESERVE_FRACTION)` equally to eligible agents (resources < WELFARE_THRESHOLD or orphaned children); 20% reserve retained (ARD 034).
 7. **`simulation.snapshot()`** — records per-tick aggregate metrics.
 8. **Every 10 ticks:** `buildTenYearSummary()` appended to `decadeHistory`; one-line console summary printed.

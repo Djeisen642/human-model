@@ -1,6 +1,7 @@
 import Person from '../App/Person';
 import Simulation from '../App/Simulation';
 import IEvent from './IEvent';
+import Variables from '../Helpers/Variables';
 
 /** Intent-gated event: studying or learning improves intelligence by 1. */
 export default class LearnEvent implements IEvent {
@@ -12,6 +13,6 @@ export default class LearnEvent implements IEvent {
    */
   execute(person: Person, simulation: Simulation): void {
     void simulation;
-    person.intelligence += 1;
+    person.intelligence = Math.min(Variables.INTELLIGENCE_MAX, person.intelligence + 1);
   }
 }
