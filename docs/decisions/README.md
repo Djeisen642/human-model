@@ -59,9 +59,14 @@ Why is this decision needed now? Ground it in code state — name the
 file or field that's incomplete. Skip generic framing.
 
 ## Decision
-What was chosen. Code example if non-obvious. New constants listed by name
-with one-line rationale. Do not include initial values — values are
-calibration placeholders that live in `Variables.ts`, not in the ARD.
+What was chosen, described in prose. Prefer a plain-language description or
+an inline formula over a code block — an ARD records the decision, not the
+implementation, and code drifts out of date the moment the source changes.
+Include a code snippet only when prose genuinely cannot convey the choice
+(a subtle ordering, a non-obvious data shape); never paste what the diff
+already shows. New constants listed by name with one-line rationale. Do not
+include initial values — values are calibration placeholders that live in
+`Variables.ts`, not in the ARD.
 
 ## Reasoning
 At least one named rejected alternative with one paragraph on why it
@@ -79,6 +84,7 @@ weaknesses. Make it concrete enough that an implementer doesn't guess.
 3. **Constants have rationale.** Explain what the constant controls and how it relates to the decision's intent — not its specific value. Values belong in `Variables.ts`.
 4. **Cross-references are explicit.** Name the ARDs you depend on, modify, or defer to.
 5. **Consequences are testable.** "Tests must cover X, Y, Z" — not "should be tested."
+6. **Prose over code.** Describe mechanics in words or an inline formula; avoid code blocks unless prose genuinely can't capture the choice. The ARD is the durable record of *why* — code blocks duplicate the source and rot when it changes.
 
 ## Exemplars
 
