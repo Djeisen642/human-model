@@ -19,6 +19,7 @@ import KillEvent from './KillEvent';
 import WindfallEvent from './WindfallEvent';
 import InventionEvent from './InventionEvent';
 import JailEvent from './JailEvent';
+import StatDecayEvent from './StatDecayEvent';
 import { ageModifier } from '../Helpers/AgeModifier';
 import Variables from '../Helpers/Variables';
 import Constants from '../Helpers/Constants';
@@ -52,6 +53,7 @@ export default class EventFactory {
         new AgeEvent(),
         new IllnessEvent(this.rng),
         new JailEvent(),
+        new StatDecayEvent(this.rng),
         new MisfortuneEvent(this.rng),
       ];
     }
@@ -120,6 +122,8 @@ export default class EventFactory {
     if (this.rng() < stealProb) {
       events.push(new StealEvent(this.rng));
     }
+
+    events.push(new StatDecayEvent(this.rng));
 
     return events;
   }

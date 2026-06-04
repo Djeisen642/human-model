@@ -1,6 +1,7 @@
 import Person from '../App/Person';
 import Simulation from '../App/Simulation';
 import IEvent from './IEvent';
+import Variables from '../Helpers/Variables';
 
 /** Intent-gated event: physical exercise improves constitution by 1. */
 export default class ExerciseEvent implements IEvent {
@@ -12,6 +13,6 @@ export default class ExerciseEvent implements IEvent {
    */
   execute(person: Person, simulation: Simulation): void {
     void simulation;
-    person.constitution += 1;
+    person.constitution = Math.min(Variables.CONSTITUTION_MAX, person.constitution + 1);
   }
 }

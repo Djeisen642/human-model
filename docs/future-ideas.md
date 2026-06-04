@@ -12,12 +12,7 @@ Items are grouped by priority — a working judgment, not a commitment. Promote,
 
 Known correctness issues that can produce degenerate outcomes — runaway values, thrive-lock, or collapse-lock — before the collapse/thrive signal has time to develop. Should be addressed before drawing conclusions from long runs.
 
-### Mechanics
-
-**Stat caps and age-based decay**
-`constitution` and `intelligence` only increment. A 90-year-old who exercised yearly has runaway constitution, and `DisasterEvent` divides by it — making lifelong exercisers near-immortal. Need caps and probably age-based decay reinforcing the U-shaped mortality curve.
-
-*(The three InventionEvent items previously here — unbounded productivity upper end, unbounded ceiling growth, and asymmetric faster/slower compounding — are resolved by ARD 047: hard caps `MAX_EXTRACTION_PRODUCTIVITY` / `MAX_NATURAL_RESOURCE_CEILING` plus a symmetric `÷ (1+delta)` slower branch.)*
+*(The High priority Mechanics items previously here — stat caps/age-based decay and three InventionEvent items — are resolved by ARD 048 and ARD 047 respectively.)*
 
 ---
 

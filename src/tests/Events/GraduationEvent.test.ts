@@ -41,6 +41,16 @@ describe('GraduationEvent', () => {
       expect(person.intelligence).toBe(6);
     });
 
+    it('does not exceed INTELLIGENCE_MAX on graduation', () => {
+      const person = new Person([]);
+      person.isWorkingOnEd = Constants.EDUCATION.BACHELORS;
+      person.intelligence = Variables.INTELLIGENCE_MAX;
+
+      new GraduationEvent().execute(person, simulation);
+
+      expect(person.intelligence).toBe(Variables.INTELLIGENCE_MAX);
+    });
+
     it('graduates correctly from each education level', () => {
       const levels = [
         Constants.EDUCATION.HIGH_SCHOOL,
