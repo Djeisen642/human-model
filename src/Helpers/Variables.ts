@@ -2,10 +2,10 @@ export default class Variables {
   /** Baseline happiness every person receives regardless of circumstances. Raise if too many persons floor at 0. */
   static HAPPINESS_BASELINE = 0;
 
-  /** Severity scalar for illness death: illnessDeathProb = illness * ILLNESS_DEATH_SCALAR * ageMortalityModifier. Higher than the old ILLNESS constant because typical severity is well below 1. */
-  static ILLNESS_DEATH_SCALAR = 0.08;
-  /** Suicide probability at happiness=0; falls as happiness rises (divided by happiness+1). */
-  static SUICIDE_PROBABILITY_SCALE = 0.03;
+  /** Severity scalar for illness death: illnessDeathProb = illness * ILLNESS_DEATH_SCALAR * ageMortalityModifier. Calibrated (ARD 049) so accumulated old-age illness yields q(x) near SSA life-table values (~5% at 80, ~16% at 90). */
+  static ILLNESS_DEATH_SCALAR = 0.05;
+  /** Suicide probability at happiness=0; falls as happiness rises (divided by happiness+1). Recalibrated down ~2 orders of magnitude (ARD 049) so realistic rates (~0.01–0.05%/yr typical) replace the old suicide-dominated death stream. */
+  static SUICIDE_PROBABILITY_SCALE = 0.0005;
 
   /** Base resources gathered per point of experience, regardless of intelligence. */
   static BASE_GATHER_AMOUNT = 0.05;
@@ -56,17 +56,23 @@ export default class Variables {
   /** Per-tick intelligence decay probability per year past INTELLIGENCE_DECAY_START_AGE. Calibration intent: lighter than constitution; ~0.7% annual at age 50, ~2% at age 70, matching ~5%/decade fluid-intelligence decline in midlife studies. */
   static INTELLIGENCE_DECAY_BASE_RATE = 0.0007;
 
-  // IllnessEvent constants (ARD 018)
-  /** Onset probability at ageRisk=1, constitution=1. */
-  static BASE_ILLNESS_ONSET = 0.05;
-  /** Recovery probability at ageRisk=1, constitution=1. Most minor illnesses heal in a year. */
-  static BASE_ILLNESS_RECOVERY = 0.4;
+  // IllnessEvent constants (ARD 018, recalibrated ARD 049)
+  /** Onset probability at ageRisk=1, constitution=1. Raised (ARD 049) so the onset/recovery balance can flip to net-positive in old age once recovery senesces. */
+  static BASE_ILLNESS_ONSET = 0.2;
+  /** Recovery probability at ageRisk=1, constitution=1. Lowered (ARD 049) from the old 0.4 so healthy adults still clear illness but the elderly accumulate it once senescence applies. */
+  static BASE_ILLNESS_RECOVERY = 0.15;
   /** Severity increase per onset event. Five onsets = fully ill. */
   static ILLNESS_ONSET_AMOUNT = 0.2;
   /** Severity decrease per recovery event. */
   static ILLNESS_RECOVERY_AMOUNT = 0.3;
   /** Divisor for the linear age risk scaler: ageRisk = 1 + age/divisor. Doubles at 30, triples at 60. */
   static ILLNESS_AGE_RISK_DIVISOR = 30;
+  /** Age past which illness recovery capacity begins to decline (senescence). Below it, recovery is unimpaired so acute illness in the young still heals. See ARD 049. */
+  static ILLNESS_RECOVERY_SENESCENCE_START_AGE = 50;
+  /** Per-year linear reduction in the recovery multiplier past the senescence start age; controls how fast healing fails with age. See ARD 049. */
+  static ILLNESS_RECOVERY_SENESCENCE_DECAY = 0.02;
+  /** Minimum recovery multiplier; non-zero so the very old can still occasionally recover (healing weakens, never vanishes). See ARD 049. */
+  static ILLNESS_RECOVERY_SENESCENCE_FLOOR = 0.05;
 
   // ExperienceEvent constants (ARD 017)
   /** Base experience gained per tick regardless of other factors. */

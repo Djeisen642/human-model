@@ -89,11 +89,11 @@ describe('IllnessEvent', () => {
   });
 
   it('higher constitution reduces onset and increases recovery', () => {
-    // age=30, ageRisk=2, rng=0.05 constant:
-    //   Low-con  (1): onsetProb=0.1  → 0.05<0.1  → onset  (+0.2); recoveryProb=0.2  → 0.05<0.2  → recovery (-0.3); net -0.1
-    //   High-con (5): onsetProb=0.02 → 0.05>0.02 → no onset;       recoveryProb=1.0  → 0.05<1.0  → recovery (-0.3); net -0.3
-    // Starting at illness=0.5: low-con ends at 0.4, high-con ends at 0.2 → low-con > high-con ✓
-    const rng = () => 0.05;
+    // age=30 (< senescence start, sen=1), ageRisk=2, rng=0.2 constant:
+    //   Low-con  (1): onsetProb=0.2*2/1=0.4  → 0.2<0.4  → onset  (+0.2); recoveryProb=0.15*1/2=0.075 → 0.2>0.075 → no recovery; net +0.2
+    //   High-con (5): onsetProb=0.2*2/5=0.08 → 0.2>0.08 → no onset;       recoveryProb=0.15*5/2=0.375 → 0.2<0.375 → recovery (-0.3); net -0.3
+    // Starting at illness=0.5: low-con ends at 0.7, high-con ends at 0.2 → low-con > high-con ✓
+    const rng = () => 0.2;
     const lowCon = new Person([]);
     lowCon.age = 30;
     lowCon.constitution = 1;
@@ -108,6 +108,70 @@ describe('IllnessEvent', () => {
     new IllnessEvent(rng).execute(highCon, simulation);
 
     expect(lowCon.illness).toBeGreaterThan(highCon.illness);
+  });
+
+  it('recovery is unimpaired below the senescence start age but declines above it (ARD 049)', () => {
+    // Same constitution; onset fails for both, isolating recovery.
+    //   age=40 (< start 50, sen=1), ageRisk=2.33: recoveryProb=0.15*5/2.33*1≈0.322 → 0.2<0.322 → recovery (-0.3)
+    //   age=80 (sen=1-0.02*30=0.4), ageRisk=3.67: recoveryProb=0.15*5/3.67*0.4≈0.082 → 0.2>0.082 → no recovery
+    // onset: age40=0.2*2.33/5≈0.093, age80=0.2*3.67/5≈0.147; rng=0.2 exceeds both → no onset either case.
+    const rng = () => 0.2;
+    const middleAged = new Person([]);
+    middleAged.age = 40;
+    middleAged.constitution = 5;
+    middleAged.illness = 0.5;
+
+    const elderly = new Person([]);
+    elderly.age = 80;
+    elderly.constitution = 5;
+    elderly.illness = 0.5;
+
+    new IllnessEvent(rng).execute(middleAged, simulation);
+    new IllnessEvent(rng).execute(elderly, simulation);
+
+    // The middle-aged person heals; the elderly person does not.
+    expect(middleAged.illness).toBeLessThan(elderly.illness);
+  });
+
+  it('old low-constitution illness drifts up while young healthy illness drifts down (ARD 049)', () => {
+    // rng=0.1 constant:
+    //   Old frail (age85, con1): onsetProb=0.2*3.83/1≈0.767 → onset(+0.2); sen=0.3, recoveryProb=0.15*1/3.83*0.3≈0.012 → no recovery; net +0.2
+    //   Young fit (age30, con8): onsetProb=0.2*2/8=0.05 → 0.1>0.05 → no onset; recoveryProb=0.15*8/2=0.6 → recovery(-0.3); net -0.3
+    const rng = () => 0.1;
+    const oldFrail = new Person([]);
+    oldFrail.age = 85;
+    oldFrail.constitution = 1;
+    oldFrail.illness = 0.3;
+
+    const youngFit = new Person([]);
+    youngFit.age = 30;
+    youngFit.constitution = 8;
+    youngFit.illness = 0.3;
+
+    new IllnessEvent(rng).execute(oldFrail, simulation);
+    new IllnessEvent(rng).execute(youngFit, simulation);
+
+    expect(oldFrail.illness).toBeGreaterThan(0.3);
+    expect(youngFit.illness).toBeLessThan(0.3);
+  });
+
+  it('senescence multiplier floors so the very old can still recover (ARD 049)', () => {
+    // At extreme age the raw senescence factor goes negative (1 - 0.02*(120-50) = -0.4) but
+    // floors at ILLNESS_RECOVERY_SENESCENCE_FLOOR (0.05). con10, ageRisk=5:
+    //   recoveryProb = 0.15*10/5*0.05 = 0.015 (> 0 only because of the floor).
+    // With rng=0 both rolls pass: onset (+0.2) then recovery (-0.3) → net -0.1 → 0.4.
+    // Without the floor, recoveryProb would be negative, recovery would never fire, and the
+    // person would end at 0.7 (onset only). Ending below the start proves the floor kept
+    // recovery alive at extreme age.
+    const ancient = new Person([]);
+    ancient.age = 120;
+    ancient.constitution = 10;
+    ancient.illness = 0.5;
+
+    new IllnessEvent(() => 0).execute(ancient, simulation);
+
+    expect(ancient.illness).toBeCloseTo(0.5 + Variables.ILLNESS_ONSET_AMOUNT - Variables.ILLNESS_RECOVERY_AMOUNT);
+    expect(ancient.illness).toBeLessThan(0.5);
   });
 
   it('illness stays at 0 when both rolls fail', () => {

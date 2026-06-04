@@ -158,3 +158,4 @@ When in doubt:
 | [046](./046-transient-happiness-boosts.md) | Transient Happiness Boosts from Helping and Killing | Accepted |
 | [047](./047-invention-bounds-and-symmetry.md) | Bounded, Symmetric InventionEvent Dynamics | Accepted |
 | [048](./048-stat-caps-and-age-decay.md) | Stat Caps and Age-Based Decay for Constitution and Intelligence | Accepted |
+| [049](./049-mortality-rebalance-illness-senescence.md) | Mortality Rebalance — Illness Senescence and Suicide Recalibration | Accepted |
