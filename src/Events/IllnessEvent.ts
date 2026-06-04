@@ -7,7 +7,9 @@ import { RNG } from '../Helpers/Types';
 /**
  * Unconditional event: updates person.illness severity each tick via independent onset
  * and recovery rolls. Severity is clamped to [0, 1]. Older persons get higher onset
- * and lower recovery; higher constitution reverses both. See ARD 018.
+ * and lower recovery; higher constitution reverses both. Recovery additionally decays
+ * with age past a senescence threshold (the elderly heal less), so chronic illness
+ * accumulates in old age and carries old-age disease mortality. See ARD 018, ARD 049.
  */
 export default class IllnessEvent implements IEvent {
   /** @param rng - seeded random number source */
@@ -24,11 +26,19 @@ export default class IllnessEvent implements IEvent {
 
     const ageRisk = 1 + person.age / Variables.ILLNESS_AGE_RISK_DIVISOR;
 
+    // Recovery capacity declines with age past the senescence threshold (ARD 049):
+    // the elderly heal less, so chronic illness accumulates and carries old-age disease mortality.
+    const senescence = Math.max(
+      Variables.ILLNESS_RECOVERY_SENESCENCE_FLOOR,
+      1 - Variables.ILLNESS_RECOVERY_SENESCENCE_DECAY
+        * Math.max(0, person.age - Variables.ILLNESS_RECOVERY_SENESCENCE_START_AGE)
+    );
+
     if (this.rng() < Variables.BASE_ILLNESS_ONSET * ageRisk / person.constitution) {
       person.illness += Variables.ILLNESS_ONSET_AMOUNT;
     }
 
-    if (this.rng() < Variables.BASE_ILLNESS_RECOVERY * person.constitution / ageRisk) {
+    if (this.rng() < Variables.BASE_ILLNESS_RECOVERY * person.constitution / ageRisk * senescence) {
       person.illness -= Variables.ILLNESS_RECOVERY_AMOUNT;
     }
 

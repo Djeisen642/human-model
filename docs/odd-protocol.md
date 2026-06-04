@@ -216,11 +216,12 @@ Increments `person.age` by 1 each tick. No death check (handled by MisfortuneEve
 `growth = BASE_EXPERIENCE_GROWTH + intelligence × INTELLIGENCE_EXPERIENCE_SCALAR × learningFade ± activityModifier`
 Childhood attenuates growth; education and employment accelerate it; adult/elderly idleness decays it. Result clamped to `[0, EXPERIENCE_CAP]`.
 
-#### IllnessEvent (ARD 018)
+#### IllnessEvent (ARD 018, recovery senescence ARD 049)
 Two independent rolls per tick:
 - Onset: `rng() < BASE_ILLNESS_ONSET × ageRisk / constitution` → `illness += onset amount`
-- Recovery: `rng() < BASE_ILLNESS_RECOVERY × constitution / ageRisk` → `illness -= recovery amount`
+- Recovery: `rng() < BASE_ILLNESS_RECOVERY × constitution / ageRisk × senescence` → `illness -= recovery amount`
 `ageRisk = 1 + age / ILLNESS_AGE_RISK_DIVISOR` (linear, monotonically increasing).
+`senescence = max(ILLNESS_RECOVERY_SENESCENCE_FLOOR, 1 - ILLNESS_RECOVERY_SENESCENCE_DECAY × max(0, age - ILLNESS_RECOVERY_SENESCENCE_START_AGE))` — recovery capacity declines with age so chronic illness accumulates in the old and disease carries old-age mortality (ARD 049).
 `illness` clamped to `[0, 1]` after both rolls.
 
 #### GatherResourcesEvent (ARD 011, superseded by ARD 039)
@@ -256,10 +257,10 @@ Success: `prob = KILL_SUCCESS_BASE / max(1, victim.constitution)`
 On success: `simulation.kill(victim, MURDER, person)` — creates `DeathRecord` and `KillingRecord`.
 Detection (after successful kill): `prob = BASE_DETECT_RATE_KILL × (1 + priorCrimes × DETECTION_CRIME_COUNT_SCALAR)`. On detection: `JAIL_RESOURCE_FORFEIT_FRACTION` of killer's resources transferred to `communityPool`; `jailedTicksRemaining += JAIL_TICKS_KILL`.
 
-#### MisfortuneEvent (ARD 019)
+#### MisfortuneEvent (ARD 019, recalibrated ARD 049)
 Two sequential checks; first cause wins:
-1. Illness death: `prob = illness × ILLNESS_DEATH_SCALAR × ageMortalityModifier` (zero when illness = 0)
-2. Suicide: `prob = SUICIDE_PROBABILITY_SCALE / (happiness + 1)`
+1. Illness death: `prob = illness × ILLNESS_DEATH_SCALAR × ageMortalityModifier` (zero when illness = 0). With ARD 049 illness senescence, this is the dominant old-age cause — age-related death is disease-mediated (routes through `CAUSE_OF_DEATH.ILLNESS`, no separate "natural" cause).
+2. Suicide: `prob = SUICIDE_PROBABILITY_SCALE / (happiness + 1)`. ARD 049 cut the scale ~2 orders of magnitude to realistic rates (~1–4% of deaths).
 
 #### DisasterEvent (ARD 012)
 Fires once per tick (not per agent). Trigger: `rng() < DISASTER_PROBABILITY`. Selects random subset of living up to `DISASTER_MAX_AFFECTED_FRACTION`. Per affected agent: kill check `DISASTER_KILL_BASE × ageMortalityModifier / constitution`; resource loss fraction in `[DISASTER_MIN_LOSS_FRACTION, DISASTER_MAX_LOSS_FRACTION]`.

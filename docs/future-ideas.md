@@ -12,7 +12,11 @@ Items are grouped by priority — a working judgment, not a commitment. Promote,
 
 Known correctness issues that can produce degenerate outcomes — runaway values, thrive-lock, or collapse-lock — before the collapse/thrive signal has time to develop. Should be addressed before drawing conclusions from long runs.
 
-*(The High priority Mechanics items previously here — stat caps/age-based decay and three InventionEvent items — are resolved by ARD 048 and ARD 047 respectively.)*
+### Mechanics
+
+**Mortality model dominated by suicide (no natural-death path)** — see `docs/research-mortality.md`
+Across every seed, suicide is **~80–90% of all deaths** (seed 42: 70 of 80), illness is a rounding error, and there is **no old-age/natural cause at all** (`CAUSE_OF_DEATH` = MURDER/ILLNESS/DISASTER/SUICIDE only). The suicide formula (ARD 019, `0.03/(happiness+1)`) puts even the *happiest* person at ~0.27%/yr — ~30× the global average (~0.009%/yr) — and a stressed population at the rate of recently-hospitalized depression patients; ARD 019 itself flags the constant as "a guess." **Fertility outpaces realistic mortality (revealed by ARD 049)**
+ARD 049 fixed the death model (suicide ~4% of deaths, illness carries old-age mortality), which removed the ~80 fake suicides/run that had been silently balancing births. With realistic mortality, fertility now far exceeds the death rate: a default run grows ~6× (100 → 634), the population stays young (~31% children, ~12% elderly), and "stability" is no longer the baseline. Needs fertility recalibration — lower `BASE_CHILDBIRTH_RATE` (ARD 029) toward a death-rate-matched baseline, and/or density-dependent fertility/mortality (population vs. carrying capacity) so the population self-limits and the collapse/thrive signal comes from resources/Gini rather than an unbounded birth/death imbalance. Owner flagged this for handling as part of variable adjustment.
 
 ---
 
@@ -21,6 +25,9 @@ Known correctness issues that can produce degenerate outcomes — runaway values
 Sharpens the collapse/thrive signal or experimental setup, but does not cause degenerate outcomes on its own.
 
 ### Mechanics
+
+**Redistribution calibration vs the empirical ~25% Gini compression** — see `docs/research-taxation-welfare.md`
+ARD 034's `TAX_RATE` (0.02), `WELFARE_THRESHOLD` (20), and `COMMUNITY_POOL_RESERVE_FRACTION` (0.20) have no empirical anchor, yet they are the most direct lever on the Gini coefficient (the primary collapse signal). OECD data gives a clean, in-sim-checkable target: taxes+transfers reduce market-income Gini by **~25% on average** (range ~5–40%), with *transfers* (bottom-weighted, already how ARD 034 targets welfare) doing most of the work. The current flat 2% channel looks near-inert — the community pool ends a run at ~18 against ~2,600 total resources — so it is unlikely to be compressing Gini meaningfully. Recommendation: adopt "disposable Gini ≈ 0.7–0.85 × market Gini" as the calibration objective (measure via a redistribution-off baseline run), raise `TAX_RATE`/lower the reserve until the channel circulates, and add mild progressivity only if a flat rate can't reach the target. Tuning + a small ARD if progressivity is added.
 
 **Long-term environmental drift**
 `naturalResourceCeiling` only grows (via invention); the pool always regenerates back to ceiling × fraction. Tainter/Diamond collapse hinges on declining carrying capacity (soil exhaustion, climate shift). Options: ceiling drifts down stochastically, decays with cumulative extraction, or `NATURAL_RESOURCE_REGEN_FRACTION` itself drifts.

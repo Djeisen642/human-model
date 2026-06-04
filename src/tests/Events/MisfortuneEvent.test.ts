@@ -2,6 +2,7 @@ import MisfortuneEvent from '../../Events/MisfortuneEvent';
 import Person from '../../App/Person';
 import Simulation from '../../App/Simulation';
 import Constants from '../../Helpers/Constants';
+import Variables from '../../Helpers/Variables';
 
 describe('MisfortuneEvent', () => {
   let simulation: Simulation;
@@ -47,7 +48,7 @@ describe('MisfortuneEvent', () => {
     person.age = 28; // prime age → ageMortalityModifier near its minimum
     simulation.add(person);
 
-    const illnessDeathProb = person.illness * 0.08 * person.ageMortalityModifier;
+    const illnessDeathProb = person.illness * Variables.ILLNESS_DEATH_SCALAR * person.ageMortalityModifier;
 
     // rng just below threshold → dies of illness
     const eventKill = new MisfortuneEvent(() => illnessDeathProb - 0.001);
@@ -115,7 +116,7 @@ describe('MisfortuneEvent', () => {
 
   it('does not kill by suicide at high happiness', () => {
     // illness check fails; suicide check: rng returns value above threshold for happiness=11
-    // SUICIDE_PROBABILITY_SCALE / (11+1) = 0.03/12 = 0.0025; rng=0.5 >> 0.0025
+    // SUICIDE_PROBABILITY_SCALE / (11+1) is tiny (~4e-5 at the ARD 049 scale); rng=0.5 >> that
     const rngValues = [1, 0.5];
     let i = 0;
     const event = new MisfortuneEvent(() => rngValues[i++]);
