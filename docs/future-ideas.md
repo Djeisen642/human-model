@@ -29,9 +29,6 @@ Sharpens the collapse/thrive signal or experimental setup, but does not cause de
 **Redistribution calibration vs the empirical ~25% Gini compression** — see `docs/research-taxation-welfare.md`
 ARD 034's `TAX_RATE` (0.02), `WELFARE_THRESHOLD` (20), and `COMMUNITY_POOL_RESERVE_FRACTION` (0.20) have no empirical anchor, yet they are the most direct lever on the Gini coefficient (the primary collapse signal). OECD data gives a clean, in-sim-checkable target: taxes+transfers reduce market-income Gini by **~25% on average** (range ~5–40%), with *transfers* (bottom-weighted, already how ARD 034 targets welfare) doing most of the work. The current flat 2% channel looks near-inert — the community pool ends a run at ~18 against ~2,600 total resources — so it is unlikely to be compressing Gini meaningfully. Recommendation: adopt "disposable Gini ≈ 0.7–0.85 × market Gini" as the calibration objective (measure via a redistribution-off baseline run), raise `TAX_RATE`/lower the reserve until the channel circulates, and add mild progressivity only if a flat rate can't reach the target. Tuning + a small ARD if progressivity is added.
 
-**Long-term environmental drift**
-`naturalResourceCeiling` only grows (via invention); the pool always regenerates back to ceiling × fraction. Tainter/Diamond collapse hinges on declining carrying capacity (soil exhaustion, climate shift). Options: ceiling drifts down stochastically, decays with cumulative extraction, or `NATURAL_RESOURCE_REGEN_FRACTION` itself drifts.
-
 **Termination conditions**
 Currently a fixed tick count. Worth adding: population=0 (already fires EXTINCTION but doesn't halt early), collapse-detected (Gini threshold + declining population over N ticks), or a flag to halt when outcome is determined rather than running to the end.
 

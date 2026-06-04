@@ -37,6 +37,7 @@ export default class LooperSingleton {
 
     let startPopulation = n;
     for (let t = 0; t < ticks; t++) {
+      simulation.degradeCeiling();
       simulation.regenerate();
       disaster.execute(simulation);
       const living = simulation.getLiving();

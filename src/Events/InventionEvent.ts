@@ -50,9 +50,12 @@ export default class InventionEvent implements IEvent {
       );
       simulation.inventionSlowerCount++;
     } else {
+      // Ceiling growth uses its own gentle magnitude (ARD 050) so technology lifts carrying
+      // capacity gradually and degradation (ARD 050) can balance it, rather than ratcheting to the cap.
+      const ceilingDelta = person.intelligence * Variables.INVENTION_CEILING_GROWTH_SCALAR;
       simulation.naturalResourceCeiling = Math.min(
         Variables.MAX_NATURAL_RESOURCE_CEILING,
-        simulation.naturalResourceCeiling + delta * simulation.naturalResourceCeiling,
+        simulation.naturalResourceCeiling + ceilingDelta * simulation.naturalResourceCeiling,
       );
       simulation.inventionCeilingCount++;
     }

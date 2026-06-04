@@ -29,16 +29,22 @@ export default class Variables {
   static EXTRACTION_PRODUCTIVITY_FLOOR = 0.01;
   /** Upper cap on extraction productivity; bounds the faster-invention branch so a tech-boom streak cannot drain the pool in a few ticks (collapse-lock). See ARD 047. */
   static MAX_EXTRACTION_PRODUCTIVITY = 10.0;
-  /** Upper cap on the natural resource ceiling; bounds the ceiling-growth invention branch so scarcity stays reachable (no thrive-lock) — a large multiple of the initial ceiling. See ARD 047. */
-  static MAX_NATURAL_RESOURCE_CEILING = 1_000_000;
+  /** Upper cap on the natural resource ceiling; a small multiple of the initial ceiling so regen stays comparable to extraction and the commons binds (ARD 050). Bounds the range technology can lift carrying capacity into; degradation (ARD 050) pulls it back down under exploitation. See ARD 047, ARD 050. */
+  static MAX_NATURAL_RESOURCE_CEILING = 20_000;
+  /** Lower floor on the natural resource ceiling; a degraded environment retains this minimum carrying capacity rather than locking permanently at zero. See ARD 050. */
+  static NATURAL_RESOURCE_CEILING_FLOOR = 2_000;
+  /** Max per-tick fractional ceiling loss, reached at full pool depletion; the ceiling erodes by `ceiling × this × depletionFraction` each tick so overexploitation degrades carrying capacity (HANDY/Tainter). See ARD 050. */
+  static CEILING_DEGRADATION_RATE = 0.025;
   /** Relative weight for invention outcome: productivity rises (tech boom — more output, faster pool drain). See ARD 039. */
   static INVENTION_DEPLETION_FASTER_WEIGHT = 1;
   /** Relative weight for invention outcome: productivity falls (austerity tech — less output, slower pool drain). See ARD 039. */
   static INVENTION_DEPLETION_SLOWER_WEIGHT = 1;
   /** Relative weight for invention outcome: resource ceiling grows. Weighted higher than productivity branches so invention serves as the population-cap unlock. See ARD 043. */
   static INVENTION_CEILING_GROWTH_WEIGHT = 2;
-  /** Scales inventor's intelligence into the magnitude of any invention effect. */
+  /** Scales inventor's intelligence into the magnitude of the productivity faster/slower invention branches. */
   static INVENTION_MAGNITUDE_SCALAR = 0.05;
+  /** Scales inventor's intelligence into the ceiling-growth invention magnitude; gentle and decoupled from the productivity magnitude (ARD 050) so technology lifts carrying capacity gradually rather than ratcheting it to the cap. */
+  static INVENTION_CEILING_GROWTH_SCALAR = 0.0035;
   /** Per-tick base probability of an invention, multiplied by intelligence (1–10) and ageModifier. At intelligence=10, peak age: ~2% per tick. */
   static BASE_INVENTION_RATE = 0.002;
 
