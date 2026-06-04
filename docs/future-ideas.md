@@ -17,8 +17,6 @@ Known correctness issues that can produce degenerate outcomes — runaway values
 **Mortality model dominated by suicide (no natural-death path)** — see `docs/research-mortality.md`
 Across every seed, suicide is **~80–90% of all deaths** (seed 42: 70 of 80), illness is a rounding error, and there is **no old-age/natural cause at all** (`CAUSE_OF_DEATH` = MURDER/ILLNESS/DISASTER/SUICIDE only). The suicide formula (ARD 019, `0.03/(happiness+1)`) puts even the *happiest* person at ~0.27%/yr — ~30× the global average (~0.009%/yr) — and a stressed population at the rate of recently-hospitalized depression patients; ARD 019 itself flags the constant as "a guess." Population decline is therefore driven by a miscalibrated suicide rate, not by inequality/resource dynamics, which corrupts the headline collapse/thrive signal. Fix is three coupled changes: (1) add a Gompertz-style `BASE_NATURAL_MORTALITY` path + a `NATURAL` cause so the elderly die of age (the `ageMortalityModifier` curve exists but only fires through illness, which never accumulates); (2) cut `SUICIDE_PROBABILITY_SCALE` ~1–2 orders of magnitude; (3) re-tune illness onset/recovery (currently recovery dominates onset 8–17×) so disease can carry old-age mortality once suicide stops masking it. Needs an ARD superseding the suicide branch and a new ARD for the natural-death path.
 
-*(The stat caps/age-based decay and three InventionEvent items previously here are resolved by ARD 048 and ARD 047 respectively.)*
-
 ---
 
 ## Very useful
