@@ -27,6 +27,10 @@ export default class Variables {
   static EXTRACTION_PRODUCTIVITY_INITIAL = 1.0;
   /** Lower floor on extraction productivity; prevents the slower-invention branch from making gather permanently impossible. See ARD 039. */
   static EXTRACTION_PRODUCTIVITY_FLOOR = 0.01;
+  /** Upper cap on extraction productivity; bounds the faster-invention branch so a tech-boom streak cannot drain the pool in a few ticks (collapse-lock). See ARD 047. */
+  static MAX_EXTRACTION_PRODUCTIVITY = 10.0;
+  /** Upper cap on the natural resource ceiling; bounds the ceiling-growth invention branch so scarcity stays reachable (no thrive-lock) — a large multiple of the initial ceiling. See ARD 047. */
+  static MAX_NATURAL_RESOURCE_CEILING = 1_000_000;
   /** Relative weight for invention outcome: productivity rises (tech boom — more output, faster pool drain). See ARD 039. */
   static INVENTION_DEPLETION_FASTER_WEIGHT = 1;
   /** Relative weight for invention outcome: productivity falls (austerity tech — less output, slower pool drain). See ARD 039. */

@@ -156,4 +156,4 @@ When in doubt:
 | [044](./044-initial-natural-resources-constant.md) | Separate Initial Natural Resources Constant | Accepted |
 | [045](./045-help-event.md) | HelpEvent — Voluntary Resource Transfer | Accepted |
 | [046](./046-transient-happiness-boosts.md) | Transient Happiness Boosts from Helping and Killing | Accepted |
-| [047](./047-invention-bounds-and-symmetry.md) | Bounded, Symmetric InventionEvent Dynamics | Proposed |
+| [047](./047-invention-bounds-and-symmetry.md) | Bounded, Symmetric InventionEvent Dynamics | Accepted |

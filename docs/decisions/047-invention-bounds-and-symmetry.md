@@ -1,6 +1,6 @@
 # ARD 047: Bounded, Symmetric InventionEvent Dynamics
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-06-04
 
 ## Context

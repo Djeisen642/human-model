@@ -17,14 +17,7 @@ Known correctness issues that can produce degenerate outcomes — runaway values
 **Stat caps and age-based decay**
 `constitution` and `intelligence` only increment. A 90-year-old who exercised yearly has runaway constitution, and `DisasterEvent` divides by it — making lifelong exercisers near-immortal. Need caps and probably age-based decay reinforcing the U-shaped mortality curve.
 
-**InventionEvent: unbounded extractionProductivity upper end**
-The depletion-faster branch multiplies `extractionProductivity` with no cap. With `intelligence=10` (`delta=0.5`), a few sequential inventions push productivity high enough to drain the pool in a handful of ticks, collapsing the simulation regardless of other factors. Needs a `MAX_EXTRACTION_PRODUCTIVITY` constant or a diminishing-returns multiplier.
-
-**InventionEvent: unbounded ceiling growth (thrive-lock)**
-Repeated ceiling-growth inventions compound — `ceiling *= (1 + delta)` effectively. After ARD 043 ceiling growth also drives regen, so runaway ceiling can permanently eliminate scarcity. A `MAX_NATURAL_RESOURCE_CEILING` cap or diminishing-returns multiplier would preserve the collapse-via-depletion pathway.
-
-**InventionEvent: asymmetric faster/slower compounding**
-After N faster and N slower outcomes, `efficiency * (1+d)^N * (1-d)^N = efficiency * (1-d²)^N`. Paired outcomes don't cancel — efficiency drifts toward 0.01 over time. Creates a slow resource-saving bias that wasn't in ARD 007; may be desirable or unintended, but should be a deliberate choice.
+*(The three InventionEvent items previously here — unbounded productivity upper end, unbounded ceiling growth, and asymmetric faster/slower compounding — are resolved by ARD 047: hard caps `MAX_EXTRACTION_PRODUCTIVITY` / `MAX_NATURAL_RESOURCE_CEILING` plus a symmetric `÷ (1+delta)` slower branch.)*
 
 ---
 
