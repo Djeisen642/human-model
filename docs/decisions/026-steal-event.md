@@ -1,6 +1,6 @@
 # ARD 026: StealEvent
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-05-16
 
 ## Context

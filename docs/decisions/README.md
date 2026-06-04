@@ -135,7 +135,7 @@ When in doubt:
 | [023](./023-enrollment-event.md) | Enrollment Event | Accepted |
 | [024](./024-consumption-event.md) | Resource Consumption | Accepted |
 | [025](./025-relationship-event.md) | RelationshipEvent | Accepted |
-| [026](./026-steal-event.md) | StealEvent | Proposed |
+| [026](./026-steal-event.md) | StealEvent | Accepted |
 | [027](./027-kill-event.md) | KillEvent | Accepted |
 | [028](./028-windfall-event.md) | WindfallEvent | Superseded by ARD 040 |
 | [029](./029-childbirth-event.md) | ChildbirthEvent | Accepted |
@@ -157,3 +157,4 @@ When in doubt:
 | [045](./045-help-event.md) | HelpEvent — Voluntary Resource Transfer | Accepted |
 | [046](./046-transient-happiness-boosts.md) | Transient Happiness Boosts from Helping and Killing | Accepted |
 | [047](./047-invention-bounds-and-symmetry.md) | Bounded, Symmetric InventionEvent Dynamics | Accepted |
+| [048](./048-stat-caps-and-age-decay.md) | Stat Caps and Age-Based Decay for Constitution and Intelligence | Accepted |
