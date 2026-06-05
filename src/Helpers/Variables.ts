@@ -313,19 +313,27 @@ export default class Variables {
   static ENROLLMENT_AGE_SCALE = 40;
   static ENROLLMENT_AGE_FLOOR = 0.05;
 
-  // Outcome classification thresholds (ARD 016)
+  // Outcome classification thresholds (ARD 016, multi-dimensional revision ARD 051)
   /** Final-decade avg Gini at or above this → COLLAPSE. */
   static COLLAPSE_GINI_THRESHOLD = 0.60;
-  /** Final population below this fraction of start → COLLAPSE. */
-  static COLLAPSE_POPULATION_FRACTION = 0.20;
+  /** Population decline from the run's peak at or above this fraction → COLLAPSE (peak-relative, ARD 051; archaeological collapses lose 75–90%, lower here for sim sensitivity). */
+  static COLLAPSE_PEAK_DECLINE_FRACTION = 0.5;
   /** Final-decade avg Gini at or above this → at least STRUGGLING (unless COLLAPSE). */
   static STRUGGLING_GINI_THRESHOLD = 0.45;
-  /** Final-decade avg happiness below this → at least STRUGGLING (unless COLLAPSE). */
+  /** Final-decade avg happiness below this → at least STRUGGLING (immiseration signal). */
   static STRUGGLING_HAPPINESS_THRESHOLD = 3.0;
-  /** Final-decade avg Gini below this AND happiness at or above THRIVING_HAPPINESS_THRESHOLD → THRIVING. */
+  /** Population decline from peak at or above this (but below COLLAPSE) → at least STRUGGLING (ARD 051). */
+  static STRUGGLING_PEAK_DECLINE_FRACTION = 0.25;
+  /** Commons fill fraction (pool ÷ ceiling) below this → at least STRUGGLING (ecological strain / overexploitation, ARD 051). */
+  static STRUGGLING_RESOURCE_FRACTION = 0.1;
+  /** Final-decade avg Gini below this (one of four THRIVING conditions) → contributes to THRIVING. */
   static THRIVING_GINI_THRESHOLD = 0.30;
-  /** Final-decade avg happiness at or above this (with Gini below threshold) → THRIVING. */
+  /** Final-decade avg happiness at or above this (one of four THRIVING conditions) → contributes to THRIVING. */
   static THRIVING_HAPPINESS_THRESHOLD = 6.0;
+  /** Population decline from peak must be below this for THRIVING — a thriving population is at/near its peak, not in decline (ARD 051). */
+  static THRIVING_MAX_PEAK_DECLINE_FRACTION = 0.15;
+  /** Commons fill fraction (pool ÷ ceiling) must be at or above this for THRIVING — living within carrying capacity, not overexploiting (ARD 051). */
+  static THRIVING_RESOURCE_FRACTION = 0.4;
 
   // Community pool, taxation, and welfare constants (ARD 034)
   /** Flat fraction of each living person's resources deducted per tick and added to the community pool. */

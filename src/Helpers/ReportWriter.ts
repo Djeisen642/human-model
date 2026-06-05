@@ -23,7 +23,7 @@ export function writeReportHTML(simulation: Simulation, n: number, ticks: number
 
   const decadeHistory = simulation.decadeHistory;
   const outcome = decadeHistory.length > 0
-    ? classifyOutcome(decadeHistory[decadeHistory.length - 1], n)
+    ? classifyOutcome(decadeHistory, n)
     : 'STABLE';
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);

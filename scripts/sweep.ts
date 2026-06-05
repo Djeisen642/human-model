@@ -93,7 +93,6 @@ function runOne(seed: number, ticks: number, persons: number): RunMetrics {
     if (extinctTick === null && s.population === 0) extinctTick = s.tick;
   }
 
-  const finalDecade = sim.decadeHistory[sim.decadeHistory.length - 1];
   return {
     seed,
     endPop: last.population,
@@ -107,7 +106,7 @@ function runOne(seed: number, ticks: number, persons: number): RunMetrics {
     suicide: last.cumulativeDeathsBySuicide,
     births: last.cumulativeBirths,
     boundFraction: boundTicks / h.length,
-    outcome: classifyOutcome(finalDecade, persons),
+    outcome: classifyOutcome(sim.decadeHistory, persons),
   };
 }
 

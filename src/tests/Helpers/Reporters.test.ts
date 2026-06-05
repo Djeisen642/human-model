@@ -230,7 +230,7 @@ describe('formatDecadeSummary', () => {
     avgResourceGini: 0.42,
     avgResources: 48.2,
     avgHappiness: 4.1,
-    avgNaturalResources: 7500,
+    avgNaturalResources: 7500, avgNaturalResourceCeiling: 10000,
     peakResourceGini: 0.51,
     births: 2,
     avgCommunityPool: 0,
@@ -266,11 +266,13 @@ describe('formatDecadeSummary', () => {
   });
 });
 
-describe('classifyOutcome', () => {
+describe('classifyOutcome (multi-dimensional, ARD 051)', () => {
+  // A healthy decade at peak population with a half-full commons: gini and happiness in the
+  // middle band, so it reads STABLE on its own and isolates each dimension under test.
   const baseDecade: TenYearSummary = {
     endTick: 100,
-    endPopulation: 90,
-    populationDelta: -10,
+    endPopulation: 100,
+    populationDelta: 0,
     totalDeaths: 10,
     deathsByIllness: 5,
     deathsBySuicide: 3,
@@ -280,64 +282,95 @@ describe('classifyOutcome', () => {
     avgResources: 40,
     avgHappiness: 5.0,
     avgNaturalResources: 5000,
+    avgNaturalResourceCeiling: 10000,
     peakResourceGini: 0.40,
     births: 0,
     avgCommunityPool: 0,
   };
 
+  /**
+   * Classify a single final decade against a starting population (the common case).
+   *
+   * @param d - the final decade summary
+   * @param start - starting population
+   * @returns the outcome label
+   */
+  const one = (d: TenYearSummary, start = 100): string => classifyOutcome([d], start);
+
   it('returns COLLAPSE when Gini >= 0.60', () => {
-    expect(classifyOutcome({ ...baseDecade, avgResourceGini: 0.60 }, 100)).toBe('COLLAPSE');
-    expect(classifyOutcome({ ...baseDecade, avgResourceGini: 0.75 }, 100)).toBe('COLLAPSE');
+    expect(one({ ...baseDecade, avgResourceGini: 0.60 })).toBe('COLLAPSE');
+    expect(one({ ...baseDecade, avgResourceGini: 0.75 })).toBe('COLLAPSE');
   });
 
-  it('returns COLLAPSE when population < 20% of start', () => {
-    expect(classifyOutcome({ ...baseDecade, endPopulation: 19 }, 100)).toBe('COLLAPSE');
+  it('returns COLLAPSE on severe decline from peak even when end exceeds start', () => {
+    // Peak 400, final 150 → 62% decline. Final (150) is still above start (100), so the old
+    // start-relative check read this as healthy; peak-relative catches it.
+    const peak = { ...baseDecade, endTick: 50, endPopulation: 400 };
+    const final = { ...baseDecade, endPopulation: 150 };
+    expect(classifyOutcome([peak, final], 100)).toBe('COLLAPSE');
   });
 
-  it('returns THRIVING when Gini < 0.30 and happiness >= 6.0', () => {
-    expect(classifyOutcome({ ...baseDecade, avgResourceGini: 0.25, avgHappiness: 6.5 }, 100)).toBe('THRIVING');
+  it('returns THRIVING only with all four: low Gini, high happiness, near peak, healthy commons', () => {
+    expect(one({ ...baseDecade, avgResourceGini: 0.25, avgHappiness: 6.5 })).toBe('THRIVING');
+  });
+
+  it('does not return THRIVING when the commons is drawn down (overshoot blind spot)', () => {
+    // Great Gini and happiness, but the pool is at 5% of ceiling — overexploitation, not thriving.
+    const result = one({ ...baseDecade, avgResourceGini: 0.25, avgHappiness: 6.5, avgNaturalResources: 500 });
+    expect(result).not.toBe('THRIVING');
+    expect(result).toBe('STRUGGLING');
+  });
+
+  it('does not return THRIVING when the population is in decline from peak', () => {
+    const peak = { ...baseDecade, endTick: 50, endPopulation: 200 };
+    const final = { ...baseDecade, endPopulation: 150, avgResourceGini: 0.25, avgHappiness: 6.5 };
+    expect(classifyOutcome([peak, final], 100)).not.toBe('THRIVING');
   });
 
   it('does not return THRIVING when Gini >= 0.30', () => {
-    const result = classifyOutcome({ ...baseDecade, avgResourceGini: 0.30, avgHappiness: 7.0 }, 100);
-    expect(result).not.toBe('THRIVING');
+    expect(one({ ...baseDecade, avgResourceGini: 0.30, avgHappiness: 7.0 })).not.toBe('THRIVING');
   });
 
   it('does not return THRIVING when happiness < 6.0', () => {
-    const result = classifyOutcome({ ...baseDecade, avgResourceGini: 0.20, avgHappiness: 5.9 }, 100);
-    expect(result).not.toBe('THRIVING');
+    expect(one({ ...baseDecade, avgResourceGini: 0.20, avgHappiness: 5.9 })).not.toBe('THRIVING');
   });
 
   it('returns STRUGGLING when Gini >= 0.45', () => {
-    expect(classifyOutcome({ ...baseDecade, avgResourceGini: 0.45 }, 100)).toBe('STRUGGLING');
+    expect(one({ ...baseDecade, avgResourceGini: 0.45 })).toBe('STRUGGLING');
   });
 
   it('returns STRUGGLING when happiness < 3.0', () => {
-    expect(classifyOutcome({ ...baseDecade, avgHappiness: 2.9 }, 100)).toBe('STRUGGLING');
+    expect(one({ ...baseDecade, avgHappiness: 2.9 })).toBe('STRUGGLING');
+  });
+
+  it('returns STRUGGLING on moderate decline from peak (>= 25%, < 50%)', () => {
+    const peak = { ...baseDecade, endTick: 50, endPopulation: 200 };
+    const final = { ...baseDecade, endPopulation: 150 };
+    expect(classifyOutcome([peak, final], 100)).toBe('STRUGGLING');
+  });
+
+  it('returns STRUGGLING when the commons is exhausted (< 10% of ceiling)', () => {
+    expect(one({ ...baseDecade, avgNaturalResources: 500 })).toBe('STRUGGLING');
   });
 
   it('returns STABLE otherwise', () => {
-    expect(classifyOutcome(baseDecade, 100)).toBe('STABLE');
+    expect(one(baseDecade)).toBe('STABLE');
   });
 
   it('COLLAPSE takes priority over THRIVING conditions', () => {
-    expect(
-      classifyOutcome({ ...baseDecade, avgResourceGini: 0.65, avgHappiness: 7.0 }, 100),
-    ).toBe('COLLAPSE');
+    expect(one({ ...baseDecade, avgResourceGini: 0.65, avgHappiness: 7.0 })).toBe('COLLAPSE');
   });
 
   it('returns EXTINCTION when endPopulation is 0 (ARD 031)', () => {
-    expect(classifyOutcome({ ...baseDecade, endPopulation: 0 }, 100)).toBe('EXTINCTION');
+    expect(one({ ...baseDecade, endPopulation: 0 })).toBe('EXTINCTION');
   });
 
   it('EXTINCTION takes priority over COLLAPSE conditions', () => {
-    expect(
-      classifyOutcome({ ...baseDecade, endPopulation: 0, avgResourceGini: 0.75 }, 100),
-    ).toBe('EXTINCTION');
+    expect(one({ ...baseDecade, endPopulation: 0, avgResourceGini: 0.75 })).toBe('EXTINCTION');
   });
 
   it('endPopulation 1 stays COLLAPSE (boundary), not EXTINCTION', () => {
-    const result = classifyOutcome({ ...baseDecade, endPopulation: 1 }, 100);
+    const result = one({ ...baseDecade, endPopulation: 1 });
     expect(result).toBe('COLLAPSE');
     expect(result).not.toBe('EXTINCTION');
   });
@@ -349,25 +382,32 @@ describe('explainOutcome', () => {
     deathsByIllness: 5, deathsBySuicide: 3,
     deathsByKilling: 1, deathsByDisaster: 1,
     avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
-    avgNaturalResources: 5000, peakResourceGini: 0.40, births: 0,
+    avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 0,
     avgCommunityPool: 0,
   };
 
   it('EXTINCTION cites population 0', () => {
-    expect(explainOutcome({ ...base, endPopulation: 0 }, 100, 'EXTINCTION')).toContain('Population');
+    expect(explainOutcome([{ ...base, endPopulation: 0 }], 100, 'EXTINCTION')).toContain('Population');
   });
 
   it('COLLAPSE by Gini cites the Gini value', () => {
-    expect(explainOutcome({ ...base, avgResourceGini: 0.65 }, 100, 'COLLAPSE')).toContain('Gini');
+    expect(explainOutcome([{ ...base, avgResourceGini: 0.65 }], 100, 'COLLAPSE')).toContain('Gini');
   });
 
-  it('COLLAPSE by population cites population fraction', () => {
-    expect(explainOutcome({ ...base, endPopulation: 10 }, 100, 'COLLAPSE')).toContain('Population');
+  it('COLLAPSE by peak decline cites the population drop', () => {
+    const peak = { ...base, endTick: 50, endPopulation: 400 };
+    const final = { ...base, endPopulation: 100 };
+    expect(explainOutcome([peak, final], 100, 'COLLAPSE')).toMatch(/Population.*from peak/);
   });
 
-  it('THRIVING cites both Gini and happiness', () => {
-    expect(explainOutcome({ ...base, avgResourceGini: 0.2, avgHappiness: 7 }, 100, 'THRIVING'))
-      .toMatch(/Gini.*happiness/);
+  it('THRIVING cites the four-dimensional state', () => {
+    expect(explainOutcome([{ ...base, avgResourceGini: 0.2, avgHappiness: 7 }], 100, 'THRIVING'))
+      .toMatch(/Gini.*happiness.*commons/);
+  });
+
+  it('STRUGGLING by exhausted commons cites ecological strain', () => {
+    expect(explainOutcome([{ ...base, avgNaturalResources: 200 }], 100, 'STRUGGLING'))
+      .toMatch(/commons|ecological/i);
   });
 });
 
@@ -495,7 +535,7 @@ describe('formatEndReport', () => {
       avgResourceGini: 0.35,
       avgResources: 40,
       avgHappiness: 5.0,
-      avgNaturalResources: 5000,
+      avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000,
       peakResourceGini: 0.40,
       births: 0,
       avgCommunityPool: 0,
@@ -515,7 +555,7 @@ describe('formatEndReport', () => {
       deathsByIllness: 4, deathsBySuicide: 2,
       deathsByKilling: 1, deathsByDisaster: 1,
       avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
-      avgNaturalResources: 5000, peakResourceGini: 0.40, births: 0,
+      avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 0,
       avgCommunityPool: 0,
     };
     const report = formatEndReport([decade], 10, 42, 100, 9000, 10000);
@@ -528,7 +568,7 @@ describe('formatEndReport', () => {
       deathsByIllness: 4, deathsBySuicide: 2,
       deathsByKilling: 1, deathsByDisaster: 1,
       avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
-      avgNaturalResources: 5000, peakResourceGini: 0.40, births: 5,
+      avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 5,
       avgCommunityPool: 0,
     };
     const report = formatEndReport([decade], 100, 42, 100, 9000, 10000);
@@ -541,7 +581,7 @@ describe('formatEndReport', () => {
       deathsByIllness: 50, deathsBySuicide: 20,
       deathsByKilling: 15, deathsByDisaster: 10,
       avgResourceGini: 0.40, avgResources: 5, avgHappiness: 1.0,
-      avgNaturalResources: 8000, peakResourceGini: 0.55, births: 0,
+      avgNaturalResources: 8000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.55, births: 0,
       avgCommunityPool: 0,
     };
     const report = formatEndReport(
@@ -557,7 +597,7 @@ describe('formatEndReport', () => {
       deathsByIllness: 50, deathsBySuicide: 20,
       deathsByKilling: 15, deathsByDisaster: 10,
       avgResourceGini: 0.40, avgResources: 5, avgHappiness: 1.0,
-      avgNaturalResources: 8000, peakResourceGini: 0.55, births: 0,
+      avgNaturalResources: 8000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.55, births: 0,
       avgCommunityPool: 0,
     };
     const report = formatEndReport([decade], 50, 42, 100, 9000, 10000, {}, {}, []);
@@ -570,7 +610,7 @@ describe('formatEndReport', () => {
       deathsByIllness: 50, deathsBySuicide: 20,
       deathsByKilling: 19, deathsByDisaster: 10,
       avgResourceGini: 0.30, avgResources: 30, avgHappiness: 5.0,
-      avgNaturalResources: 5000, peakResourceGini: 0.40, births: 0,
+      avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 0,
       avgCommunityPool: 0,
     };
     const p = new Person([]);
@@ -588,7 +628,7 @@ describe('formatEndReport', () => {
       deathsByIllness: 10, deathsBySuicide: 2,
       deathsByKilling: 2, deathsByDisaster: 1,
       avgResourceGini: 0.30, avgResources: 40, avgHappiness: 5.0,
-      avgNaturalResources: 7000, peakResourceGini: 0.40, births: 5,
+      avgNaturalResources: 7000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 5,
       avgCommunityPool: 0,
     };
     const report = formatEndReport(
@@ -605,7 +645,7 @@ describe('formatEndReport', () => {
       deathsByIllness: 10, deathsBySuicide: 5,
       deathsByKilling: 3, deathsByDisaster: 2,
       avgResourceGini: 0.30, avgResources: 40, avgHappiness: 5.0,
-      avgNaturalResources: 5000, peakResourceGini: 0.40, births: 20,
+      avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 20,
       avgCommunityPool: 0,
     };
     const report = formatEndReport([decade], 100, 42, 100, 9000, 10000);
@@ -620,7 +660,7 @@ describe('formatEndReport', () => {
       deathsByIllness: 2, deathsBySuicide: 0,
       deathsByKilling: 1, deathsByDisaster: 0,
       avgResourceGini: 0.30, avgResources: 50, avgHappiness: 5.0,
-      avgNaturalResources: 8000, peakResourceGini: 0.35, births: 3,
+      avgNaturalResources: 8000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.35, births: 3,
       avgCommunityPool: 0,
     };
     const report = formatEndReport([decade], 10, 42, 100, 9000, 10000);
@@ -633,7 +673,7 @@ describe('formatEndReport', () => {
       deathsByIllness: 4, deathsBySuicide: 2,
       deathsByKilling: 1, deathsByDisaster: 1,
       avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
-      avgNaturalResources: 5000, peakResourceGini: 0.40, births: 0,
+      avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 0,
       avgCommunityPool: 0,
     };
     // 5 engineers seeded (intelligence in [7,11)), 3 alive at end
