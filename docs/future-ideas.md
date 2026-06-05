@@ -81,6 +81,9 @@ Three execution tiers behind a common `SimulationEngine` interface: (1) current 
 **Multiple simulation runs with comparison**
 Run N simulations with different seeds, compare `history` arrays. Requires deciding how `LooperSingleton` exposes results across runs.
 
+**`OSCILLATING` outcome label**
+A fifth between-the-extremes verdict for a population that sustains repeated boom-bust cycles without going extinct (HANDY's persistent "cycles of prosperity and collapse"). The measurement is already built — `src/Helpers/CycleDetector.ts` (`detectCycles`) reports cycle count, period, trough envelope trend, and a `stableCycle` flag, surfaced in the sweep harness — but a scan across seeds, long horizons (1500 ticks), and even zero ceiling degradation finds **none**: every run booms once and crashes straight through to extinction (the demographic crash is total, not to a recoverable floor). So the label is premature until crash-recovery exists (see High-priority residual). Promoting `stableCycle` into a `classifyOutcome` label would need an ARD, since it changes the verdict taxonomy (refining ARDs 016/051).
+
 ---
 
 ## Might be droppable

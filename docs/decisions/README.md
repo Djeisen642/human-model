@@ -166,3 +166,4 @@ When in doubt:
 | [048](./048-stat-caps-and-age-decay.md) | Stat Caps and Age-Based Decay for Constitution and Intelligence | Accepted |
 | [049](./049-mortality-rebalance-illness-senescence.md) | Mortality Rebalance — Illness Senescence and Suicide Recalibration | Accepted |
 | [050](./050-carrying-capacity-degradation.md) | Carrying Capacity Degrades Under Overexploitation | Accepted |
+| [051](./051-multidimensional-outcome-classification.md) | Multi-Dimensional Outcome Classification | Accepted |

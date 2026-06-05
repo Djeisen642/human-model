@@ -42,6 +42,7 @@ export function buildTenYearSummary(
   const avgResources = avg(window.map(s => s.averageResources));
   const avgHappiness = avg(window.map(s => s.averageHappiness));
   const avgNaturalResources = avg(window.map(s => s.naturalResources));
+  const avgNaturalResourceCeiling = avg(window.map(s => s.naturalResourceCeiling));
   const peakResourceGini = Math.max(...window.map(s => s.resourceGini));
   const avgCommunityPool = avg(window.map(s => s.communityPool));
 
@@ -58,6 +59,7 @@ export function buildTenYearSummary(
     avgResources,
     avgHappiness,
     avgNaturalResources,
+    avgNaturalResourceCeiling,
     peakResourceGini,
     births,
     avgCommunityPool,
@@ -103,75 +105,134 @@ export function formatDecadeSummary(summary: TenYearSummary): string {
 /** Possible outcome labels. EXTINCTION added in ARD 031. */
 export type OutcomeLabel = 'EXTINCTION' | 'COLLAPSE' | 'STRUGGLING' | 'STABLE' | 'THRIVING';
 
+/** Derived signals the outcome verdict reads, across four collapse/thrive dimensions (ARD 051). */
+interface OutcomeMetrics {
+  /** Population at the end of the final decade. */
+  finalPop: number;
+  /** Decline from the run's peak population, as a fraction in [0, 1]. */
+  peakDecline: number;
+  /** Commons fill fraction: final-decade avg pool ÷ avg ceiling, in [0, 1]. */
+  poolFraction: number;
+  /** Final-decade average Gini. */
+  gini: number;
+  /** Final-decade average happiness. */
+  happiness: number;
+}
+
 /**
- * Classifies the simulation outcome based on the final decade's summary.
- * Checks in order: EXTINCTION, COLLAPSE, THRIVING, STRUGGLING, STABLE.
+ * Derives the four-dimensional outcome signals from the decade history: population trajectory
+ * (decline from the run's peak), inequality, wellbeing, and ecological strain (commons fill).
+ * The starting population counts as a candidate peak so a run that only ever declines is measured
+ * against its true high-water mark. See ARD 051.
  *
- * @param finalDecade - the last TenYearSummary in decadeHistory
+ * @param decadeHistory - all decade summaries in order
+ * @param startPopulation - initial population at simulation start
+ * @returns the derived signals for the final decade
+ */
+function outcomeMetrics(decadeHistory: TenYearSummary[], startPopulation: number): OutcomeMetrics {
+  const final = decadeHistory[decadeHistory.length - 1];
+  const peakPop = Math.max(startPopulation, ...decadeHistory.map(d => d.endPopulation));
+  const peakDecline = peakPop > 0 ? 1 - final.endPopulation / peakPop : 0;
+  const poolFraction = final.avgNaturalResourceCeiling > 0
+    ? final.avgNaturalResources / final.avgNaturalResourceCeiling
+    : 0;
+  return {
+    finalPop: final.endPopulation,
+    peakDecline,
+    poolFraction,
+    gini: final.avgResourceGini,
+    happiness: final.avgHappiness,
+  };
+}
+
+/**
+ * Classifies the simulation outcome on four collapse/thrive dimensions (ARD 051): population
+ * decline from peak, inequality, wellbeing, and ecological strain. Checked in order: EXTINCTION,
+ * COLLAPSE, THRIVING, STRUGGLING, STABLE.
+ *
+ * @param decadeHistory - all decade summaries in order (the last is the final decade)
  * @param startPopulation - initial population at simulation start
  * @returns outcome label
  */
 export function classifyOutcome(
-  finalDecade: TenYearSummary,
+  decadeHistory: TenYearSummary[],
   startPopulation: number,
 ): OutcomeLabel {
-  if (finalDecade.endPopulation === 0) return 'EXTINCTION';
-  const popFraction = finalDecade.endPopulation / startPopulation;
+  const m = outcomeMetrics(decadeHistory, startPopulation);
+  if (m.finalPop === 0) return 'EXTINCTION';
+
+  // COLLAPSE: severe population loss from peak, or extreme inequality.
   if (
-    finalDecade.avgResourceGini >= Variables.COLLAPSE_GINI_THRESHOLD ||
-    popFraction < Variables.COLLAPSE_POPULATION_FRACTION
+    m.peakDecline >= Variables.COLLAPSE_PEAK_DECLINE_FRACTION ||
+    m.gini >= Variables.COLLAPSE_GINI_THRESHOLD
   ) {
     return 'COLLAPSE';
   }
+
+  // THRIVING: all four — low inequality, high wellbeing, population near peak, healthy commons.
   if (
-    finalDecade.avgResourceGini < Variables.THRIVING_GINI_THRESHOLD &&
-    finalDecade.avgHappiness >= Variables.THRIVING_HAPPINESS_THRESHOLD
+    m.gini < Variables.THRIVING_GINI_THRESHOLD &&
+    m.happiness >= Variables.THRIVING_HAPPINESS_THRESHOLD &&
+    m.peakDecline < Variables.THRIVING_MAX_PEAK_DECLINE_FRACTION &&
+    m.poolFraction >= Variables.THRIVING_RESOURCE_FRACTION
   ) {
     return 'THRIVING';
   }
+
+  // STRUGGLING: any single stress signal — inequality, immiseration, notable decline, or strain.
   if (
-    finalDecade.avgResourceGini >= Variables.STRUGGLING_GINI_THRESHOLD ||
-    finalDecade.avgHappiness < Variables.STRUGGLING_HAPPINESS_THRESHOLD
+    m.gini >= Variables.STRUGGLING_GINI_THRESHOLD ||
+    m.happiness < Variables.STRUGGLING_HAPPINESS_THRESHOLD ||
+    m.peakDecline >= Variables.STRUGGLING_PEAK_DECLINE_FRACTION ||
+    m.poolFraction < Variables.STRUGGLING_RESOURCE_FRACTION
   ) {
     return 'STRUGGLING';
   }
+
   return 'STABLE';
 }
 
 /**
- * Human-readable rationale for an outcome label, citing the triggering metric.
- * ARD 016 specified this; surfaces the "why" alongside the label.
+ * Human-readable rationale for an outcome label, naming whichever dimension drove it (ARD 051).
  *
- * @param finalDecade - the last TenYearSummary in decadeHistory
+ * @param decadeHistory - all decade summaries in order
  * @param startPopulation - initial population at simulation start
  * @param outcome - the label returned by classifyOutcome
  * @returns one-line reason string
  */
 export function explainOutcome(
-  finalDecade: TenYearSummary,
+  decadeHistory: TenYearSummary[],
   startPopulation: number,
   outcome: OutcomeLabel,
 ): string {
-  const popFraction = finalDecade.endPopulation / startPopulation;
-  const giniStr = finalDecade.avgResourceGini.toFixed(2);
-  const happinessStr = finalDecade.avgHappiness.toFixed(1);
+  const m = outcomeMetrics(decadeHistory, startPopulation);
+  const giniStr = m.gini.toFixed(2);
+  const happyStr = m.happiness.toFixed(1);
+  const declineStr = `${(m.peakDecline * 100).toFixed(0)}%`;
+  const poolStr = `${(m.poolFraction * 100).toFixed(0)}%`;
   switch (outcome) {
   case 'EXTINCTION':
     return 'Population reached 0';
   case 'COLLAPSE':
-    if (finalDecade.avgResourceGini >= Variables.COLLAPSE_GINI_THRESHOLD) {
-      return `Final-decade avg Gini ${giniStr} ≥ ${Variables.COLLAPSE_GINI_THRESHOLD.toFixed(2)} threshold`;
+    if (m.peakDecline >= Variables.COLLAPSE_PEAK_DECLINE_FRACTION) {
+      return `Population fell ${declineStr} from peak (≥ ${(Variables.COLLAPSE_PEAK_DECLINE_FRACTION * 100).toFixed(0)}%)`;
     }
-    return `Population fell to ${(popFraction * 100).toFixed(0)}% of start (below ${(Variables.COLLAPSE_POPULATION_FRACTION * 100).toFixed(0)}%)`;
+    return `Final-decade avg Gini ${giniStr} ≥ ${Variables.COLLAPSE_GINI_THRESHOLD.toFixed(2)} threshold`;
   case 'THRIVING':
-    return `Final-decade Gini ${giniStr} below ${Variables.THRIVING_GINI_THRESHOLD.toFixed(2)} and happiness ${happinessStr} ≥ ${Variables.THRIVING_HAPPINESS_THRESHOLD.toFixed(1)}`;
+    return `Low inequality (Gini ${giniStr}), high wellbeing (happiness ${happyStr}), population near peak, commons ${poolStr} full`;
   case 'STRUGGLING':
-    if (finalDecade.avgResourceGini >= Variables.STRUGGLING_GINI_THRESHOLD) {
+    if (m.gini >= Variables.STRUGGLING_GINI_THRESHOLD) {
       return `Final-decade Gini ${giniStr} ≥ ${Variables.STRUGGLING_GINI_THRESHOLD.toFixed(2)} threshold`;
     }
-    return `Final-decade happiness ${happinessStr} below ${Variables.STRUGGLING_HAPPINESS_THRESHOLD.toFixed(1)} threshold`;
+    if (m.happiness < Variables.STRUGGLING_HAPPINESS_THRESHOLD) {
+      return `Final-decade happiness ${happyStr} below ${Variables.STRUGGLING_HAPPINESS_THRESHOLD.toFixed(1)} threshold`;
+    }
+    if (m.peakDecline >= Variables.STRUGGLING_PEAK_DECLINE_FRACTION) {
+      return `Population down ${declineStr} from peak (≥ ${(Variables.STRUGGLING_PEAK_DECLINE_FRACTION * 100).toFixed(0)}%)`;
+    }
+    return `Commons drawn down to ${poolStr} of ceiling (below ${(Variables.STRUGGLING_RESOURCE_FRACTION * 100).toFixed(0)}%) — ecological strain`;
   case 'STABLE':
-    return `Gini ${giniStr} and happiness ${happinessStr} within stable band`;
+    return `Gini ${giniStr}, happiness ${happyStr}, population near peak, commons ${poolStr} full — within stable band`;
   }
 }
 
@@ -309,8 +370,8 @@ export function formatEndReport(
 
   const final = decadeHistory[decadeHistory.length - 1];
   const first = decadeHistory[0];
-  const outcome = classifyOutcome(final, startPopulation);
-  const reason = explainOutcome(final, startPopulation, outcome);
+  const outcome = classifyOutcome(decadeHistory, startPopulation);
+  const reason = explainOutcome(decadeHistory, startPopulation, outcome);
 
   const totalDeaths = decadeHistory.reduce((s, d) => s + d.totalDeaths, 0);
   const totalBirths = decadeHistory.reduce((s, d) => s + d.births, 0);

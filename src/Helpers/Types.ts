@@ -65,6 +65,8 @@ export interface TenYearSummary {
   avgHappiness: number;
   /** Average natural resource pool level across the 10 ticks. */
   avgNaturalResources: number;
+  /** Average natural resource ceiling (carrying capacity) across the 10 ticks; pool ÷ this = commons fill fraction. ARD 051. */
+  avgNaturalResourceCeiling: number;
   /** Worst single-year Gini observed in the decade. */
   peakResourceGini: number;
   /** Births over the decade (delta, not cumulative). */
