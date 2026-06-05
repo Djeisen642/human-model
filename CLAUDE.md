@@ -36,7 +36,19 @@ npm run build            # rimraf ./build && tsc
 npm run lint             # eslint over .ts files
 npm run start:dev        # nodemon (watches src/, runs ts-node src/index.ts)
 npm run generate-config  # writes config.default.json from Variables.ts (gitignored)
+npm run sweep -- [opts]  # run many sims across seeds, print a metrics/outcome table (calibration tool)
 ```
+
+### Sweep harness (`scripts/sweep.ts`)
+
+For calibration: runs the tick loop in-process across many seeds and aggregates, instead of hand-running configs one at a time. Per sweep value it prints the outcome distribution (`STABLE×2 COLLAPSE×1 …`), median end/peak population, median peak Gini, `bound%` (share of ticks the commons pool sits below 5% of its ceiling — i.e. how often resources bind), and extinction count.
+
+```bash
+npm run sweep -- --ticks 300 --sweep BASE_CHILDBIRTH_RATE=0.2,0.3,0.4   # sweep one Variables constant
+npm run sweep -- --seeds 20 --set MAX_NATURAL_RESOURCE_CEILING=12000 --verbose  # fixed overrides + per-seed detail
+```
+
+Options: `--seeds 42,7,1` (or a single `N` → seeds 1..N; default 1..8), `--ticks`, `--persons`, `--set KEY=VAL` (repeatable Variables override), `--sweep KEY=v1,v2,…` (one sweep dimension), `--verbose` (per-seed rows with cause-of-death split). Always calibrate in a regime where the bounding feedbacks fire — see `docs/research-fertility.md`.
 
 ### CLI flags (entry point)
 

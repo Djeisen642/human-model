@@ -8,6 +8,7 @@
     "build": "rimraf ./build && tsgo",
     "lint": "eslint src/",
     "generate-config": "ts-node scripts/generate-config.ts",
+    "sweep": "ts-node scripts/sweep.ts",
     "start": "ts-node src/App/index.ts",
     "prepare": "husky"
   },
