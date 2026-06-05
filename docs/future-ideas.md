@@ -45,6 +45,12 @@ Illness currently affects only mortality and happiness. Adding `potential *= (1 
 **Resource pooling in relationships**
 `isInRelationshipWith` is a flag with no economic consequence. Households pool income and consumption — pooling lowers measured inequality and changes household resilience. Decision: pool fully, partially, or treat the household as the economic unit.
 
+**Voluntary trade / bilateral exchange (Sugarscape — Epstein & Axtell 1996; Tainter 1988; Cline, *1177 B.C.* 2014; Kander et al., *Entropy* 2024)**
+Every resource transfer in the model is zero-sum or negative-sum (theft, tax, gift, windfall, inheritance); voluntary trade is the missing positive-sum channel where two agents each hold a surplus of something the other needs and both come out ahead. Trade network contraction is a documented leading indicator of collapse — the Late Bronze Age systems collapse is the canonical case, where interdependent Mycenaean, Hittite, and Egyptian exchange circuits failed in sequence within decades — while robust exchange buffers local extraction failures and dampens Gini. Sugarscape, the direct agent-ABM ancestor of this simulation's Gini focus, includes bilateral trade as a core mechanic; without it, the model has no mechanism to generate the surplus that distinguishes thriving civilizations, and can only redistribute scarcity, which may explain why THRIVING is rare in practice.
+
+**Elite extraction differential / HANDY class hierarchy (Motesharrei, Rivas & Kalnay 2014; Turchin — *Secular Cycles* 2009, *Ages of Discord* 2016)**
+HANDY's central result: any parameterization where elites consume at a higher per-capita rate than commoners produces collapse regardless of absolute resource abundance, because elite extraction depletes the pool faster than it regenerates while commoners lack the buffer to absorb shocks. Turchin's structural-demographic theory adds two further collapse channels: elite overproduction (elite families reproduce into a fixed number of high-status positions, generating surplus counter-elites who compete destructively) and fiscal crisis (elite resistance to taxation hollows out the state's buffering capacity, measured as a Political Stress Index that peaks 10–20 years before the collapse event). The current model captures the Gini signal but not the mechanism — all agents extract from the pool at the same rate formula regardless of wealth rank, so the HANDY result (high inequality causes collapse even at a healthy pool level) cannot emerge; introducing a consumption-rate multiplier scaled to relative resource rank would let Gini become a leading indicator of collapse from mechanism rather than from luck or theft alone.
+
 ### Behavioral feedback (research-grounded)
 
 **Equilibrium-seeking agents with heterogeneous overcorrection (workaholics vs. monks)**
@@ -65,6 +71,9 @@ Happiness depends on resources relative to peers. A `(myResources - localMedian)
 **Generalized trust as a per-person stat (Putnam)**
 Victimization is currently recorded but has no behavioral consequence on the victim — antisocial behavior can't degrade social cohesion. A per-person trust score damaged by appearing in others' StealingRecord/KillingRecord and slowly restored by neutral interactions would close that loop and gate positive-sum events.
 
+**Cultural norm erosion / cooperation propensity (Henrich 2015; Ostrom 1990; Boyd, Gintis, Bowles & Richerson, *PNAS* 2003; Gavrilets & Richerson, *PNAS* 2017)**
+Ostrom's commons governance research shows cooperative extraction restraint is sustained only by active norm enforcement (graduated sanctions, participatory rule-making); when sanctioning capacity erodes — via inequality, elite defection from shared rules, or population disruption — overextraction accelerates independently of any individual's intent change. Henrich's collective brain thesis frames this as a cultural transmission failure: cooperative knowledge accumulates intergenerationally and collapses faster than it was built when transmission is disrupted. The current model has no feedback where rising inequality erodes willingness to restrain extraction; a cooperation-propensity parameter that decays as Gini rises (Putnam's trust–inequality correlation is empirically robust across countries and US states) and recovers as HelpEvent frequency rises would make the pool directly sensitive to social cohesion — adding the upstream mechanism that drives the commons toward the HANDY collapse trajectory before individual intents visibly change.
+
 ### Social structure
 
 **Proximity (Tobler; Christakis & Fowler contagion)**
@@ -75,6 +84,9 @@ Many of the mechanisms above are local, not global — relative deprivation, con
 3. **2D spatial grid** — coordinates per person; pool can localize. Heaviest; changes many event signatures.
 
 Single decision point because relative deprivation, threshold cascades, bereavement, and contagion all need *some* proximity to be implementable.
+
+**Collective violence / civil violence threshold (Keeley 1996; Epstein, *PNAS* 2002; Turchin; Diamond 2005)**
+Individual KillEvent models independent homicide; organized group violence requires a coordination threshold — agents with shared grievance (high Gini, low happiness) mobilize when local enforcement capacity falls below an activation point, producing punctuated nonlinear outbursts rather than a smooth mortality gradient. Epstein's 2002 PNAS civil violence ABM reproduces this pattern with grievance = f(hardship − perceived legitimacy) gated by local cop density; Diamond identifies coordinated inter-clan warfare accelerating terminal decline in Easter Island and Maya cases specifically after resource stress crossed a threshold. A cluster of high-killingIntent agents that can coordinate would be capable of destroying the commons pool in a single episode — qualitatively different from per-person mortality and able to flip a STABLE trajectory into COLLAPSE, which individual KillEvent cannot. Does not strictly require full proximity infrastructure; a coarse faction-label approach would suffice.
 
 ### Research / Output
 
