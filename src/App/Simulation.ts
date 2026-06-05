@@ -331,6 +331,26 @@ export default class Simulation {
   }
 
   /**
+   * Degrades the carrying capacity in proportion to how depleted the pool is: a full pool
+   * (no exploitation pressure) causes no loss, an empty pool causes the maximum
+   * `CEILING_DEGRADATION_RATE` loss. The ceiling floors at `NATURAL_RESOURCE_CEILING_FLOOR`,
+   * and the pool is re-clamped so it can never exceed the reduced ceiling. Because regen is
+   * coupled to the ceiling (ARD 043), a falling ceiling drags regeneration down with it, so
+   * sustained overexploitation feeds a collapse spiral. Call once per tick before `regenerate()`.
+   * See ARD 050.
+   */
+  degradeCeiling(): void {
+    if (this.naturalResourceCeiling <= 0) return;
+    const depletion = Math.max(0, 1 - this.naturalResources / this.naturalResourceCeiling);
+    const loss = this.naturalResourceCeiling * Variables.CEILING_DEGRADATION_RATE * depletion;
+    this.naturalResourceCeiling = Math.max(
+      Variables.NATURAL_RESOURCE_CEILING_FLOOR,
+      this.naturalResourceCeiling - loss,
+    );
+    this.naturalResources = Math.min(this.naturalResources, this.naturalResourceCeiling);
+  }
+
+  /**
    * Deducts TAX_RATE fraction from each person's resources and adds the proceeds to
    * `communityPool`. Deduction is proportional, so a person at zero resources pays nothing.
    * Call once per tick before gathering events. ARD 034.

@@ -92,7 +92,7 @@ One shared environment object. No spatial structure; all agent interactions are 
 
 Each tick executes in this order:
 
-1. **`simulation.regenerate()`** — natural-resource pool replenishes by `naturalResourceCeiling × NATURAL_RESOURCE_REGEN_FRACTION`, clamped at `naturalResourceCeiling` (ARD 043).
+1. **`simulation.degradeCeiling()`** then **`simulation.regenerate()`** — first the carrying capacity erodes by `naturalResourceCeiling × CEILING_DEGRADATION_RATE × (1 − naturalResources/naturalResourceCeiling)`, floored at `NATURAL_RESOURCE_CEILING_FLOOR`, so overexploitation degrades carrying capacity (ARD 050); then the pool replenishes by `naturalResourceCeiling × NATURAL_RESOURCE_REGEN_FRACTION`, clamped at `naturalResourceCeiling` (ARD 043).
 2. **`DisasterEvent`** — fires once per tick (not per agent); probabilistic trigger; random subset of living agents may be killed or lose resources.
 3. **`simulation.collectTax(living)`** — deducts `TAX_RATE × resources` from each living agent; credited to `communityPool` (ARD 034).
 4. **Jail countdown** — for each living agent, if `jailedTicksRemaining > 0`, decrement by 1. Happens before EventFactory so the decremented value governs this tick's event set (ARD 035).
@@ -299,13 +299,13 @@ Replaces the normal gather/consume cycle for agents with `jailedTicksRemaining >
 Probability gate at factory: `prob = BASE_WINDFALL_RATE × ageModifier(58, 20, 0.05)`.
 `drawn = WINDFALL_BASE_AMOUNT + rng() × WINDFALL_VARIANCE`; `granted = min(drawn, naturalResources)` is debited from the pool and credited to `person.resources`. When the pool is empty, the windfall yields 0.
 
-#### InventionEvent (ARD 007, ARD 039, ARD 047)
+#### InventionEvent (ARD 007, ARD 039, ARD 047, ARD 050)
 Gate: `prob = BASE_INVENTION_RATE × intelligence × ageModifier(40, 45, 0.1)`.
 Weighted random draw — one of three outcomes:
 - Depletion-faster (tech boom): `extractionProductivity *= 1 + delta`, clamped at `MAX_EXTRACTION_PRODUCTIVITY`
 - Depletion-slower (austerity tech): `extractionProductivity /= 1 + delta` (exact inverse of faster, so a faster/slower pair cancels — no toward-floor drift), floored at `EXTRACTION_PRODUCTIVITY_FLOOR`
-- Ceiling-growth: `naturalResourceCeiling += delta × ceiling`, clamped at `MAX_NATURAL_RESOURCE_CEILING`
-`delta = intelligence × INVENTION_MAGNITUDE_SCALAR`. Productivity is a bounded multiplicative random walk on `[EXTRACTION_PRODUCTIVITY_FLOOR, MAX_EXTRACTION_PRODUCTIVITY]` (ARD 047).
+- Ceiling-growth: `naturalResourceCeiling += intelligence × INVENTION_CEILING_GROWTH_SCALAR × ceiling`, clamped at `MAX_NATURAL_RESOURCE_CEILING` — gentle dedicated scalar (ARD 050) so tech lifts carrying capacity gradually rather than ratcheting to the cap, counterbalanced by `degradeCeiling()`
+Productivity `delta = intelligence × INVENTION_MAGNITUDE_SCALAR`. Productivity is a bounded multiplicative random walk on `[EXTRACTION_PRODUCTIVITY_FLOOR, MAX_EXTRACTION_PRODUCTIVITY]` (ARD 047).
 
 #### Simulation.kill — estate distribution (ARD 042)
 On any death, before clearing partner reference or filtering `living`:

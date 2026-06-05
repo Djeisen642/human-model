@@ -639,6 +639,55 @@ describe('Simulation', () => {
       expect(sim.naturalResources).toBe(sim.naturalResourceCeiling);
     });
 
+    it('degradeCeiling does not erode a full pool (ARD 050)', () => {
+      const sim = new Simulation();
+      sim.naturalResourceCeiling = 10000;
+      sim.naturalResources = 10000; // full → depletion 0
+      sim.degradeCeiling();
+      expect(sim.naturalResourceCeiling).toBe(10000);
+    });
+
+    it('degradeCeiling erodes the ceiling in proportion to pool depletion (ARD 050)', () => {
+      const sim = new Simulation();
+      sim.naturalResourceCeiling = 10000;
+      sim.naturalResources = 0; // fully depleted → depletion 1
+      sim.degradeCeiling();
+      const expected = 10000 - 10000 * Variables.CEILING_DEGRADATION_RATE * 1;
+      expect(sim.naturalResourceCeiling).toBeCloseTo(expected);
+    });
+
+    it('degradeCeiling erodes faster the more depleted the pool (ARD 050)', () => {
+      const light = new Simulation();
+      light.naturalResourceCeiling = 10000;
+      light.naturalResources = 7500; // depletion 0.25
+      light.degradeCeiling();
+
+      const heavy = new Simulation();
+      heavy.naturalResourceCeiling = 10000;
+      heavy.naturalResources = 2500; // depletion 0.75
+      heavy.degradeCeiling();
+
+      const lightLoss = 10000 - light.naturalResourceCeiling;
+      const heavyLoss = 10000 - heavy.naturalResourceCeiling;
+      expect(heavyLoss).toBeGreaterThan(lightLoss);
+    });
+
+    it('degradeCeiling floors the ceiling at NATURAL_RESOURCE_CEILING_FLOOR (ARD 050)', () => {
+      const sim = new Simulation();
+      sim.naturalResourceCeiling = Variables.NATURAL_RESOURCE_CEILING_FLOOR;
+      sim.naturalResources = 0; // maximally depleted
+      sim.degradeCeiling();
+      expect(sim.naturalResourceCeiling).toBe(Variables.NATURAL_RESOURCE_CEILING_FLOOR);
+    });
+
+    it('degradeCeiling re-clamps the pool so it never exceeds the ceiling (ARD 050)', () => {
+      const sim = new Simulation();
+      sim.naturalResourceCeiling = 3000;
+      sim.naturalResources = 5000; // inconsistent state: pool above ceiling
+      sim.degradeCeiling();
+      expect(sim.naturalResources).toBeLessThanOrEqual(sim.naturalResourceCeiling);
+    });
+
     it('snapshot should include naturalResources', () => {
       const sim = new Simulation();
       sim.naturalResources = 5_000;

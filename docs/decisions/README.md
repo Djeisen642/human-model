@@ -165,3 +165,4 @@ When in doubt:
 | [047](./047-invention-bounds-and-symmetry.md) | Bounded, Symmetric InventionEvent Dynamics | Accepted |
 | [048](./048-stat-caps-and-age-decay.md) | Stat Caps and Age-Based Decay for Constitution and Intelligence | Accepted |
 | [049](./049-mortality-rebalance-illness-senescence.md) | Mortality Rebalance — Illness Senescence and Suicide Recalibration | Accepted |
+| [050](./050-carrying-capacity-degradation.md) | Carrying Capacity Degrades Under Overexploitation | Accepted |
