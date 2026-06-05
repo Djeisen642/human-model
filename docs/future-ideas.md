@@ -154,3 +154,15 @@ Considered and rejected without rising to ARD-level discussion. Each entry: name
 **Loss aversion in intent updates (Kahneman & Tversky)** — 2026-05-17 — The core stat→intent feedback is addressed by ARD 036: permanent emboldening on undetected theft covers behavioral escalation; resource-pressure and happiness-pressure situational multipliers cover the circumstance-driven response. The asymmetric permanent update on resource loss specifically (losses raise intent faster than gains lower it) is not implemented; desistance (intent decay from stable conditions) is noted in future-ideas under behavioral feedback.
 
 **Lying event** — 2026-05-19 — Dropped without ARD; the social-manipulation/intent-contagion pathway it would have covered is not a current priority and the event set is otherwise complete.
+
+**Migration / geographic mobility** — 2026-06-05 — No geography in the model; mobility is a dependent feature of proximity (already in future-ideas as the prior layer), not a standalone mechanic.
+
+**Infrastructure / physical capital accumulation** — 2026-06-05 — InventionEvent already handles productivity and carrying-capacity shifts; standalone physical capital (stored food, buildings, roads) is unlikely to add a distinct collapse/thrive signal beyond what pool dynamics already capture.
+
+**Debt / credit / deferred exchange** — 2026-06-05 — Depends on voluntary trade existing first (added to future-ideas); revisit if trade is implemented.
+
+**Division of labor / job specialization** — 2026-06-05 — Requires role-differentiation infrastructure beyond the binary employed/unemployed model; Tainter's complexity-cost angle is real but not capturable without it.
+
+**Elder care / sustained caregiving** — 2026-06-05 — Economic dimension already covered by HelpEvent, ConsumptionEvent elder multiplier, and parental subsidy; sustained relational care is unlikely to add a distinct collapse/thrive signal.
+
+**Political institutions / governance mechanics** — 2026-06-05 — Political dynamics covered via the elite extraction differential entry (Turchin's political stress index, fiscal crisis channels); formal governance mechanics (voting, rule-changing agents) would require a larger architectural redesign with no clear incremental on-ramp.
