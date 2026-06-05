@@ -81,33 +81,34 @@ export default class Person {
     let happiness = Variables.HAPPINESS_BASELINE;
 
     // Job: only penalise working-age adults for unemployment
-    if (this.age >= 18 && this.age <= 65) {
-      happiness += this.hasJob ? 5 : -3;
+    if (this.age >= Variables.WORKING_AGE_MIN && this.age <= Variables.WORKING_AGE_MAX) {
+      happiness += this.hasJob ? Variables.HAPPINESS_JOB_BONUS : -Variables.HAPPINESS_UNEMPLOYED_PENALTY;
     } else if (this.hasJob) {
-      happiness += 5;
+      happiness += Variables.HAPPINESS_JOB_BONUS;
     }
 
     // Resources: children use parents' average; elderly have higher thresholds
-    const resourceBase = (this.age < 18 && this.livingParents.length > 0)
+    const resourceBase = (this.age < Variables.WORKING_AGE_MIN && this.livingParents.length > 0)
       ? this.livingParents.reduce((sum, p) => sum + p.resources, 0) / this.livingParents.length
       : this.resources;
 
-    const criticalThreshold = this.age > 65 ? 20 : 10;
-    const lowThreshold = this.age > 65 ? 50 : 30;
-    const comfortableThreshold = this.age > 65 ? 100 : 70;
+    const elderly = this.age > Variables.WORKING_AGE_MAX;
+    const criticalThreshold = elderly ? Variables.HAPPINESS_RESOURCE_CRITICAL_THRESHOLD_ELDERLY : Variables.HAPPINESS_RESOURCE_CRITICAL_THRESHOLD;
+    const lowThreshold = elderly ? Variables.HAPPINESS_RESOURCE_LOW_THRESHOLD_ELDERLY : Variables.HAPPINESS_RESOURCE_LOW_THRESHOLD;
+    const comfortableThreshold = elderly ? Variables.HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD_ELDERLY : Variables.HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD;
 
-    if (resourceBase < criticalThreshold) happiness -= 5;
-    else if (resourceBase < lowThreshold) happiness -= 2;
-    else if (resourceBase >= comfortableThreshold) happiness += 3;
+    if (resourceBase < criticalThreshold) happiness -= Variables.HAPPINESS_RESOURCE_CRITICAL_PENALTY;
+    else if (resourceBase < lowThreshold) happiness -= Variables.HAPPINESS_RESOURCE_LOW_PENALTY;
+    else if (resourceBase >= comfortableThreshold) happiness += Variables.HAPPINESS_RESOURCE_COMFORTABLE_BONUS;
 
     // Relationship
-    if (this.isInRelationshipWith !== null) happiness += 3;
+    if (this.isInRelationshipWith !== null) happiness += Variables.HAPPINESS_RELATIONSHIP_BONUS;
 
     // Age: small penalty for elderly only
-    if (this.age > 65) happiness -= 1;
+    if (this.age > Variables.WORKING_AGE_MAX) happiness -= Variables.HAPPINESS_ELDERLY_PENALTY;
 
     // Health: illness in [0, 1]; 0 = healthy, 1 = very ill
-    happiness -= Math.round(this.illness * 5);
+    happiness -= Math.round(this.illness * Variables.HAPPINESS_ILLNESS_SCALAR);
 
     // Transient boosts from recent helping and killing; both decay to zero over time
     happiness += this.helpHappinessBoost + this.killHappinessBoost;

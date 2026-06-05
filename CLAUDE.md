@@ -86,7 +86,7 @@ src/
     StealingRecord.ts      # Victim reference + amount stolen + thief's age
   Helpers/
     Constants.ts           # CAUSE_OF_DEATH, EDUCATION, TYPE_OF_HELP enums
-    Variables.ts           # ILLNESS_DEATH_SCALAR, age curve constants, per-event age profiles
+    Variables.ts           # ILLNESS_DEATH_SCALAR, age curve constants, per-event age profiles, happiness signals, health thresholds, working-age bounds
     SeededRandom.ts        # LCG seeded RNG; asRNG() returns an RNG-typed function
     AgeModifier.ts         # ageModifier(age, peakAge, scale, floor) — bell curve helper
     Types.ts               # RNG, TenYearSummary, PersonTypeDefinition/PersonTypes, OverridableField, INTEGER_FIELDS (ARD 030)
