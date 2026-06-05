@@ -17,21 +17,23 @@ interface SimConfig {
 }
 
 /**
- * Parses --config and --output from process.argv.
- * @returns paths for the config file and output directory, if provided
+ * Parses --config, --output, and --no-report from process.argv.
+ * @returns paths for the config file and output directory, and whether to skip the HTML report
  */
-function parseArgs(): { configPath?: string; outputDir?: string } {
+function parseArgs(): { configPath?: string; outputDir?: string; noReport: boolean } {
   const args = process.argv.slice(2);
   let configPath: string | undefined;
   let outputDir: string | undefined;
+  let noReport = false;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--config' && i + 1 < args.length) configPath = args[++i];
     else if (args[i] === '--output' && i + 1 < args.length) outputDir = args[++i];
+    else if (args[i] === '--no-report') noReport = true;
   }
-  return { configPath, outputDir };
+  return { configPath, outputDir, noReport };
 }
 
-const { configPath, outputDir } = parseArgs();
+const { configPath, outputDir, noReport } = parseArgs();
 
 let config: SimConfig = {};
 if (configPath) {
@@ -87,4 +89,6 @@ console.log(formatEndReport(
   simulation.communityPool,
 ));
 
-writeReportHTML(simulation, N, TICKS, SEED, outputDir);
+if (!noReport) {
+  writeReportHTML(simulation, N, TICKS, SEED, outputDir);
+}
