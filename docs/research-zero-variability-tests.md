@@ -1,5 +1,9 @@
 # Zero-Variability Test Runs
 
+**Recorded:** 2026-06-05 | **Commit:** d6fc420 | **Base config:** all Variables at defaults unless noted
+**Commands:** `npm run sweep -- --ticks 200 --seeds 8 [--set KEY=0]` (one override per run)
+**Key context vars:** `BASE_CHILDBIRTH_RATE=0.6`, `ILLNESS_DEATH_SCALAR=0.05`, `NATURAL_RESOURCE_REGEN_FRACTION=0.03`, `BASE_INVENTION_RATE=0.002`
+
 **Purpose:** Verify that individual variables do what they claim to do by zeroing them out one at a time and checking that outcomes match expectations. Run via the sweep harness: 8 seeds × 200 ticks per test case.
 
 **Baseline (default settings):**
