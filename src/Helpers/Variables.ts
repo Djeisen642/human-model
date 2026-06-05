@@ -139,8 +139,8 @@ export default class Variables {
   static GRADUATION_ADULT_PHD_RATE = 0.20;
 
   // ChildbirthEvent constants (ARD 029)
-  /** Per-tick ceiling probability for a healthy, well-resourced, partnered couple at peak age. Calibrated to Hutterite natural fertility (~40–55% at ages 20–30). */
-  static BASE_CHILDBIRTH_RATE = 0.40;
+  /** Per-tick ceiling probability for a healthy, well-resourced, partnered couple at peak age. Hutterite natural fertility is ~40–55%; raised to 0.6 (sweep-calibrated over ARD 050's binding regime) for the richest outcome variety — at the 100-tick horizon this spreads runs across collapse/struggling/stable rather than the placid all-STABLE that 0.4 produced. The population is intrinsically boom-bust (see docs/research-fertility.md); no value yields long-run stability, so this is tuned for variety, not equilibrium. */
+  static BASE_CHILDBIRTH_RATE = 0.6;
   /** Illness suppressor: at 0.8, full illness (1.0) eliminates fertility; 0.5 illness halves it. */
   static CHILDBIRTH_ILLNESS_SCALAR = 0.8;
   /** Resource floor below which fertility is zero; models famine-threshold amenorrhea. */

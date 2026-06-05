@@ -121,3 +121,33 @@ fertility constant.
 | Density-dependent fertility | absent (abrupt resource floor only) | add smooth `(1 − N/K)`-style suppressor | Brakes growth before overshoot; the missing logistic term |
 | `BASE_CHILDBIRTH_RATE` | 0.40 (Hutterite TFR≈11) | ~replacement, re-swept after the above | 0.40 only balanced the old suicide bug; re-sweep in a binding regime |
 | Crash recovery (Allee) | terminal (no rebound) | optional: weaken low-density partnership dependence | Makes collapse survivable rather than always extinction |
+
+## Resolution (sweep-harness investigation, 2026-06)
+
+ARD 050 bound the carrying capacity (lever 1). With `K` binding, the fertility recommendations
+above (levers 2–3) were then tested empirically with `scripts/sweep.ts` across 16 seeds at
+100–300 ticks. The result overturned the plan:
+
+- **Density-dependent fertility (lever 2) is counterproductive.** A smooth `fillFraction^exp`
+  brake suppresses fertility *everywhere the pool is drawn down* — including during recovery,
+  when the population is low but still consuming — so it pushes toward sub-replacement and makes
+  extinction *more* likely (15/16 vs 12/16 with no brake at 300 ticks). It caps the overshoot but
+  kills the rebound. The brake was dropped.
+- **No `BASE_CHILDBIRTH_RATE` yields long-run stability (lever 3).** Across the whole range,
+  including absurd values (base 5.0, TFR off the charts), 300-tick runs still go extinct ~10–16/16
+  — low fertility starves, high fertility overshoots and crashes, and crashes hit *zero* because
+  survivors are old/sparse (the Allee/age-structure floor). The bound-`K` model is an intrinsic
+  overshoot→collapse→extinction oscillator; **fertility tuning cannot stabilize it.**
+
+**Decision: accept boom-bust as a legitimate (HANDY-style) model behavior** rather than force a
+stable equilibrium. `BASE_CHILDBIRTH_RATE` was set to **0.6**, sweep-chosen for the richest
+*outcome variety* at the canonical 100-tick horizon (`STRUGGLING×6 COLLAPSE×4 STABLE×6` across 16
+seeds, resources binding ~35% of ticks, peak Gini ~0.52) rather than for equilibrium — base 0.4
+is placid (`STABLE×11`), and longer horizons collapse regardless. The collapse/thrive signal now
+comes from *which* trajectory a seed takes through the boom-bust, driven by Gini and resource
+dynamics.
+
+Genuine long-run stability, if ever wanted, would need the structural pieces fertility can't
+supply — crash recovery (lever 4: younger/desynchronized seeding or a low-density fertility
+boost so crashes bounce off a floor) — not another fertility constant. Tracked in
+`future-ideas.md`.
