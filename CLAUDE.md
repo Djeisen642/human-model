@@ -249,3 +249,13 @@ If it finds a plausible new direction that isn't in the current plan: add it to 
 ## Documentation conventions
 
 Be concise but clear in every doc — `CLAUDE.md`, ARDs, `future-ideas.md`, `decisions/README.md`. These files load into agent context; bloat is a real cost. Cut hedging, restated points, and elaborations the next reader can infer. One sentence beats three when it carries the same information. Keep the why; trim the throat-clearing.
+
+**Research docs (`docs/research-*.md`)** must open with a provenance block so results stay interpretable after Variables are recalibrated:
+
+```
+**Recorded:** YYYY-MM-DD | **Commit:** <short hash> | **Base config:** all Variables at defaults unless noted
+**Commands:** npm run sweep -- ...
+**Key context vars:** LIST=VAL, ... (the 3–5 Variables most likely to shift the results if recalibrated)
+```
+
+The commit hash lets a reader run `git show <hash>:src/Helpers/Variables.ts` to see the exact config. List only the variables with meaningful leverage on the reported outcomes — not the full 127-constant dump.

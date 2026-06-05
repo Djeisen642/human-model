@@ -1,5 +1,9 @@
 # Zero-Variability Follow-up: Combinations and Parameter Sweeps
 
+**Recorded:** 2026-06-05 | **Commit:** 3200cad | **Base config:** all Variables at defaults unless noted
+**Commands:** `npm run sweep -- --ticks 200 --seeds 8 [--set KEY=0 | --sweep KEY=v1,v2,…]`
+**Key context vars:** `BASE_CHILDBIRTH_RATE=0.6`, `ILLNESS_DEATH_SCALAR=0.05`, `NATURAL_RESOURCE_REGEN_FRACTION=0.03`, `BASE_INVENTION_RATE=0.002`
+
 **Purpose:** Follow-up to `research-zero-variability-tests.md`. Runs combination knockouts (two variables zeroed simultaneously) and parameter sweeps over the most surprising single-variable findings.
 
 **Baseline (default settings):**
