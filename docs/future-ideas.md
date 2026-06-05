@@ -8,16 +8,6 @@ Items are grouped by priority — a working judgment, not a commitment. Promote,
 
 ---
 
-## High priority
-
-Known correctness issues that can produce degenerate outcomes — runaway values, thrive-lock, or collapse-lock — before the collapse/thrive signal has time to develop. Should be addressed before drawing conclusions from long runs.
-
-### Mechanics
-
-*(The two High-priority items previously here are resolved. Suicide-dominated mortality → ARD 049. The population/fertility-regulation question → ARD 050 (binding carrying capacity) plus the harness-backed decision (`scripts/sweep.ts`, 16 seeds) to **accept boom-bust as a legitimate HANDY outcome** rather than force stability: a smooth density-dependent fertility brake proved counterproductive, and no `BASE_CHILDBIRTH_RATE` yields long-run stability, so the rate was set to 0.6 for outcome variety, not equilibrium. Full write-up in `docs/research-fertility.md`. The one residual is crash recovery, below — a follow-up tuning study (`docs/research-tuning-defaults.md`) confirmed *no* parameter regime gives a sane long-run default and identified an anti-Allee crash-recovery mechanism as the only intervention that produces any sustained cycling, making it the top structural candidate whenever long-run stability or survivable collapse is wanted.)*
-
----
-
 ## Very useful
 
 Sharpens the collapse/thrive signal or experimental setup, but does not cause degenerate outcomes on its own.
@@ -32,9 +22,6 @@ The population is an intrinsic boom-bust oscillator (accepted as a HANDY-style b
 
 **Termination conditions**
 Currently a fixed tick count. Worth adding: population=0 (already fires EXTINCTION but doesn't halt early), collapse-detected (Gini threshold + declining population over N ticks), or a flag to halt when outcome is determined rather than running to the end.
-
-**Resource inheritance on death**
-Dead persons' `resources` vanish. Inheritance (heirs receive a fraction) or estate taxes (a portion to a shared pool) gives accumulated wealth a second-order effect on Gini — concentrated wealth steepens inequality, redistribution dampens it.
 
 **Illness reduces gathering capacity**
 Illness currently affects only mortality and happiness. Adding `potential *= (1 - person.illness)` makes illness a resource drain too, strengthening the collapse loop.
@@ -166,3 +153,5 @@ Considered and rejected without rising to ARD-level discussion. Each entry: name
 **Elder care / sustained caregiving** — 2026-06-05 — Economic dimension already covered by HelpEvent, ConsumptionEvent elder multiplier, and parental subsidy; sustained relational care is unlikely to add a distinct collapse/thrive signal.
 
 **Political institutions / governance mechanics** — 2026-06-05 — Political dynamics covered via the elite extraction differential entry (Turchin's political stress index, fiscal crisis channels); formal governance mechanics (voting, rule-changing agents) would require a larger architectural redesign with no clear incremental on-ramp.
+
+**Resource inheritance on death** — 2026-06-05 — Implemented as ARD 042 (estate inheritance split: `Simulation.kill()` distributes resources to `communityPool`, surviving partner, and living children via `ESTATE_COMMUNITY_SHARE`, `ESTATE_PARTNER_SHARE`, `ESTATE_CHILDREN_SHARE`).
