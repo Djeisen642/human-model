@@ -335,6 +335,52 @@ export default class Variables {
   /** Commons fill fraction (pool ÷ ceiling) must be at or above this for THRIVING — living within carrying capacity, not overexploiting (ARD 051). */
   static THRIVING_RESOURCE_FRACTION = 0.4;
 
+  // Working-age bounds — shared by happiness getter (ARD 014) and survivor reporting
+  /** Minimum age for working-age classification; also the child/adult boundary in happiness and survivor reports. */
+  static WORKING_AGE_MIN = 18;
+  /** Maximum age for working-age classification; above this a person is elderly. Used in happiness and survivor reports. */
+  static WORKING_AGE_MAX = 65;
+
+  // Happiness: job signals (ARD 014)
+  /** Happiness added per tick for any employed person. */
+  static HAPPINESS_JOB_BONUS = 5;
+  /** Happiness deducted per tick for a working-age adult who is unemployed. */
+  static HAPPINESS_UNEMPLOYED_PENALTY = 3;
+
+  // Happiness: resource thresholds and signals (ARD 014)
+  /** Resources below this → critical penalty (non-elderly). */
+  static HAPPINESS_RESOURCE_CRITICAL_THRESHOLD = 10;
+  /** Resources below this (and ≥ critical) → low penalty (non-elderly). */
+  static HAPPINESS_RESOURCE_LOW_THRESHOLD = 30;
+  /** Resources at or above this → comfortable bonus (non-elderly). */
+  static HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD = 70;
+  /** Critical resource threshold for elderly persons; higher because fixed costs rise. */
+  static HAPPINESS_RESOURCE_CRITICAL_THRESHOLD_ELDERLY = 20;
+  /** Low resource threshold for elderly persons. */
+  static HAPPINESS_RESOURCE_LOW_THRESHOLD_ELDERLY = 50;
+  /** Comfortable resource threshold for elderly persons. */
+  static HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD_ELDERLY = 100;
+  /** Happiness deducted when resources are below the critical threshold. */
+  static HAPPINESS_RESOURCE_CRITICAL_PENALTY = 5;
+  /** Happiness deducted when resources are in the low-but-not-critical band. */
+  static HAPPINESS_RESOURCE_LOW_PENALTY = 2;
+  /** Happiness added when resources are at or above the comfortable threshold. */
+  static HAPPINESS_RESOURCE_COMFORTABLE_BONUS = 3;
+
+  // Happiness: other signals (ARD 014)
+  /** Happiness added per tick for being in a relationship. */
+  static HAPPINESS_RELATIONSHIP_BONUS = 3;
+  /** Happiness deducted per tick once a person exceeds WORKING_AGE_MAX. */
+  static HAPPINESS_ELDERLY_PENALTY = 1;
+  /** Illness scalar for happiness: happiness -= round(illness × this). At full illness (1.0), deducts this many points. */
+  static HAPPINESS_ILLNESS_SCALAR = 5;
+
+  // Health classification thresholds — used by Reporters.ts survivor summary
+  /** Illness below this → "well" bucket. */
+  static HEALTH_WELL_THRESHOLD = 0.1;
+  /** Illness below this (and ≥ HEALTH_WELL_THRESHOLD) → "mild" bucket; at or above → "severe". */
+  static HEALTH_MILD_THRESHOLD = 0.5;
+
   // Community pool, taxation, and welfare constants (ARD 034)
   /** Flat fraction of each living person's resources deducted per tick and added to the community pool. */
   static TAX_RATE = 0.02;

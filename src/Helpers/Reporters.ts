@@ -271,17 +271,17 @@ export function summarizeSurvivors(living: Person[]): SurvivorSummary {
 
   let illnessSum = 0;
   for (const p of living) {
-    if (p.age < 18) summary.children++;
-    else if (p.age <= 65) summary.working++;
+    if (p.age < Variables.WORKING_AGE_MIN) summary.children++;
+    else if (p.age <= Variables.WORKING_AGE_MAX) summary.working++;
     else summary.elderly++;
 
     summary.educationCounts[p.education] = (summary.educationCounts[p.education] ?? 0) + 1;
     if (p.isWorkingOnEd !== Constants.EDUCATION.NONE) summary.enrolled++;
 
-    if (p.age >= 18 && p.age <= 65 && p.hasJob) summary.employed++;
+    if (p.age >= Variables.WORKING_AGE_MIN && p.age <= Variables.WORKING_AGE_MAX && p.hasJob) summary.employed++;
 
-    if (p.illness < 0.1) summary.healthWell++;
-    else if (p.illness < 0.5) summary.healthMild++;
+    if (p.illness < Variables.HEALTH_WELL_THRESHOLD) summary.healthWell++;
+    else if (p.illness < Variables.HEALTH_MILD_THRESHOLD) summary.healthMild++;
     else summary.healthSevere++;
     illnessSum += p.illness;
 
@@ -319,9 +319,9 @@ export function formatSurvivorSection(s: SurvivorSummary): string[] {
       `PhD ${edu[Constants.EDUCATION.PHD] ?? 0}   ` +
       `(currently enrolled: ${s.enrolled})`,
     `  Employment: ${s.employed} / ${employmentDenom} working-age employed (${pct(s.employed, employmentDenom)})`,
-    `  Health:     well ${s.healthWell} (<0.1)  ` +
-      `mild ${s.healthMild} (0.1–0.5)  ` +
-      `severe ${s.healthSevere} (≥0.5)   ` +
+    `  Health:     well ${s.healthWell} (<${Variables.HEALTH_WELL_THRESHOLD})  ` +
+      `mild ${s.healthMild} (${Variables.HEALTH_WELL_THRESHOLD}–${Variables.HEALTH_MILD_THRESHOLD})  ` +
+      `severe ${s.healthSevere} (≥${Variables.HEALTH_MILD_THRESHOLD})   ` +
       `avg illness ${s.avgIllness.toFixed(2)}`,
     `  Family:     partnered ${s.partnered} (${pct(s.partnered, s.total)})  ` +
       `with children ${s.withChildren} (${pct(s.withChildren, s.total)})`,
