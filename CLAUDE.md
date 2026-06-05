@@ -41,7 +41,7 @@ npm run sweep -- [opts]  # run many sims across seeds, print a metrics/outcome t
 
 ### Sweep harness (`scripts/sweep.ts`)
 
-For calibration: runs the tick loop in-process across many seeds and aggregates, instead of hand-running configs one at a time. Per sweep value it prints the outcome distribution (`STABLE×2 COLLAPSE×1 …`), median end/peak population, median peak Gini, `bound%` (share of ticks the commons pool sits below 5% of its ceiling — i.e. how often resources bind), and extinction count.
+For calibration: runs the tick loop in-process across many seeds and aggregates, instead of hand-running configs one at a time. Per sweep value it prints the outcome distribution (`STABLE×2 COLLAPSE×1 …`), median end/peak population, median peak Gini, `bound%` (share of ticks the commons pool sits below 5% of its ceiling — i.e. how often resources bind), extinction count, and cycle metrics from `CycleDetector` — `cyc` (median boom-bust oscillations per series) and `stable` (count of seeds showing a sustained, non-collapsing cycle). `--verbose` rows add `cyc`/`per`(iod)/`trTrend` and a `STABLE-CYCLE` marker.
 
 ```bash
 npm run sweep -- --ticks 300 --sweep BASE_CHILDBIRTH_RATE=0.2,0.3,0.4   # sweep one Variables constant
@@ -91,6 +91,7 @@ src/
     AgeModifier.ts         # ageModifier(age, peakAge, scale, floor) — bell curve helper
     Types.ts               # RNG, TenYearSummary, PersonTypeDefinition/PersonTypes, OverridableField, INTEGER_FIELDS (ARD 030)
     Classifier.ts          # Pure: classifyPerson, countPerType, parsePersonTypes — predicate over PersonTypes (ARD 030)
+    CycleDetector.ts       # Pure: detectCycles — zigzag boom-bust oscillation detection over a population series; distinguishes a stable cycle from a single boom-bust or a ratchet to extinction (sweep-harness measurement tooling, not an outcome label)
     Reporters.ts           # Pure functions: buildTenYearSummary, formatDecadeSummary, formatSimulationHeader, formatEndReport (includes COHORT SURVIVAL section when personTypes supplied), classifyOutcome
     ReportWriter.ts        # writeReportHTML — writes self-contained HTML report with Chart.js to output/
   tests/                   # Mirrors src/ structure; one test file per source file

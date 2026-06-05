@@ -7,7 +7,10 @@
  * matrix in its own process — so `Variables` overrides are isolated per process and many initial
  * conditions run on all cores. Per run it extracts metrics from `simulation.history`; per sweep
  * value it aggregates across seeds so you can see at a glance which parameter value gives a
- * bounded, non-degenerate population instead of eyeballing single-seed trajectories.
+ * bounded, non-degenerate population instead of eyeballing single-seed trajectories. The table
+ * also reports cycle metrics from `CycleDetector` — `cyc` (median boom-bust oscillations) and
+ * `stable` (count of seeds showing a sustained, non-collapsing cycle) — to find regimes that
+ * oscillate persistently rather than booming once and going extinct.
  *
  * Usage:
  *   npx ts-node scripts/sweep.ts [options]   (or: npm run sweep -- [options])
@@ -32,6 +35,7 @@ import LooperSingleton from '../src/App/LooperSingleton';
 import Simulation from '../src/App/Simulation';
 import Variables from '../src/Helpers/Variables';
 import { classifyOutcome, OutcomeLabel } from '../src/Helpers/Reporters';
+import { detectCycles } from '../src/Helpers/CycleDetector';
 
 interface RunMetrics {
   seed: number;
@@ -47,6 +51,10 @@ interface RunMetrics {
   births: number;
   boundFraction: number; // share of ticks the commons pool sits below 5% of its ceiling
   outcome: OutcomeLabel;
+  numCycles: number; // complete boom-bust oscillations detected in the population series
+  period: number; // avg ticks between successive peaks
+  troughTrend: number; // last trough ÷ first trough (≈1 holds, <1 ratchets toward extinction)
+  stableCycle: boolean; // sustained, non-collapsing oscillation
 }
 
 interface Job {
@@ -93,6 +101,8 @@ function runOne(seed: number, ticks: number, persons: number): RunMetrics {
     if (extinctTick === null && s.population === 0) extinctTick = s.tick;
   }
 
+  const cycles = detectCycles(h.map((s) => s.population));
+
   return {
     seed,
     endPop: last.population,
@@ -107,6 +117,10 @@ function runOne(seed: number, ticks: number, persons: number): RunMetrics {
     births: last.cumulativeBirths,
     boundFraction: boundTicks / h.length,
     outcome: classifyOutcome(sim.decadeHistory, persons),
+    numCycles: cycles.numCycles,
+    period: cycles.period,
+    troughTrend: cycles.troughTrend,
+    stableCycle: cycles.stableCycle,
   };
 }
 
@@ -247,13 +261,14 @@ async function main(): Promise<void> {
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
 
   const header = (sweepKey ? `${sweepKey.padEnd(28)}  ` : '') +
-    `outcomes (n=${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  extinct`;
+    `outcomes (n=${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  extinct  cyc  stable`;
   console.log(header);
   console.log('-'.repeat(header.length));
 
   for (const sv of sweepVals) {
     const rows = seeds.map((seed) => results.get(`${sv}::${seed}`)!);
     const extinctCount = rows.filter((r) => r.extinctTick !== null).length;
+    const stableCount = rows.filter((r) => r.stableCycle).length;
     const label = sweepKey ? `${sweepKey}=${sv}`.padEnd(28) + '  ' : '';
     console.log(
       label +
@@ -262,7 +277,9 @@ async function main(): Promise<void> {
       String(median(rows.map((r) => r.peakPop))).padStart(7) + '  ' +
       median(rows.map((r) => r.peakGini)).toFixed(2).padStart(8) + '  ' +
       (100 * median(rows.map((r) => r.boundFraction))).toFixed(0).padStart(5) + '%  ' +
-      `${extinctCount}/${seeds.length}`,
+      `${extinctCount}/${seeds.length}`.padStart(7) + '  ' +
+      String(median(rows.map((r) => r.numCycles))).padStart(3) + '  ' +
+      `${stableCount}/${seeds.length}`.padStart(6),
     );
     if (verbose) {
       for (const r of rows) {
@@ -270,6 +287,7 @@ async function main(): Promise<void> {
           `    seed ${String(r.seed).padStart(3)}  ${r.outcome.padEnd(11)} ` +
           `end=${String(r.endPop).padStart(4)} peak=${String(r.peakPop).padStart(4)} min=${String(r.minPop).padStart(4)} ` +
           `gini=${r.peakGini.toFixed(2)} bound=${(100 * r.boundFraction).toFixed(0)}% ` +
+          `cyc=${r.numCycles} per=${r.period.toFixed(0)} trTrend=${r.troughTrend.toFixed(2)}${r.stableCycle ? ' STABLE-CYCLE' : ''} ` +
           `deaths(ill/mur/dis/sui)=${r.illness}/${r.murder}/${r.disaster}/${r.suicide} births=${r.births} ` +
           `${r.extinctTick !== null ? `extinct@${r.extinctTick}` : ''}`,
         );
