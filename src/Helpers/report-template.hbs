@@ -109,6 +109,7 @@
       <div class="card"><canvas id="happinessChart"></canvas></div>
       <div class="card"><canvas id="healthEmploymentChart"></canvas></div>
       <div class="card span-full"><canvas id="poolDynamicsChart"></canvas></div>
+      <div class="card span-full"><canvas id="coupleChart"></canvas></div>
       <div class="card"><canvas id="intentChart"></canvas></div>
       <div class="card"><canvas id="crimeChart"></canvas></div>
       <div class="card span-full"><canvas id="jailChart"></canvas></div>
@@ -177,6 +178,36 @@
           x: { grid: { color: '#f0f0f0' } },
           y: { position: 'left', grid: { color: '#f0f0f0' } },
           y2: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('coupleChart'), {
+      type: 'line',
+      data: {
+        labels: tickLabels,
+        datasets: [
+          { label: 'Total Couples', data: {{{totalCoupleSeries}}},
+            borderColor: '#2980b9', backgroundColor: 'rgba(41,128,185,0.08)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'High-chance Couples (max age ≤ 40)', data: {{{fertileCoupleSeries}}},
+            borderColor: '#27ae60', backgroundColor: 'rgba(39,174,96,0.08)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Births per Decade', data: {{{birthsSeries}}},
+            borderColor: '#e67e22', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [4,3], yAxisID: 'y2' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Couples & Fertility Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' } },
+          y: { position: 'left', beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Couple count' } },
+          y2: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'Births per decade' } }
         }
       }
     });

@@ -3,6 +3,7 @@ import DeathRecord from '../Records/DeathRecord';
 import KillingRecord from '../Records/KillingRecord';
 import Constants from '../Helpers/Constants';
 import Variables from '../Helpers/Variables';
+import { ageModifier } from '../Helpers/AgeModifier';
 import {
   INTEGER_FIELDS,
   OverridableField,
@@ -68,6 +69,10 @@ export interface TickSnapshot {
   stealsCommitted: number;
   /** Number of living persons currently serving a jail sentence at end of tick. */
   jailedPopulation: number;
+  /** Number of partnered pairs at end of tick. Each couple counted once. */
+  totalCoupleCount: number;
+  /** Number of partnered pairs where the older partner's age gives childbirth ageModifier >= 0.5 (roughly max age ≤ 40). */
+  fertileCoupleCount: number;
 }
 
 export default class Simulation {
@@ -497,6 +502,16 @@ export default class Simulation {
     const cumulativeBirths = (prev?.cumulativeBirths ?? 0) + births;
     const stealsCommitted = this.tickSteals;
 
+    const partnered = this.living.filter(p => p.isInRelationshipWith !== null);
+    const totalCoupleCount = Math.round(partnered.length / 2);
+    const fertileCoupleCount = Math.round(
+      partnered.filter(p => {
+        const partner = p.isInRelationshipWith!;
+        const olderAge = Math.max(p.age, partner.age);
+        return ageModifier(olderAge, Variables.CHILDBIRTH_PEAK_AGE, Variables.CHILDBIRTH_AGE_SCALE, Variables.CHILDBIRTH_AGE_FLOOR) >= 0.5;
+      }).length / 2
+    );
+
     const snap: TickSnapshot = {
       tick,
       population,
@@ -525,6 +540,8 @@ export default class Simulation {
       employmentRate,
       stealsCommitted,
       jailedPopulation,
+      totalCoupleCount,
+      fertileCoupleCount,
     };
 
     this.history.push(snap);
