@@ -63,8 +63,9 @@ describe('RelationshipEvent', () => {
       sim.add(person);
       sim.add(other);
 
-      // rng always returns 1: formProb check fails since formProb < 1
-      const event = new RelationshipEvent(() => 1);
+      // first rng call is getRandomOther (0 picks other), second is formProb check (1 fails since formProb < 1)
+      let calls = 0;
+      const event = new RelationshipEvent(() => calls++ === 0 ? 0 : 1);
       event.execute(person, sim);
 
       expect(person.isInRelationshipWith).toBeNull();
@@ -165,6 +166,59 @@ describe('RelationshipEvent', () => {
 
       expect(person.isInRelationshipWith).toBeNull();
       expect(other.isInRelationshipWith).toBeNull();
+    });
+  });
+
+  describe('age-gap preference (ARD 054)', () => {
+    it('forms relationship more readily for a small age gap than a large one', () => {
+      // Two setups identical except age gap; use a mid-range rng that passes for small gap but fails for large gap.
+      // ageGapModifier at gap=0 is 1.0; at gap=30 it is near RELATIONSHIP_AGE_GAP_FLOOR (0.1).
+      // Pick rng = 0.15: should pass formProb * 1.0 but fail formProb * ~0.1.
+      const makeEvent = (threshold: number) => new RelationshipEvent(
+        (() => { let c = 0; return () => c++ === 0 ? 0 : threshold; })()
+      );
+
+      const simClose = new Simulation();
+      const personClose = new Person([]);
+      personClose.age = 26;
+      personClose.charisma = 5;
+      const otherClose = new Person([]);
+      otherClose.age = 27; // gap = 1
+      simClose.add(personClose);
+      simClose.add(otherClose);
+      makeEvent(0.15).execute(personClose, simClose);
+
+      const simFar = new Simulation();
+      const personFar = new Person([]);
+      personFar.age = 26;
+      personFar.charisma = 5;
+      const otherFar = new Person([]);
+      otherFar.age = 56; // gap = 30 — near floor
+      simFar.add(personFar);
+      simFar.add(otherFar);
+      makeEvent(0.15).execute(personFar, simFar);
+
+      expect(personClose.isInRelationshipWith).toBe(otherClose);
+      expect(personFar.isInRelationshipWith).toBeNull();
+    });
+
+    it('still forms a relationship across a large age gap when rng is below floor', () => {
+      // RELATIONSHIP_AGE_GAP_FLOOR > 0 ensures cross-generational relationships remain possible
+      const sim = new Simulation();
+      const person = new Person([]);
+      person.age = 26;
+      person.charisma = 5;
+      const other = new Person([]);
+      other.age = 70; // very large gap — modifier near floor
+      sim.add(person);
+      sim.add(other);
+
+      // rng = 0: always below any positive probability, so relationship forms despite large gap
+      let calls = 0;
+      const event = new RelationshipEvent(() => calls++ === 0 ? 0 : 0);
+      event.execute(person, sim);
+
+      expect(person.isInRelationshipWith).toBe(other);
     });
   });
 

@@ -506,6 +506,17 @@ describe('Simulation', () => {
       });
     });
 
+    it('seeded adult pairs are more age-proximate than random (ARD 054)', () => {
+      const sim = new Simulation();
+      sim.seed(100, new SeededRandom(42).asRNG());
+      const adults = sim.getLiving().filter(p => p.age >= Variables.RELATIONSHIP_MIN_AGE);
+      const pairs = adults.filter(p => p.isInRelationshipWith !== null && sim.indexOfLiving(p) < sim.indexOfLiving(p.isInRelationshipWith!));
+      const ageDiffs = pairs.map(p => Math.abs(p.age - p.isInRelationshipWith!.age));
+      const medianGap = ageDiffs.sort((a, b) => a - b)[Math.floor(ageDiffs.length / 2)];
+      // Median age gap under age-sorted pairing should be well below 15 (a crude random baseline)
+      expect(medianGap).toBeLessThan(15);
+    });
+
     it('seeded children are not in a relationship (ARD 052)', () => {
       const sim = new Simulation();
       sim.seed(100, new SeededRandom(42).asRNG());

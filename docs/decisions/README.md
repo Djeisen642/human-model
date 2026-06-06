@@ -169,4 +169,4 @@ When in doubt:
 | [051](./051-multidimensional-outcome-classification.md) | Multi-Dimensional Outcome Classification | Accepted |
 | [052](./052-realistic-initial-population-seeding.md) | Realistic Initial Population Seeding | Accepted |
 | [053](./053-relationship-minimum-age-and-rate.md) | Relationship Formation Minimum Age and Rate Recalibration | Accepted |
-| [054](./054-relationship-age-preference.md) | Relationship Age Preference | Proposed |
+| [054](./054-relationship-age-preference.md) | Relationship Age Preference | Accepted |

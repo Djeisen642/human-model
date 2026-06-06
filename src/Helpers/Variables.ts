@@ -294,6 +294,10 @@ export default class Variables {
   static RELATIONSHIP_CHARISMA_SCALAR = 0.06;
   /** Flat per-tick probability that an existing relationship dissolves. Calibrated to ~40% lifetime dissolution at ~8yr average. */
   static BASE_BREAKUP_RATE = 0.03;
+  /** Scale of the age-gap compatibility bell curve: controls how steeply formation probability falls with age difference. See ARD 054. */
+  static RELATIONSHIP_AGE_GAP_SCALE = 10;
+  /** Minimum age-gap compatibility modifier at arbitrarily large gaps; keeps cross-generational relationships possible at a realistic low rate. See ARD 054. */
+  static RELATIONSHIP_AGE_GAP_FLOOR = 0.1;
 
   // Seed population structure constants (ARD 052)
   /** Minimum age in the seeded population; allows children to be present in the initial age pyramid. */

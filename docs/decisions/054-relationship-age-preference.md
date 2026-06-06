@@ -1,6 +1,6 @@
 # ARD 054: Relationship Age Preference
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-06-06
 
 ## Context

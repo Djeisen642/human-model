@@ -18,7 +18,7 @@ export default class RelationshipEvent implements IEvent {
 
   /**
    * Run formation or dissolution branch depending on current relationship status.
-   * Formation draws a random other from the simulation and checks they are unpartnered.
+   * Formation draws a random other, then applies age-gap compatibility scaling (ARD 054).
    * Dissolution mutually clears both persons' isInRelationshipWith fields.
    *
    * @param person - person whose relationship status is updated
@@ -27,17 +27,24 @@ export default class RelationshipEvent implements IEvent {
   execute(person: Person, simulation: Simulation): void {
     if (person.age < Variables.RELATIONSHIP_MIN_AGE) return;
     if (person.isInRelationshipWith === null) {
-      const formProb = Variables.BASE_RELATIONSHIP_RATE
-        * (1 + person.charisma * Variables.RELATIONSHIP_CHARISMA_SCALAR)
-        * ageModifier(
-          person.age,
-          Variables.RELATIONSHIP_PEAK_AGE,
-          Variables.RELATIONSHIP_AGE_SCALE,
-          Variables.RELATIONSHIP_AGE_FLOOR,
-        );
-      if (this.rng() < formProb) {
-        const other = simulation.getRandomOther(person, this.rng);
-        if (other && other.isInRelationshipWith === null) {
+      const other = simulation.getRandomOther(person, this.rng);
+      if (other !== null) {
+        const ageGap = Math.abs(person.age - other.age);
+        const formProb = Variables.BASE_RELATIONSHIP_RATE
+          * (1 + person.charisma * Variables.RELATIONSHIP_CHARISMA_SCALAR)
+          * ageModifier(
+            person.age,
+            Variables.RELATIONSHIP_PEAK_AGE,
+            Variables.RELATIONSHIP_AGE_SCALE,
+            Variables.RELATIONSHIP_AGE_FLOOR,
+          )
+          * ageModifier(
+            ageGap,
+            0,
+            Variables.RELATIONSHIP_AGE_GAP_SCALE,
+            Variables.RELATIONSHIP_AGE_GAP_FLOOR,
+          );
+        if (this.rng() < formProb && other.isInRelationshipWith === null) {
           person.isInRelationshipWith = other;
           other.isInRelationshipWith = person;
         }
