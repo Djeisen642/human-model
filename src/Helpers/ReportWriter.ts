@@ -165,6 +165,17 @@ function buildHTML(
   const ageDeathMurderSeries = ageDeathByCause[Constants.CAUSE_OF_DEATH.MURDER];
   const ageDeathDisasterSeries = ageDeathByCause[Constants.CAUSE_OF_DEATH.DISASTER];
 
+  // Wealth-by-age: average resources and headcount per age bucket for the end-of-run living population.
+  const wealthSum = new Array(AGE_BUCKET_COUNT).fill(0);
+  const wealthCount = new Array(AGE_BUCKET_COUNT).fill(0);
+  for (const p of simulation.getLiving()) {
+    const bucket = Math.min(AGE_BUCKET_COUNT - 1, Math.floor(p.age / AGE_BUCKET_SIZE));
+    wealthSum[bucket] += p.resources;
+    wealthCount[bucket] += 1;
+  }
+  const wealthByAgeAvgSeries = wealthSum.map((sum, i) => wealthCount[i] > 0 ? (sum / wealthCount[i]).toFixed(2) : '0');
+  const wealthByAgeCountSeries = wealthCount;
+
   const embeddedData = JSON.stringify({
     meta: { seed, ticks, n, outcome },
     decadeHistory,
@@ -297,6 +308,8 @@ function buildHTML(
     ageDeathSuicideSeries: JSON.stringify(ageDeathSuicideSeries),
     ageDeathMurderSeries: JSON.stringify(ageDeathMurderSeries),
     ageDeathDisasterSeries: JSON.stringify(ageDeathDisasterSeries),
+    wealthByAgeAvgSeries: JSON.stringify(wealthByAgeAvgSeries),
+    wealthByAgeCountSeries: JSON.stringify(wealthByAgeCountSeries),
     happinessOptions: chartOptions('Happiness Over Time', ', y: { min: 0, grid: { color: "#f0f0f0" } }'),
     intentOptions: chartOptions('Antisocial Intent Per Capita', ', y: { min: 0, grid: { color: "#f0f0f0" } }'),
     ageOptions: chartOptions('Population Age Structure', ', y: { beginAtZero: true, grid: { color: "#f0f0f0" }, title: { display: true, text: "Age (years)" } }')
