@@ -64,7 +64,10 @@ const PERSON_TYPES = parsePersonTypes(config.simulation?.personTypes);
 
 const looper = LooperSingleton.getInstance();
 
+let sigintReceived = false;
 process.on('SIGINT', () => {
+  if (sigintReceived) return;
+  sigintReceived = true;
   process.stderr.write('\n[Interrupted] Finishing current tick then generating report...\n');
   looper.interrupt();
 });
