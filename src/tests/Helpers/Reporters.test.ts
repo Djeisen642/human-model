@@ -63,6 +63,7 @@ function makeSnapshot(
     fertileCoupleCount: overrides.fertileCoupleCount ?? 0,
     averageAge: overrides.averageAge ?? 35,
     medianAge: overrides.medianAge ?? 35,
+    totalConsumption: overrides.totalConsumption ?? 0,
     educationCounts: overrides.educationCounts ?? [0, 0, 0, 0, 0, 0],
   };
 }

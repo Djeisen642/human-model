@@ -135,6 +135,7 @@
           <canvas id="deathsChart"></canvas>
         </div>
       </div>
+      <div class="card span-full"><canvas id="ageMortalityChart"></canvas></div>
     </div>
 
     <div class="section-title">Raw Output</div>
@@ -312,22 +313,16 @@
     });
 
     new Chart(document.getElementById('educationChart'), {
-      type: 'line',
+      type: 'bar',
       data: {
         labels: tickLabels,
         datasets: [
-          { label: 'None',         data: {{{educationNoneSeries}}},
-            borderColor: '#95a5a6', backgroundColor: 'rgba(149,165,166,0.5)', fill: true, stack: 'edu', tension: 0.2, pointRadius: 0, borderWidth: 1 },
-          { label: 'High School',  data: {{{educationHsSeries}}},
-            borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,0.5)', fill: true, stack: 'edu', tension: 0.2, pointRadius: 0, borderWidth: 1 },
-          { label: 'Trade School', data: {{{educationTradeSeries}}},
-            borderColor: '#1abc9c', backgroundColor: 'rgba(26,188,156,0.5)', fill: true, stack: 'edu', tension: 0.2, pointRadius: 0, borderWidth: 1 },
-          { label: 'Bachelors',    data: {{{educationBachelorsSeries}}},
-            borderColor: '#27ae60', backgroundColor: 'rgba(39,174,96,0.5)', fill: true, stack: 'edu', tension: 0.2, pointRadius: 0, borderWidth: 1 },
-          { label: 'Masters',      data: {{{educationMastersSeries}}},
-            borderColor: '#f39c12', backgroundColor: 'rgba(243,156,18,0.5)', fill: true, stack: 'edu', tension: 0.2, pointRadius: 0, borderWidth: 1 },
-          { label: 'PhD',          data: {{{educationPhdSeries}}},
-            borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.5)', fill: true, stack: 'edu', tension: 0.2, pointRadius: 0, borderWidth: 1 }
+          { label: 'None',         data: {{{educationNoneSeries}}},        backgroundColor: 'rgba(149,165,166,0.85)' },
+          { label: 'High School',  data: {{{educationHsSeries}}},          backgroundColor: 'rgba(52,152,219,0.85)' },
+          { label: 'Trade School', data: {{{educationTradeSeries}}},       backgroundColor: 'rgba(26,188,156,0.85)' },
+          { label: 'Bachelors',    data: {{{educationBachelorsSeries}}},   backgroundColor: 'rgba(39,174,96,0.85)' },
+          { label: 'Masters',      data: {{{educationMastersSeries}}},     backgroundColor: 'rgba(243,156,18,0.85)' },
+          { label: 'PhD',          data: {{{educationPhdSeries}}},         backgroundColor: 'rgba(155,89,182,0.85)' }
         ]
       },
       options: {
@@ -337,7 +332,7 @@
           legend: { position: 'bottom' }
         },
         scales: {
-          x: { grid: { color: '#f0f0f0' } },
+          x: { stacked: true, grid: { color: '#f0f0f0' } },
           y: { stacked: true, beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Living persons' } }
         }
       }
@@ -359,7 +354,10 @@
             tension: 0.2, pointRadius: 0, borderWidth: 2, yAxisID: 'y2' },
           { label: 'Community Pool', data: {{{communityPoolSeries}}},
             borderColor: '#1abc9c', backgroundColor: 'transparent',
-            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [3,2], yAxisID: 'y2' }
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [3,2], yAxisID: 'y2' },
+          { label: 'Population Consumption / Tick', data: {{{consumptionSeries}}},
+            borderColor: '#c0392b', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [6,3], yAxisID: 'y3' }
         ]
       },
       options: {
@@ -371,7 +369,8 @@
         scales: {
           x: { grid: { color: '#f0f0f0' } },
           y: { position: 'left', grid: { color: '#f0f0f0' }, title: { display: true, text: 'Natural Resources' } },
-          y2: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true, title: { display: true, text: 'Per-Person / Pool' } }
+          y2: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true, title: { display: true, text: 'Per-Person / Pool' } },
+          y3: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true, title: { display: true, text: 'Consumption / tick' } }
         }
       }
     });
@@ -471,6 +470,30 @@
         scales: {
           x: { stacked: true, grid: { color: '#f0f0f0' } },
           y: { stacked: true, grid: { color: '#f0f0f0' } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('ageMortalityChart'), {
+      type: 'bar',
+      data: {
+        labels: {{{ageDeathLabels}}},
+        datasets: [
+          { label: 'Illness',  data: {{{ageDeathIllnessSeries}}},  backgroundColor: 'rgba(230,126,34,0.85)' },
+          { label: 'Suicide',  data: {{{ageDeathSuicideSeries}}},  backgroundColor: 'rgba(142,68,173,0.85)' },
+          { label: 'Murder',   data: {{{ageDeathMurderSeries}}},   backgroundColor: 'rgba(192,57,43,0.85)' },
+          { label: 'Disaster', data: {{{ageDeathDisasterSeries}}}, backgroundColor: 'rgba(44,62,80,0.85)' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Age at Death Distribution (whole run, by cause)', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { stacked: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Age at death' } },
+          y: { stacked: true, beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Deaths' } }
         }
       }
     });

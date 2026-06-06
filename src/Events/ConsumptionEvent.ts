@@ -13,10 +13,9 @@ export default class ConsumptionEvent implements IEvent {
    * orphaned children and all adults pay a flat age-scaled rate.
    *
    * @param person - person paying living costs
-   * @param simulation - current simulation state (unused; required by IEvent)
+   * @param simulation - current simulation state; consumption is recorded for reporting
    */
   execute(person: Person, simulation: Simulation): void {
-    void simulation;
     if (person.causeOfDeath !== null) return;
 
     let cost: number;
@@ -30,7 +29,9 @@ export default class ConsumptionEvent implements IEvent {
       cost = Variables.CONSUMPTION_BASE * multiplier;
     }
 
+    const before = person.resources;
     person.resources = Math.max(0, person.resources - cost);
+    simulation.recordConsumption(before - person.resources);
 
     if (cost > 0 && person.resources === 0) {
       person.illness = Math.min(1, person.illness + Variables.STARVATION_ILLNESS_RATE);
