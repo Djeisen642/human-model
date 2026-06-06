@@ -1,6 +1,6 @@
 # ARD 052: Realistic Initial Population Seeding
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-06-06
 
 ## Context

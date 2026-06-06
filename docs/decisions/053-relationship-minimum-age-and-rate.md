@@ -1,6 +1,6 @@
 # ARD 053: Relationship Formation Minimum Age and Rate Recalibration
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-06-06
 
 ## Context

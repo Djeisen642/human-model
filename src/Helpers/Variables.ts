@@ -285,13 +285,27 @@ export default class Variables {
   static RELATIONSHIP_AGE_SCALE = 35;
   static RELATIONSHIP_AGE_FLOOR = 0.1;
 
-  // RelationshipEvent constants (ARD 025)
-  /** Base per-tick formation probability before charisma and age scaling. At peak age with median charisma (5), yields ~8% formation rate. */
-  static BASE_RELATIONSHIP_RATE = 0.12;
+  // RelationshipEvent constants (ARD 025, ARD 053)
+  /** Minimum age for relationship formation or dissolution; persons below this skip RelationshipEvent entirely. See ARD 053. */
+  static RELATIONSHIP_MIN_AGE = 16;
+  /** Base per-tick formation probability before charisma and age scaling. Raised from 0.12 to accelerate post-crash re-pairing at low population. See ARD 053. */
+  static BASE_RELATIONSHIP_RATE = 0.18;
   /** Multiplies charisma (1–10) into formation probability; range 1.06–1.60. */
   static RELATIONSHIP_CHARISMA_SCALAR = 0.06;
   /** Flat per-tick probability that an existing relationship dissolves. Calibrated to ~40% lifetime dissolution at ~8yr average. */
   static BASE_BREAKUP_RATE = 0.03;
+
+  // Seed population structure constants (ARD 052)
+  /** Minimum age in the seeded population; allows children to be present in the initial age pyramid. */
+  static SEED_AGE_FLOOR = 1;
+  /** Fraction of seeded children assigned to a two-parent household; remainder get a single parent. Calibrated to empirical household distribution. */
+  static SEED_TWO_PARENT_FRACTION = 0.70;
+  /** Probability that a seeded child joins an existing family unit rather than creating a new one; produces siblings. */
+  static SEED_SIBLING_REUSE_PROBABILITY = 0.40;
+  /** Minimum age gap in years between a seeded child and each of their assigned parents. */
+  static SEED_MIN_PARENT_AGE_GAP = 14;
+  /** Target fraction of adults paired at seed time; initialises near empirical steady-state rather than zero. */
+  static SEED_PAIRING_FRACTION = 0.62;
 
   static WINDFALL_PEAK_AGE = 58;
   static WINDFALL_AGE_SCALE = 20;

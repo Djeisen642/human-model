@@ -167,5 +167,5 @@ When in doubt:
 | [049](./049-mortality-rebalance-illness-senescence.md) | Mortality Rebalance — Illness Senescence and Suicide Recalibration | Accepted |
 | [050](./050-carrying-capacity-degradation.md) | Carrying Capacity Degrades Under Overexploitation | Accepted |
 | [051](./051-multidimensional-outcome-classification.md) | Multi-Dimensional Outcome Classification | Accepted |
-| [052](./052-realistic-initial-population-seeding.md) | Realistic Initial Population Seeding | Proposed |
-| [053](./053-relationship-minimum-age-and-rate.md) | Relationship Formation Minimum Age and Rate Recalibration | Proposed |
+| [052](./052-realistic-initial-population-seeding.md) | Realistic Initial Population Seeding | Accepted |
+| [053](./053-relationship-minimum-age-and-rate.md) | Relationship Formation Minimum Age and Rate Recalibration | Accepted |

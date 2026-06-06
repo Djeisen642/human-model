@@ -77,6 +77,8 @@ describe('RelationshipEvent', () => {
       const sim = new Simulation();
       const person = new Person([]);
       const partner = new Person([]);
+      person.age = Variables.RELATIONSHIP_MIN_AGE;
+      partner.age = Variables.RELATIONSHIP_MIN_AGE;
       person.isInRelationshipWith = partner;
       partner.isInRelationshipWith = person;
       sim.add(person);
@@ -94,6 +96,8 @@ describe('RelationshipEvent', () => {
       const sim = new Simulation();
       const person = new Person([]);
       const partner = new Person([]);
+      person.age = Variables.RELATIONSHIP_MIN_AGE;
+      partner.age = Variables.RELATIONSHIP_MIN_AGE;
       person.isInRelationshipWith = partner;
       partner.isInRelationshipWith = person;
       sim.add(person);
@@ -111,6 +115,8 @@ describe('RelationshipEvent', () => {
       const sim = new Simulation();
       const person = new Person([]);
       const partner = new Person([]);
+      person.age = Variables.RELATIONSHIP_MIN_AGE;
+      partner.age = Variables.RELATIONSHIP_MIN_AGE;
       person.isInRelationshipWith = partner;
       partner.isInRelationshipWith = person;
       sim.add(person);
@@ -121,6 +127,44 @@ describe('RelationshipEvent', () => {
       event.execute(person, sim);
 
       expect(person.isInRelationshipWith).toBe(partner);
+    });
+
+    it('skips persons below RELATIONSHIP_MIN_AGE entirely', () => {
+      const sim = new Simulation();
+      const person = new Person([]);
+      const partner = new Person([]);
+      person.age = Variables.RELATIONSHIP_MIN_AGE - 1;
+      partner.age = Variables.RELATIONSHIP_MIN_AGE - 1;
+      person.isInRelationshipWith = partner;
+      partner.isInRelationshipWith = person;
+      sim.add(person);
+      sim.add(partner);
+
+      // rng returns 0 — would dissolve if age gate were absent
+      const event = new RelationshipEvent(() => 0);
+      event.execute(person, sim);
+
+      expect(person.isInRelationshipWith).toBe(partner);
+      expect(partner.isInRelationshipWith).toBe(person);
+    });
+  });
+
+  describe('minimum age gate (ARD 053)', () => {
+    it('does not form a relationship for persons below RELATIONSHIP_MIN_AGE', () => {
+      const sim = new Simulation();
+      const person = new Person([]);
+      const other = new Person([]);
+      person.age = Variables.RELATIONSHIP_MIN_AGE - 1;
+      other.age = Variables.RELATIONSHIP_MIN_AGE - 1;
+      sim.add(person);
+      sim.add(other);
+
+      // rng returns 0 — would form relationship if age gate were absent
+      const event = new RelationshipEvent(() => 0);
+      event.execute(person, sim);
+
+      expect(person.isInRelationshipWith).toBeNull();
+      expect(other.isInRelationshipWith).toBeNull();
     });
   });
 

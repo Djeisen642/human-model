@@ -272,24 +272,28 @@ export default class Simulation {
       if (typeName !== null) this.seededTypeCounts[typeName]++;
 
       const person = new Person([]);
-      person.age = drawField(rng, 'age', ranges, 15, 50);
-      if (person.age <= Variables.GRADUATION_HS_MAX_AGE) {
-        if (rng() < Variables.GRADUATION_HS_SEED_RATE) {
-          person.isWorkingOnEd = Constants.EDUCATION.HIGH_SCHOOL;
-        }
-      } else if (person.age <= Variables.GRADUATION_COLLEGE_MAX_AGE) {
-        if (rng() < Variables.GRADUATION_COLLEGE_SEED_RATE) {
-          person.isWorkingOnEd = Constants.EDUCATION.BACHELORS;
-        }
-      } else {
-        if (rng() < Variables.GRADUATION_ADULT_HS_RATE) {
-          person.education = Constants.EDUCATION.HIGH_SCHOOL;
-          if (rng() < Variables.GRADUATION_ADULT_BACHELORS_RATE) {
-            person.education = Constants.EDUCATION.BACHELORS;
-            if (rng() < Variables.GRADUATION_ADULT_MASTERS_RATE) {
-              person.education = Constants.EDUCATION.MASTERS;
-              if (rng() < Variables.GRADUATION_ADULT_PHD_RATE) {
-                person.education = Constants.EDUCATION.PHD;
+      person.age = drawField(rng, 'age', ranges, Variables.SEED_AGE_FLOOR, 50);
+      // Education seeding only applies to persons at or above the relationship minimum age;
+      // younger children default to NONE (no schooling yet).
+      if (person.age >= Variables.RELATIONSHIP_MIN_AGE) {
+        if (person.age <= Variables.GRADUATION_HS_MAX_AGE) {
+          if (rng() < Variables.GRADUATION_HS_SEED_RATE) {
+            person.isWorkingOnEd = Constants.EDUCATION.HIGH_SCHOOL;
+          }
+        } else if (person.age <= Variables.GRADUATION_COLLEGE_MAX_AGE) {
+          if (rng() < Variables.GRADUATION_COLLEGE_SEED_RATE) {
+            person.isWorkingOnEd = Constants.EDUCATION.BACHELORS;
+          }
+        } else {
+          if (rng() < Variables.GRADUATION_ADULT_HS_RATE) {
+            person.education = Constants.EDUCATION.HIGH_SCHOOL;
+            if (rng() < Variables.GRADUATION_ADULT_BACHELORS_RATE) {
+              person.education = Constants.EDUCATION.BACHELORS;
+              if (rng() < Variables.GRADUATION_ADULT_MASTERS_RATE) {
+                person.education = Constants.EDUCATION.MASTERS;
+                if (rng() < Variables.GRADUATION_ADULT_PHD_RATE) {
+                  person.education = Constants.EDUCATION.PHD;
+                }
               }
             }
           }
@@ -313,6 +317,71 @@ export default class Simulation {
       person.killingIntent = drawField(rng, 'killingIntent', ranges, 0, 0.1);
       person.helpingIntent = drawField(rng, 'helpingIntent', ranges, 0, 0.5);
       this.add(person);
+    }
+
+    // Post-seed parent assignment: assign parents to every seeded child. See ARD 052.
+    const children = this.living.filter(p => p.age < Variables.RELATIONSHIP_MIN_AGE);
+    const potentialParents = this.living.filter(p => p.age >= Variables.RELATIONSHIP_MIN_AGE);
+    const familyUnits: Person[][] = [];
+
+    seedShuffle(children, rng);
+
+    for (const child of children) {
+      let assignedParents: Person[] | null = null;
+
+      if (familyUnits.length > 0 && rng() < Variables.SEED_SIBLING_REUSE_PROBABILITY) {
+        const eligible = familyUnits.filter(parents =>
+          parents.every(p => p.age >= child.age + Variables.SEED_MIN_PARENT_AGE_GAP),
+        );
+        if (eligible.length > 0) {
+          assignedParents = eligible[Math.floor(rng() * eligible.length)];
+        }
+      }
+
+      if (assignedParents === null) {
+        const eligible = potentialParents.filter(
+          p => p.age >= child.age + Variables.SEED_MIN_PARENT_AGE_GAP,
+        );
+        const unpartneredEligible = eligible.filter(p => p.isInRelationshipWith === null);
+        const twoParent = rng() < Variables.SEED_TWO_PARENT_FRACTION;
+
+        if (twoParent && unpartneredEligible.length >= 2) {
+          const pool = [...unpartneredEligible];
+          seedShuffle(pool, rng);
+          pool[0].isInRelationshipWith = pool[1];
+          pool[1].isInRelationshipWith = pool[0];
+          assignedParents = [pool[0], pool[1]];
+        } else if (eligible.length > 0) {
+          const pool = [...eligible];
+          seedShuffle(pool, rng);
+          assignedParents = [pool[0]];
+        }
+
+        if (assignedParents !== null) familyUnits.push(assignedParents);
+      }
+
+      if (assignedParents !== null) {
+        for (const parent of assignedParents) {
+          parent.hasChildren.push(child);
+          child.childOf.push(parent);
+        }
+      }
+    }
+
+    // Post-seed adult pairing: pair unpartnered adults until SEED_PAIRING_FRACTION is reached. See ARD 052.
+    const adults = this.living.filter(p => p.age >= Variables.RELATIONSHIP_MIN_AGE);
+    const totalAdults = adults.length;
+    if (totalAdults > 0) {
+      let pairedCount = adults.filter(p => p.isInRelationshipWith !== null).length;
+      const unpartnered = adults.filter(p => p.isInRelationshipWith === null);
+      seedShuffle(unpartnered, rng);
+      let idx = 0;
+      while (idx + 1 < unpartnered.length && pairedCount / totalAdults < Variables.SEED_PAIRING_FRACTION) {
+        unpartnered[idx].isInRelationshipWith = unpartnered[idx + 1];
+        unpartnered[idx + 1].isInRelationshipWith = unpartnered[idx];
+        pairedCount += 2;
+        idx += 2;
+      }
     }
   }
 
@@ -535,6 +604,20 @@ function buildTypeAssignments(n: number, types: PersonTypes, rng: RNG): (string 
 function mean(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+/**
+ * Fisher-Yates in-place shuffle used during population seeding.
+ * Kept separate from the LooperSingleton shuffle to avoid coupling modules.
+ *
+ * @param arr - array to shuffle in place
+ * @param rng - seeded random number source
+ */
+function seedShuffle<T>(arr: T[], rng: RNG): void {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
 }
 
 /**
