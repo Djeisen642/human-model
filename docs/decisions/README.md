@@ -171,3 +171,6 @@ When in doubt:
 | [053](./053-relationship-minimum-age-and-rate.md) | Relationship Formation Minimum Age and Rate Recalibration | Accepted |
 | [054](./054-relationship-age-preference.md) | Relationship Age Preference | Accepted |
 | [055](./055-relationship-formation-attempts.md) | Multiple Relationship Formation Attempts per Tick | Accepted |
+| [056](./056-founding-age-structure.md) | Tapering Founding Age Structure | Accepted |
+| [057](./057-founding-resource-distribution.md) | Founding Resource Distribution — Child Subsidy and Compressed Adult Wealth | Accepted |
+| [058](./058-founding-employment-seeding.md) | Founding Employment Seeding | Accepted |

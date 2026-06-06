@@ -44,16 +44,14 @@ Each agent represents one individual. All fields are per-person; collections are
 | `learningIntent` | number | [0, 1) | Probability weight for LearnEvent |
 | `exerciseIntent` | number | [0, 1) | Probability weight for ExerciseEvent |
 | `stealingIntent` | number | [0, STEALING_INTENT_CAP] | Probability weight for StealEvent; can grow via emboldening (ARD 036) |
-| `lyingIntent` | number | [0, 0.3) | Probability weight for LyingEvent |
 | `killingIntent` | number | [0, 0.1) | Probability weight for KillEvent |
+| `helpingIntent` | number | [0, 0.5) | Probability weight for HelpEvent (ARD 045) |
 | `jailedTicksRemaining` | integer | ≥ 0 | Ticks remaining in current jail sentence; 0 = free; decremented by LooperSingleton before EventFactory (ARD 035) |
 | `causeOfDeath` | DeathRecord \| null | — | Null while alive; set on death (cause + optional killer reference) |
 | `hasChildren` | Person[] | — | Biological children (living or deceased) |
 | `childOf` | Person[] | — | Biological parents (readonly) |
 | `killed` | Map\<Person, KillingRecord\> | — | Persons this agent killed, keyed by victim |
 | `amountStolen` | StealingRecord[] | — | Theft records (victim, amount, age at time) |
-| `peopleLiedTo` | Set\<Person\> | — | Targets of lying (populated by future LyingEvent) |
-| `helpsPeople` | TYPE_OF_HELP enum | — | Helping disposition (currently unused; reserved for cooperation mechanic) |
 
 `happiness` is a computed getter (not stored): job (±3–5 for working-age), resources (threshold-based by age group, children use parents' average), relationship (+3), age >65 (−1), illness (−round(illness × 5)); floor 0.
 
@@ -169,23 +167,26 @@ Default: 100 agents, 100 ticks, seed 42.
 
 | Stat | Initial distribution |
 |---|---|
-| `age` | uniform [15, 50) |
-| `resources` | uniform [0, 100) |
-| `experience` | uniform [0, min(age, EXPERIENCE_CAP)] |
+| `age` | young-skewed power taper over [SEED_AGE_FLOOR, SEED_AGE_MAX); `floor(FLOOR + (MAX−FLOOR)·u^SEED_AGE_DISTRIBUTION_EXPONENT)` (ARD 056) |
+| `resources` | 0 for children (`age < WORKING_AGE_MIN`); adults uniform [mean·(1−spread), mean·(1+spread)) (ARD 057) |
+| `experience` | uniform [0, min(age, EXPERIENCE_CAP, effective-accumulated-years)] — childhood years count at EXPERIENCE_CHILDHOOD_FACTOR |
 | `intelligence` | uniform integer [1, 10] |
 | `constitution` | uniform integer [1, 10] |
 | `charisma` | uniform integer [1, 10] |
 | `learningIntent` | uniform [0, 1) |
 | `exerciseIntent` | uniform [0, 1) |
 | `stealingIntent` | uniform [0, 0.3) |
-| `lyingIntent` | uniform [0, 0.3) |
 | `killingIntent` | uniform [0, 0.1) |
+| `helpingIntent` | uniform [0, 0.5) |
+| `hasJob` | working-age only; top `round(SEED_EMPLOYMENT_RATE · N)` by employability score (ARD 058) |
 | `education` | age-stratified hierarchy (see below) |
 
-Education seeding by age:
-- age ≤ 17: `isWorkingOnEd = HIGH_SCHOOL` with probability 0.70; otherwise NONE.
-- age 18–24: `isWorkingOnEd = BACHELORS` with probability 0.40; otherwise NONE.
-- age ≥ 25: `isWorkingOnEd = NONE`; completed education seeded hierarchically: HS at 85%, then BACHELORS at 40% conditional, MASTERS at 25% conditional, PHD at 20% conditional.
+Education seeding by age (forms a coherent ladder — a credential-in-progress implies the prior tier is complete):
+- age ≤ 17: `isWorkingOnEd = HIGH_SCHOOL` with probability `GRADUATION_HS_SEED_RATE`; otherwise NONE.
+- age 18–24: completed `education = HIGH_SCHOOL` with probability `GRADUATION_ADULT_HS_RATE`; if so, `isWorkingOnEd = BACHELORS` with probability `GRADUATION_COLLEGE_SEED_RATE` (so a college student always holds HS).
+- age ≥ 25: `isWorkingOnEd = NONE`; completed education seeded hierarchically: HS at `GRADUATION_ADULT_HS_RATE`, then BACHELORS/MASTERS/PHD at successive conditional rates.
+
+**Family/relationship seeding:** after stats are drawn, children (`age < RELATIONSHIP_MIN_AGE`) are assigned parents (two-parent households pick age-proximate co-parents, consistent with ARD 054); remaining adults are paired by nearest age toward `SEED_PAIRING_FRACTION` (ARD 052).
 
 **Environment initialization:**
 - `naturalResources = NATURAL_RESOURCES_INITIAL` (defaults to ceiling initial; settable independently for scarcity scenarios — ARD 044)
@@ -193,7 +194,7 @@ Education seeding by age:
 - `extractionProductivity = EXTRACTION_PRODUCTIVITY_INITIAL` (1.0)
 - `communityPool = 0`
 
-When `personTypes` is supplied, `floor(n × percentage)` persons of each named type are seeded with stat ranges from that type's definition rather than the defaults above (ARD 030). Remaining persons are seeded with defaults.
+When `personTypes` is supplied, `floor(n × percentage)` persons of each named type are seeded with stat ranges from that type's definition rather than the defaults above (ARD 030); a declared range override falls back to a uniform draw on that range. Remaining persons are seeded with defaults.
 
 All constants live in `src/Helpers/Variables.ts`. A full reference config can be generated with `npm run generate-config`.
 

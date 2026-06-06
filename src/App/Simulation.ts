@@ -270,14 +270,18 @@ export default class Simulation {
   }
 
   /**
-   * Creates `n` persons with stats and intents drawn from uniform distributions
-   * and adds them to the living population.
+   * Creates `n` persons with stats and intents and adds them to the living population.
    *
-   * Default ranges: age [15, 50), resources [0, 100), experience [0, age],
-   * intelligence/constitution/charisma [1, 10],
-   * learningIntent/exerciseIntent [0, 1),
-   * stealingIntent/lyingIntent [0, 0.3), killingIntent [0, 0.1),
-   * helpingIntent [0, 0.5) — higher ceiling than antisocial intents (ARD 045).
+   * Default seeding: age is drawn from a young-skewed power taper over
+   * `[SEED_AGE_FLOOR, SEED_AGE_MAX)` (ARD 056); resources are 0 for children
+   * (`age < WORKING_AGE_MIN`, parentally subsidized) and a compressed band
+   * `SEED_ADULT_RESOURCES_MEAN·(1 ± SEED_ADULT_RESOURCES_SPREAD)` for adults (ARD 057);
+   * experience is uniform `[0, effective-accumulated-years]`, bounded by the childhood
+   * attenuation model so children aren't over-experienced; intelligence/constitution/charisma
+   * [1, 10]; learningIntent/exerciseIntent [0, 1); stealingIntent [0, 0.3);
+   * killingIntent [0, 0.1); helpingIntent [0, 0.5) — higher ceiling than antisocial
+   * intents (ARD 045). After stats are drawn, working-age persons are seeded employed
+   * toward `SEED_EMPLOYMENT_RATE`, biased by an employability score (ARD 058).
    *
    * When `personTypes` is supplied, `floor(n * percentage)` persons are assigned
    * to each declared type; the assignment array is Fisher-Yates shuffled so
@@ -306,17 +310,36 @@ export default class Simulation {
       if (typeName !== null) this.seededTypeCounts[typeName]++;
 
       const person = new Person([]);
-      person.age = drawField(rng, 'age', ranges, Variables.SEED_AGE_FLOOR, 50);
+      // Age: young-skewed power taper over [SEED_AGE_FLOOR, SEED_AGE_MAX); a type
+      // override falls back to a uniform draw on its declared range. ARD 056.
+      const ageOverride = ranges.age;
+      if (ageOverride) {
+        person.age = randomInt(rng, ageOverride[0], ageOverride[1]);
+      } else {
+        const u = rng();
+        person.age = Math.floor(
+          Variables.SEED_AGE_FLOOR +
+            (Variables.SEED_AGE_MAX - Variables.SEED_AGE_FLOOR) *
+              Math.pow(u, Variables.SEED_AGE_DISTRIBUTION_EXPONENT),
+        );
+      }
       // Education seeding only applies to persons at or above the relationship minimum age;
-      // younger children default to NONE (no schooling yet).
+      // younger children default to NONE (no schooling yet). Seeded credentials form a
+      // coherent ladder: a college student (isWorkingOnEd = BACHELORS) must already hold
+      // HIGH_SCHOOL, mirroring the runtime invariant isWorkingOnEd = education + 1.
       if (person.age >= Variables.RELATIONSHIP_MIN_AGE) {
         if (person.age <= Variables.GRADUATION_HS_MAX_AGE) {
           if (rng() < Variables.GRADUATION_HS_SEED_RATE) {
             person.isWorkingOnEd = Constants.EDUCATION.HIGH_SCHOOL;
           }
         } else if (person.age <= Variables.GRADUATION_COLLEGE_MAX_AGE) {
-          if (rng() < Variables.GRADUATION_COLLEGE_SEED_RATE) {
-            person.isWorkingOnEd = Constants.EDUCATION.BACHELORS;
+          // 18–24: complete high school first (closes the under-credentialed gap), then
+          // conditionally enroll in college so the ladder invariant holds.
+          if (rng() < Variables.GRADUATION_ADULT_HS_RATE) {
+            person.education = Constants.EDUCATION.HIGH_SCHOOL;
+            if (rng() < Variables.GRADUATION_COLLEGE_SEED_RATE) {
+              person.isWorkingOnEd = Constants.EDUCATION.BACHELORS;
+            }
           }
         } else {
           if (rng() < Variables.GRADUATION_ADULT_HS_RATE) {
@@ -333,13 +356,30 @@ export default class Simulation {
           }
         }
       }
-      person.resources = drawField(rng, 'resources', ranges, 0, 100);
+      // Resources: children are parentally subsidized (0, like newborns); adults draw from
+      // a compressed band so starting adult Gini reflects the model, not the seed. ARD 057.
+      const resourcesOverride = ranges.resources;
+      if (resourcesOverride) {
+        person.resources = randomInt(rng, resourcesOverride[0], resourcesOverride[1]);
+      } else if (person.age < Variables.WORKING_AGE_MIN) {
+        person.resources = 0;
+      } else {
+        const lo = Variables.SEED_ADULT_RESOURCES_MEAN * (1 - Variables.SEED_ADULT_RESOURCES_SPREAD);
+        const hi = Variables.SEED_ADULT_RESOURCES_MEAN * (1 + Variables.SEED_ADULT_RESOURCES_SPREAD);
+        person.resources = lo + rng() * (hi - lo);
+      }
+      // Experience: bound by effective accumulated years (childhood years contribute at
+      // EXPERIENCE_CHILDHOOD_FACTOR) so a child can't seed with adult-like experience.
+      const childhoodExperience = Variables.EXPERIENCE_CHILDHOOD_AGE * Variables.EXPERIENCE_CHILDHOOD_FACTOR;
+      const effectiveExperience = person.age < Variables.EXPERIENCE_CHILDHOOD_AGE
+        ? person.age * Variables.EXPERIENCE_CHILDHOOD_FACTOR
+        : childhoodExperience + (person.age - Variables.EXPERIENCE_CHILDHOOD_AGE);
       person.experience = drawField(
         rng,
         'experience',
         ranges,
         0,
-        Math.min(person.age, Variables.EXPERIENCE_CAP) + 1,
+        Math.floor(Math.min(person.age, Variables.EXPERIENCE_CAP, effectiveExperience)) + 1,
       );
       person.intelligence = drawField(rng, 'intelligence', ranges, 1, 11);
       person.constitution = drawField(rng, 'constitution', ranges, 1, 11);
@@ -347,7 +387,6 @@ export default class Simulation {
       person.learningIntent = drawField(rng, 'learningIntent', ranges, 0, 1);
       person.exerciseIntent = drawField(rng, 'exerciseIntent', ranges, 0, 1);
       person.stealingIntent = drawField(rng, 'stealingIntent', ranges, 0, 0.3);
-      person.lyingIntent = drawField(rng, 'lyingIntent', ranges, 0, 0.3);
       person.killingIntent = drawField(rng, 'killingIntent', ranges, 0, 0.1);
       person.helpingIntent = drawField(rng, 'helpingIntent', ranges, 0, 0.5);
       this.add(person);
@@ -382,9 +421,21 @@ export default class Simulation {
         if (twoParent && unpartneredEligible.length >= 2) {
           const pool = [...unpartneredEligible];
           seedShuffle(pool, rng);
-          pool[0].isInRelationshipWith = pool[1];
-          pool[1].isInRelationshipWith = pool[0];
-          assignedParents = [pool[0], pool[1]];
+          // Pick a random first parent, then their nearest-age co-parent — age-proximate
+          // pairing consistent with the adult-pairing pass below and ARD 054.
+          const first = pool[0];
+          let partner = pool[1];
+          let bestGap = Math.abs(partner.age - first.age);
+          for (let k = 2; k < pool.length; k++) {
+            const gap = Math.abs(pool[k].age - first.age);
+            if (gap < bestGap) {
+              bestGap = gap;
+              partner = pool[k];
+            }
+          }
+          first.isInRelationshipWith = partner;
+          partner.isInRelationshipWith = first;
+          assignedParents = [first, partner];
         } else if (eligible.length > 0) {
           const pool = [...eligible];
           seedShuffle(pool, rng);
@@ -416,6 +467,28 @@ export default class Simulation {
         unpartnered[idx + 1].isInRelationshipWith = unpartnered[idx];
         pairedCount += 2;
         idx += 2;
+      }
+    }
+
+    // Post-seed employment: employ working-age persons toward SEED_EMPLOYMENT_RATE, ranked by
+    // an employability score reusing JobEvent's gain scalars so seed and runtime agree on who
+    // is employable. Children and post-working-age persons start unemployed. See ARD 058.
+    const workingAge = this.living.filter(
+      p => p.age >= Variables.WORKING_AGE_MIN && p.age <= Variables.WORKING_AGE_MAX,
+    );
+    if (workingAge.length > 0) {
+      const scored = workingAge.map(p => ({
+        person: p,
+        score:
+          (p.experience * Variables.JOB_GAIN_EXPERIENCE_SCALAR +
+            p.charisma * Variables.JOB_GAIN_CHARISMA_SCALAR) *
+            (1 + p.education * Variables.EDUCATION_JOB_GAIN_SCALAR) +
+          rng() * Variables.SEED_EMPLOYMENT_SCORE_NOISE,
+      }));
+      scored.sort((a, b) => b.score - a.score);
+      const employCount = Math.round(Variables.SEED_EMPLOYMENT_RATE * workingAge.length);
+      for (let k = 0; k < employCount; k++) {
+        scored[k].person.hasJob = true;
       }
     }
   }

@@ -343,21 +343,39 @@ describe('Simulation', () => {
       });
     });
 
-    it('age should be in [SEED_AGE_FLOOR, 50)', () => {
+    it('age should be in [SEED_AGE_FLOOR, SEED_AGE_MAX) (ARD 056)', () => {
       const sim = new Simulation();
       sim.seed(50, Math.random);
       sim.getLiving().forEach(p => {
         expect(p.age).toBeGreaterThanOrEqual(Variables.SEED_AGE_FLOOR);
-        expect(p.age).toBeLessThan(50);
+        expect(p.age).toBeLessThan(Variables.SEED_AGE_MAX);
       });
     });
 
-    it('resources should be in [0, 100)', () => {
+    it('age distribution is young-skewed and includes elders (ARD 056)', () => {
       const sim = new Simulation();
-      sim.seed(50, Math.random);
+      sim.seed(800, new SeededRandom(7).asRNG());
+      const living = sim.getLiving();
+      const young = living.filter(p => p.age < Variables.WORKING_AGE_MIN).length;
+      const elders = living.filter(p => p.age > Variables.WORKING_AGE_MAX).length;
+      // Taper: young (under working age) outnumber elders, and elders are present so the
+      // senescence machinery engages at tick 0.
+      expect(elders).toBeGreaterThan(0);
+      expect(young).toBeGreaterThan(elders);
+    });
+
+    it('resources are 0 for children and a compressed band for adults (ARD 057)', () => {
+      const sim = new Simulation();
+      sim.seed(300, new SeededRandom(11).asRNG());
+      const lo = Variables.SEED_ADULT_RESOURCES_MEAN * (1 - Variables.SEED_ADULT_RESOURCES_SPREAD);
+      const hi = Variables.SEED_ADULT_RESOURCES_MEAN * (1 + Variables.SEED_ADULT_RESOURCES_SPREAD);
       sim.getLiving().forEach(p => {
-        expect(p.resources).toBeGreaterThanOrEqual(0);
-        expect(p.resources).toBeLessThan(100);
+        if (p.age < Variables.WORKING_AGE_MIN) {
+          expect(p.resources).toBe(0);
+        } else {
+          expect(p.resources).toBeGreaterThanOrEqual(lo);
+          expect(p.resources).toBeLessThan(hi);
+        }
       });
     });
 
@@ -374,12 +392,16 @@ describe('Simulation', () => {
       });
     });
 
-    it('experience should be in [0, age]', () => {
+    it('experience should be in [0, age] and near-zero for young children', () => {
       const sim = new Simulation();
-      sim.seed(50, Math.random);
+      sim.seed(300, new SeededRandom(13).asRNG());
       sim.getLiving().forEach(p => {
         expect(p.experience).toBeGreaterThanOrEqual(0);
         expect(p.experience).toBeLessThanOrEqual(p.age);
+        // Children below the childhood-attenuation age can't seed with adult-like experience.
+        if (p.age < Variables.EXPERIENCE_CHILDHOOD_AGE) {
+          expect(p.experience).toBeLessThanOrEqual(1);
+        }
       });
     });
 
@@ -392,14 +414,12 @@ describe('Simulation', () => {
       });
     });
 
-    it('stealingIntent and lyingIntent should be in [0, 0.3)', () => {
+    it('stealingIntent should be in [0, 0.3)', () => {
       const sim = new Simulation();
       sim.seed(50, Math.random);
       sim.getLiving().forEach(p => {
         expect(p.stealingIntent).toBeGreaterThanOrEqual(0);
         expect(p.stealingIntent).toBeLessThan(0.3);
-        expect(p.lyingIntent).toBeGreaterThanOrEqual(0);
-        expect(p.lyingIntent).toBeLessThan(0.3);
       });
     });
 
@@ -407,6 +427,30 @@ describe('Simulation', () => {
       const sim = new Simulation();
       sim.seed(1, alwaysFirst);
       expect(sim.getLiving()[0].age).toBe(Variables.SEED_AGE_FLOOR);
+    });
+
+    it('working-age employment seeds toward SEED_EMPLOYMENT_RATE, none outside working age (ARD 058)', () => {
+      const sim = new Simulation();
+      sim.seed(400, new SeededRandom(23).asRNG());
+      const living = sim.getLiving();
+      const workingAge = living.filter(p => p.age >= Variables.WORKING_AGE_MIN && p.age <= Variables.WORKING_AGE_MAX);
+      const employed = workingAge.filter(p => p.hasJob).length;
+      const expected = Math.round(Variables.SEED_EMPLOYMENT_RATE * workingAge.length);
+      expect(employed).toBe(expected);
+      // No children or post-working-age persons start employed.
+      living
+        .filter(p => p.age < Variables.WORKING_AGE_MIN || p.age > Variables.WORKING_AGE_MAX)
+        .forEach(p => expect(p.hasJob).toBe(false));
+    });
+
+    it('seeded employment skews to higher employability (ARD 058)', () => {
+      const sim = new Simulation();
+      sim.seed(400, new SeededRandom(29).asRNG());
+      const workingAge = sim.getLiving().filter(p => p.age >= Variables.WORKING_AGE_MIN && p.age <= Variables.WORKING_AGE_MAX);
+      const employed = workingAge.filter(p => p.hasJob);
+      const unemployed = workingAge.filter(p => !p.hasJob);
+      const avgExp = (arr: typeof workingAge) => arr.reduce((s, p) => s + p.experience, 0) / arr.length;
+      expect(avgExp(employed)).toBeGreaterThan(avgExp(unemployed));
     });
 
     it('persons aged >= RELATIONSHIP_MIN_AGE and <= GRADUATION_HS_MAX_AGE get HS enrollment seeding', () => {
@@ -486,6 +530,31 @@ describe('Simulation', () => {
         .forEach(p => {
           expect(p.isWorkingOnEd).not.toBe(Constants.EDUCATION.HIGH_SCHOOL);
         });
+    });
+
+    it('seeded college students hold a high-school credential (ladder invariant, items 1+8)', () => {
+      const sim = new Simulation();
+      sim.seed(500, new SeededRandom(31).asRNG());
+      const collegeStudents = sim.getLiving().filter(p => p.isWorkingOnEd === Constants.EDUCATION.BACHELORS);
+      // The runtime invariant isWorkingOnEd = education + 1 must hold at seed: a BACHELORS
+      // enrollee must already have completed HIGH_SCHOOL.
+      expect(collegeStudents.length).toBeGreaterThan(0);
+      collegeStudents.forEach(p => {
+        expect(p.education).toBe(Constants.EDUCATION.HIGH_SCHOOL);
+      });
+    });
+
+    it('seeded 18–24-year-olds complete at most high school (closes the under-credentialed gap, item 8)', () => {
+      const sim = new Simulation();
+      sim.seed(500, new SeededRandom(37).asRNG());
+      const young = sim.getLiving().filter(
+        p => p.age > Variables.GRADUATION_HS_MAX_AGE && p.age <= Variables.GRADUATION_COLLEGE_MAX_AGE,
+      );
+      // Some of them now carry a HS credential (gap closed), and none completes beyond HS.
+      expect(young.some(p => p.education === Constants.EDUCATION.HIGH_SCHOOL)).toBe(true);
+      young.forEach(p => {
+        expect(p.education).toBeLessThanOrEqual(Constants.EDUCATION.HIGH_SCHOOL);
+      });
     });
 
     it('seeded adults are paired at approximately SEED_PAIRING_FRACTION (ARD 052)', () => {
