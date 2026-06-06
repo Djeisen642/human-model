@@ -46,23 +46,19 @@ npm --version
 ```bash
 curl https://mise.run | sh
 ```
-Then follow the printed instructions to add mise to your shell (it'll show you the exact line to add). Close and reopen your terminal, then run:
-```bash
-mise use --global node@lts
-```
+Then follow the printed instructions to add mise to your shell (it'll show you the exact line to add). Close and reopen your terminal.
 
 **Windows:**
 ```
 winget install mise
 ```
-Close and reopen your terminal, then run:
-```
-mise use --global node@lts
-```
+Close and reopen your terminal.
 
-Confirm it worked:
+Once mise is installed, it will automatically use the right Node version when you're inside the project folder (the project includes a `mise.toml` that specifies it). No extra steps needed.
+
+Confirm it worked after cloning the repo (Step 3):
 ```bash
-node --version
+node --version    # should print v22.x.x
 npm --version
 ```
 
