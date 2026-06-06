@@ -13,6 +13,8 @@ The simulation runs on a yearly basis. Every event a person participates in happ
 
 ## Getting started
 
+If you're new to Node.js or developer tooling, see [SETUP.md](SETUP.md) for step-by-step installation instructions (Mac, Linux, Windows).
+
 ```bash
 npm install
 npm start           # 100 people, 100 years, seed 42
