@@ -26,41 +26,45 @@ Git is the tool that lets you download the project.
 
 ## Step 2 — Install Node.js
 
-Node.js is the runtime that executes the simulation code. We recommend installing it through a version manager — it makes things easier and avoids permission problems.
+Node.js is the runtime that executes the simulation code. The simplest option is a direct download; if you plan to work on multiple projects with different Node versions, use mise instead.
 
-### Mac and Linux — use `nvm`
+### Simple option — direct download (any platform)
 
-1. Install nvm by following the instructions at [github.com/nvm-sh/nvm](https://github.com/nvm-sh/nvm#installing-and-updating). The page shows a single `curl` command to paste into your terminal.
-2. **Close and reopen your terminal** (this is required — nvm won't be recognized until you do).
-3. Run these two commands:
-   ```bash
-   nvm install --lts
-   nvm use --lts
-   ```
-4. Confirm it worked — you should see version numbers printed:
-   ```bash
-   node --version    # should print v20.x.x or higher
-   npm --version
-   ```
+Download the LTS installer from [nodejs.org](https://nodejs.org/) and run it. Follow the prompts and accept the defaults.
 
-### Windows — use `nvm-windows`
+Confirm it worked:
+```bash
+node --version    # should print v20.x.x or higher
+npm --version
+```
 
-1. Go to the [nvm-windows releases page](https://github.com/coreybutler/nvm-windows/releases) and download the file named `nvm-setup.exe` from the latest release.
-2. Run the installer. **Right-click it and choose "Run as administrator"** — this is required.
-3. Open a new PowerShell or Command Prompt window **as administrator** (right-click the app and choose "Run as administrator"), then run:
-   ```
-   nvm install lts
-   nvm use lts
-   ```
-4. Confirm it worked:
-   ```
-   node --version
-   npm --version
-   ```
+### Version manager option — mise (Mac, Linux, Windows)
 
-### Alternative — direct download (any platform)
+[mise](https://mise.jdx.dev) manages Node (and other runtimes) and avoids permission problems with global packages. Install it and then install Node in two steps:
 
-If you'd rather skip the version manager, download the LTS installer directly from [nodejs.org](https://nodejs.org/) and run it. Follow the prompts and accept the defaults.
+**Mac and Linux:**
+```bash
+curl https://mise.run | sh
+```
+Then follow the printed instructions to add mise to your shell (it'll show you the exact line to add). Close and reopen your terminal, then run:
+```bash
+mise use --global node@lts
+```
+
+**Windows:**
+```
+winget install mise
+```
+Close and reopen your terminal, then run:
+```
+mise use --global node@lts
+```
+
+Confirm it worked:
+```bash
+node --version
+npm --version
+```
 
 ---
 
@@ -112,13 +116,13 @@ The report contains charts showing population, inequality, resource levels, deat
 ## Troubleshooting
 
 **`command not found: node` or `command not found: npm`**
-Node wasn't added to your PATH. If you used nvm, close your terminal completely and reopen it, then try again. On Windows, make sure you opened a new window after installing, and that you ran the installer as administrator.
+Node wasn't added to your PATH. Close your terminal completely and reopen it, then try again. If you used mise, make sure you followed the step to add it to your shell profile.
 
 **`command not found: git`**
 Git isn't installed or isn't on your PATH. Revisit Step 1 and open a new terminal after installing.
 
 **Errors during `npm install` mentioning permissions**
-Don't use `sudo npm install`. Fix your Node installation so it doesn't require sudo — using nvm (Step 2) is the recommended way to avoid this.
+Don't use `sudo npm install`. Switch to the mise install path in Step 2 — it avoids this problem.
 
 **The `output/` folder is empty or no HTML file appeared**
 The simulation may have exited early due to extinction (the whole population died — this is a normal outcome, not a bug). Check the terminal output for the result summary. The report is still written even on extinction.
