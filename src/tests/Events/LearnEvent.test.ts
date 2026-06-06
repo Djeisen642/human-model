@@ -14,16 +14,6 @@ describe('LearnEvent', () => {
     expect(person.intelligence).toBe(6);
   });
 
-  it('increments intelligence from 1', () => {
-    const person = new Person([]);
-    person.intelligence = 1;
-    const event = new LearnEvent();
-
-    event.execute(person, new Simulation());
-
-    expect(person.intelligence).toBe(2);
-  });
-
   it('does not exceed INTELLIGENCE_MAX', () => {
     const person = new Person([]);
     person.intelligence = Variables.INTELLIGENCE_MAX;

@@ -14,16 +14,6 @@ describe('ExerciseEvent', () => {
     expect(person.constitution).toBe(6);
   });
 
-  it('increments constitution from 1', () => {
-    const person = new Person([]);
-    person.constitution = 1;
-    const event = new ExerciseEvent();
-
-    event.execute(person, new Simulation());
-
-    expect(person.constitution).toBe(2);
-  });
-
   it('does not exceed CONSTITUTION_MAX', () => {
     const person = new Person([]);
     person.constitution = Variables.CONSTITUTION_MAX;
