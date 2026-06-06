@@ -8,25 +8,36 @@ import { PersonTypes, RNG } from '../Helpers/Types';
 
 export default class LooperSingleton {
   private static instance: LooperSingleton;
+  private interrupted = false;
+
+  /**
+   * Signal the running simulation to stop after the current tick completes.
+   * start() will return the simulation at its current state and generate a report.
+   */
+  public interrupt(): void {
+    this.interrupted = true;
+  }
 
   /**
    * Seeds a population, runs the tick loop, and returns the completed simulation.
+   * Yields to the event loop between ticks so interrupt() can take effect on SIGINT.
    *
    * @param n - initial population size
    * @param ticks - number of ticks to simulate
    * @param seed - PRNG seed for reproducibility
    * @param logger - output function for progress lines; defaults to console.log
    * @param personTypes - optional ARD-030 type definitions; defaults to no types
-   * @returns the simulation after all ticks have run
+   * @returns the simulation after all ticks have run (or after interrupt)
    */
-  public start(
+  public async start(
     n = 100,
     ticks = 100,
     seed = 42,
     // eslint-disable-next-line no-console
     logger: (msg: string) => void = console.log,
     personTypes: PersonTypes = {},
-  ): Simulation {
+  ): Promise<Simulation> {
+    this.interrupted = false;
     const rng = new SeededRandom(seed).asRNG();
     const simulation = new Simulation();
     simulation.seed(n, rng, personTypes);
@@ -37,6 +48,8 @@ export default class LooperSingleton {
 
     let startPopulation = n;
     for (let t = 0; t < ticks; t++) {
+      if (this.interrupted) break;
+
       simulation.degradeCeiling();
       simulation.regenerate();
       disaster.execute(simulation);
@@ -64,16 +77,26 @@ export default class LooperSingleton {
         logger(formatDecadeSummary(summary));
         startPopulation = summary.endPopulation;
       }
+
+      // Yield to the event loop so SIGINT can be delivered between ticks.
+      await new Promise<void>(r => setImmediate(r));
     }
 
-    // Partial-decade summary at run end: when ticks isn't a multiple of 10, the
-    // trailing N (<10) snapshots are unsummarized. Append one summary over the
+    const actualTicks = simulation.history.length;
+
+    if (this.interrupted) {
+      logger(`\n[Interrupted at tick ${actualTicks}] Generating report...`);
+    }
+
+    // Partial-decade summary at run end: when actualTicks isn't a multiple of 10,
+    // the trailing N (<10) snapshots are unsummarized. Append one summary over the
     // remaining window so the end report's "final decade" reflects actual end state.
+    // Uses actualTicks (not ticks) so mid-decade interrupts are handled correctly.
     // ARD 031.
-    const remainder = ticks % 10;
+    const remainder = actualTicks % 10;
     if (remainder !== 0) {
-      const window = simulation.history.slice(ticks - remainder, ticks);
-      const partial = buildTenYearSummary(window, ticks, startPopulation);
+      const window = simulation.history.slice(actualTicks - remainder, actualTicks);
+      const partial = buildTenYearSummary(window, actualTicks, startPopulation);
       simulation.decadeHistory.push(partial);
       logger(formatDecadeSummary(partial));
     }
