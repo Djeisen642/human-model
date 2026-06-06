@@ -136,6 +136,7 @@
         </div>
       </div>
       <div class="card span-full"><canvas id="ageMortalityChart"></canvas></div>
+      <div class="card span-full"><canvas id="wealthByAgeChart"></canvas></div>
     </div>
 
     <div class="section-title">Raw Output</div>
@@ -494,6 +495,32 @@
         scales: {
           x: { stacked: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Age at death' } },
           y: { stacked: true, beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Deaths' } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('wealthByAgeChart'), {
+      type: 'bar',
+      data: {
+        labels: {{{ageDeathLabels}}},
+        datasets: [
+          { label: 'Avg Resources', data: {{{wealthByAgeAvgSeries}}},
+            backgroundColor: 'rgba(39,174,96,0.75)', yAxisID: 'y' },
+          { label: 'Persons in bucket', data: {{{wealthByAgeCountSeries}}},
+            type: 'line', borderColor: '#2980b9', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 2, borderWidth: 2, borderDash: [4,3], yAxisID: 'y2' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Wealth by Age (end of run)', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' }, title: { display: true, text: 'Age bucket' } },
+          y: { position: 'left', beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Avg resources / person' } },
+          y2: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'Persons' } }
         }
       }
     });
