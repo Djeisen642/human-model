@@ -61,7 +61,7 @@ Six archetypes. Adding a seventh (Drifter / leisure class) was considered and re
 | Type | Distinguishing stats (suggested ranges) | Primary signal moved | Framework |
 |---|---|---|---|
 | **Producer** (Commoner) | `intelligence` [7,11), `learningIntent` [0.5,1), `stealingIntent` [0,0.05), `killingIntent` [0,0.02) | ↑ pool extraction, ↓ Gini, anti-collapse | HANDY commoner |
-| **Extractor** (Elite) | `charisma` [7,11), `stealingIntent` [0.5,1), `lyingIntent` [0.5,1), `resources` [200,500) | ↑ Gini → triggers KillEvent feedback | HANDY elite; Pareto fox |
+| **Extractor** (Elite) | `charisma` [7,11), `stealingIntent` [0.5,1), `resources` [200,500) | ↑ Gini → triggers KillEvent feedback | HANDY elite; Pareto fox |
 | **Warrior** | `killingIntent` [0.5,1), `constitution` [7,11), `age` [18,30) | ↑ murder rate, especially under high Gini | Turchin "sons of Mars" |
 | **Inventor** | `intelligence` [9,11), `learningIntent` [0.7,1), `age` [30,55) | ↑ resource ceiling (when `InventionEvent` lands) | Schumpeter |
 | **Cooperator** | `charisma` [7,11), all antisocial intents [0,0.02) | ↑ happiness, ↓ suicide; relationship glue | Axelrod / Boyd-Richerson |
@@ -116,7 +116,7 @@ Scenarios worth running once ARD 030 lands:
 ## Why not other typologies
 
 - **Big Five (OCEAN)** — personality traits (Openness, Conscientiousness, etc.) describe individuals but don't map onto resource-and-violence mechanics. A high-Openness agent in our model does nothing different.
-- **Dark Triad (narcissism, Machiavellianism, psychopathy)** — collapses into our existing antisocial intents (`stealingIntent`, `lyingIntent`, `killingIntent`). The Extractor archetype already covers the Machiavellian; the Warrior covers the psychopathic.
+- **Dark Triad (narcissism, Machiavellianism, psychopathy)** — collapses into our existing antisocial intents (`stealingIntent`, `killingIntent`). The Extractor archetype already covers the Machiavellian; the Warrior covers the psychopathic.
 - **Holland RIASEC career codes** — too occupation-focused for an abstract civilizational model.
 - **Marxist class taxonomy** — bourgeoisie / proletariat / lumpenproletariat overlaps substantially with HANDY's commoner/elite split, but adds vocabulary without distinct mechanics.
 

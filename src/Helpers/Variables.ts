@@ -304,6 +304,18 @@ export default class Variables {
   // Seed population structure constants (ARD 052)
   /** Minimum age in the seeded population; allows children to be present in the initial age pyramid. */
   static SEED_AGE_FLOOR = 1;
+  /** Oldest seedable age; high enough that elders exist and the senescence machinery engages at tick 0. See ARD 056. */
+  static SEED_AGE_MAX = 80;
+  /** Power applied to a uniform variate when drawing seed age; >1 skews young (expansive pyramid) and sets taper steepness. See ARD 056. */
+  static SEED_AGE_DISTRIBUTION_EXPONENT = 1.8;
+  /** Central starting wealth for seeded adults; children seed at 0 (parentally subsidized). See ARD 057. */
+  static SEED_ADULT_RESOURCES_MEAN = 50;
+  /** Relative half-width of the adult resource band [mean·(1−spread), mean·(1+spread)); seed-time adult Gini = spread/3. See ARD 057. */
+  static SEED_ADULT_RESOURCES_SPREAD = 0.3;
+  /** Target fraction of working-age persons employed at tick 0. See ARD 058. */
+  static SEED_EMPLOYMENT_RATE = 0.9;
+  /** Random jitter added to the seed employability score; controls how much luck vs. stats decides who starts employed. See ARD 058. */
+  static SEED_EMPLOYMENT_SCORE_NOISE = 0.2;
   /** Fraction of seeded children assigned to a two-parent household; remainder get a single parent. Calibrated to empirical household distribution. */
   static SEED_TWO_PARENT_FRACTION = 0.70;
   /** Probability that a seeded child joins an existing family unit rather than creating a new one; produces siblings. */

@@ -78,7 +78,6 @@ export default class ChildbirthEvent implements IEvent {
     child.learningIntent = this.drawIntent((p1.learningIntent + p2.learningIntent) / 2);
     child.exerciseIntent = this.drawIntent((p1.exerciseIntent + p2.exerciseIntent) / 2);
     child.stealingIntent = this.drawIntent((p1.stealingIntent + p2.stealingIntent) / 2);
-    child.lyingIntent = this.drawIntent((p1.lyingIntent + p2.lyingIntent) / 2);
     child.killingIntent = this.drawIntent((p1.killingIntent + p2.killingIntent) / 2);
   }
 

@@ -11,7 +11,6 @@ export const OVERRIDABLE_FIELDS = [
   'learningIntent',
   'exerciseIntent',
   'stealingIntent',
-  'lyingIntent',
   'killingIntent',
   'helpingIntent',
 ] as const;

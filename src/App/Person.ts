@@ -8,10 +8,8 @@ export default class Person {
   hasJob = false;
   education = Constants.EDUCATION.NONE;
   isWorkingOnEd = Constants.EDUCATION.NONE;
-  helpsPeople = Constants.TYPE_OF_HELP.NONE;
   readonly killed = new Map<Person, KillingRecord>();
   readonly amountStolen: Array<StealingRecord> = [];
-  readonly peopleLiedTo = new Set<Person>();
   isInRelationshipWith: Person|null = null;
   readonly hasChildren: Array<Person> = [];
   readonly childOf: Array<Person> = [];
@@ -26,7 +24,6 @@ export default class Person {
   learningIntent = 0;
   exerciseIntent = 0;
   stealingIntent = 0;
-  lyingIntent = 0;
   killingIntent = 0;
   /** Probability gate for HelpEvent; seeded higher than antisocial intents. See ARD 045. */
   helpingIntent = 0;

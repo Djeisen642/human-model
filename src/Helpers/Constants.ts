@@ -13,11 +13,4 @@ export default class Constants {
     MASTERS: 4,
     PHD: 5
   };
-  static readonly TYPE_OF_HELP = {
-    NONE: 0,
-    POLICE: 1,
-    MEDICAL: 2,
-    EDUCATION: 3,
-    RESEARCH: 4
-  };
 }
