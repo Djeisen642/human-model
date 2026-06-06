@@ -17,23 +17,25 @@ interface SimConfig {
 }
 
 /**
- * Parses --config, --output, and --no-report from process.argv.
- * @returns paths for the config file and output directory, and whether to skip the HTML report
+ * Parses --config, --output, --no-report, and --embed from process.argv.
+ * @returns paths for the config file and output directory, whether to skip the HTML report, and whether to embed CDN assets inline
  */
-function parseArgs(): { configPath?: string; outputDir?: string; noReport: boolean } {
+function parseArgs(): { configPath?: string; outputDir?: string; noReport: boolean; embedAssets: boolean } {
   const args = process.argv.slice(2);
   let configPath: string | undefined;
   let outputDir: string | undefined;
   let noReport = false;
+  let embedAssets = false;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--config' && i + 1 < args.length) configPath = args[++i];
     else if (args[i] === '--output' && i + 1 < args.length) outputDir = args[++i];
     else if (args[i] === '--no-report') noReport = true;
+    else if (args[i] === '--embed') embedAssets = true;
   }
-  return { configPath, outputDir, noReport };
+  return { configPath, outputDir, noReport, embedAssets };
 }
 
-const { configPath, outputDir, noReport } = parseArgs();
+const { configPath, outputDir, noReport, embedAssets } = parseArgs();
 
 let config: SimConfig = {};
 if (configPath) {
@@ -100,7 +102,7 @@ process.on('SIGINT', () => {
   ));
 
   if (!noReport) {
-    writeReportHTML(simulation, N, actualTicks, SEED, outputDir);
+    writeReportHTML(simulation, N, actualTicks, SEED, outputDir, embedAssets);
   }
 })().catch(err => {
   // eslint-disable-next-line no-console

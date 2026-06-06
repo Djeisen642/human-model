@@ -8,15 +8,17 @@ import { classifyOutcome, formatEndReport } from './Reporters';
 /**
  * Writes a self-contained HTML report to <outputDir>/report-<seed>-<outcome>-<timestamp>.html.
  * Creates the output directory if it does not exist.
- * All chart data is embedded inline; Chart.js is loaded from CDN at view time.
+ * All chart data is embedded inline. Pass embedAssets=true to also inline Chart.js from
+ * node_modules so the report renders without any internet access (use --embed on the CLI).
  *
  * @param simulation - completed simulation
  * @param n - initial population size
  * @param ticks - total ticks simulated
  * @param seed - PRNG seed
  * @param outputDir - directory to write the report into; defaults to ./output
+ * @param embedAssets - when true, inlines Chart.js instead of loading it from CDN
  */
-export function writeReportHTML(simulation: Simulation, n: number, ticks: number, seed: number, outputDir?: string): void {
+export function writeReportHTML(simulation: Simulation, n: number, ticks: number, seed: number, outputDir?: string, embedAssets = false): void {
   const resolvedOutputDir = outputDir ?? path.resolve(process.cwd(), 'output');
   if (!fs.existsSync(resolvedOutputDir)) {
     fs.mkdirSync(resolvedOutputDir, { recursive: true });
@@ -31,7 +33,7 @@ export function writeReportHTML(simulation: Simulation, n: number, ticks: number
   const filename = `report-${seed}-${outcome}-${timestamp}.html`;
   const filepath = path.join(resolvedOutputDir, filename);
 
-  const html = buildHTML(simulation, n, ticks, seed, outcome);
+  const html = buildHTML(simulation, n, ticks, seed, outcome, embedAssets);
   fs.writeFileSync(filepath, html, 'utf8');
   const url = `file://${filepath}`;
   const link = `]8;;${url}${filepath}]8;;`;
@@ -45,6 +47,7 @@ export function writeReportHTML(simulation: Simulation, n: number, ticks: number
  * @param ticks - total ticks simulated
  * @param seed - PRNG seed
  * @param outcome - classified outcome label
+ * @param embedAssets - when true, inlines Chart.js bundle instead of CDN link
  * @returns full HTML string for the report
  */
 function buildHTML(
@@ -53,6 +56,7 @@ function buildHTML(
   ticks: number,
   seed: number,
   outcome: string,
+  embedAssets = false,
 ): string {
   const history = simulation.history;
   const decadeHistory = simulation.decadeHistory;
@@ -253,10 +257,15 @@ function buildHTML(
     scales: { x: { grid: { color: '#f0f0f0' } }, y: { grid: { color: '#f0f0f0' } }${extras} }
   }`;
 
+  const inlineChartJs = embedAssets
+    ? fs.readFileSync(path.resolve(process.cwd(), 'node_modules/chart.js/dist/chart.umd.min.js'), 'utf8')
+    : undefined;
+
   const templateSource = fs.readFileSync(path.join(__dirname, 'report-template.hbs'), 'utf8');
   const template = Handlebars.compile(templateSource);
 
   return template({
+    inlineChartJs,
     seed,
     ticks,
     n,
