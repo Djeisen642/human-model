@@ -83,8 +83,8 @@ function applyOverrides(pairs: string[]): () => void {
 }
 
 /** Run one simulation (overrides already applied) and reduce its history to a metrics row. */
-function runOne(seed: number, ticks: number, persons: number): RunMetrics {
-  const sim: Simulation = LooperSingleton.getInstance().start(persons, ticks, seed, () => {}, {});
+async function runOne(seed: number, ticks: number, persons: number): Promise<RunMetrics> {
+  const sim: Simulation = await LooperSingleton.getInstance().start(persons, ticks, seed, () => {}, {});
   const h = sim.history;
   const last = h[h.length - 1];
 
@@ -135,13 +135,14 @@ function runWorker(): void {
     if (msg.type === 'done') { process.exit(0); }
     const { job } = msg;
     const restore = applyOverrides(job.overrides);
-    let metrics: RunMetrics;
-    try {
-      metrics = runOne(job.seed, job.ticks, job.persons);
-    } finally {
+    runOne(job.seed, job.ticks, job.persons).then(metrics => {
       restore();
-    }
-    process.send!({ type: 'result', id: job.id, metrics });
+      process.send!({ type: 'result', id: job.id, metrics });
+    }).catch(err => {
+      restore();
+      console.error(err);
+      process.exit(1);
+    });
   });
   process.send!({ type: 'ready' });
 }

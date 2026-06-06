@@ -63,32 +63,44 @@ const SEED = config.simulation?.seed ?? 42;
 const PERSON_TYPES = parsePersonTypes(config.simulation?.personTypes);
 
 const looper = LooperSingleton.getInstance();
-// eslint-disable-next-line no-console
-const simulation = looper.start(N, TICKS, SEED, console.log, PERSON_TYPES);
 
-const extinctionTick = simulation.history.find(s => s.population === 0)?.tick;
+process.on('SIGINT', () => {
+  process.stderr.write('\n[Interrupted] Finishing current tick then generating report...\n');
+  looper.interrupt();
+});
 
-// eslint-disable-next-line no-console
-console.log(formatEndReport(
-  simulation.decadeHistory,
-  TICKS,
-  SEED,
-  N,
-  simulation.naturalResources,
-  simulation.naturalResourceCeiling,
-  simulation.personTypes,
-  simulation.seededTypeCounts,
-  simulation.getLiving(),
-  extinctionTick !== undefined ? extinctionTick + 1 : undefined,
-  simulation.extractionProductivity,
-  {
-    faster: simulation.inventionFasterCount,
-    slower: simulation.inventionSlowerCount,
-    ceiling: simulation.inventionCeilingCount,
-  },
-  simulation.communityPool,
-));
+(async () => {
+  // eslint-disable-next-line no-console
+  const simulation = await looper.start(N, TICKS, SEED, console.log, PERSON_TYPES);
+  const actualTicks = simulation.history.length;
+  const extinctionTick = simulation.history.find(s => s.population === 0)?.tick;
 
-if (!noReport) {
-  writeReportHTML(simulation, N, TICKS, SEED, outputDir);
-}
+  // eslint-disable-next-line no-console
+  console.log(formatEndReport(
+    simulation.decadeHistory,
+    actualTicks,
+    SEED,
+    N,
+    simulation.naturalResources,
+    simulation.naturalResourceCeiling,
+    simulation.personTypes,
+    simulation.seededTypeCounts,
+    simulation.getLiving(),
+    extinctionTick !== undefined ? extinctionTick + 1 : undefined,
+    simulation.extractionProductivity,
+    {
+      faster: simulation.inventionFasterCount,
+      slower: simulation.inventionSlowerCount,
+      ceiling: simulation.inventionCeilingCount,
+    },
+    simulation.communityPool,
+  ));
+
+  if (!noReport) {
+    writeReportHTML(simulation, N, actualTicks, SEED, outputDir);
+  }
+})().catch(err => {
+  // eslint-disable-next-line no-console
+  console.error(err);
+  process.exit(1);
+});

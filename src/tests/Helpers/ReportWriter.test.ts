@@ -15,8 +15,8 @@ describe('writeReportHTML', () => {
     fs.rmSync(tmpDir, { recursive: true });
   });
 
-  it('writes an HTML file to the output directory', () => {
-    const simulation = LooperSingleton.getInstance().start(10, 10, 1, () => {});
+  it('writes an HTML file to the output directory', async () => {
+    const simulation = await LooperSingleton.getInstance().start(10, 10, 1, () => {});
     writeReportHTML(simulation, 10, 10, 1, tmpDir);
 
     const files = fs.readdirSync(tmpDir);
@@ -24,8 +24,8 @@ describe('writeReportHTML', () => {
     expect(files[0]).toMatch(/^report-1-.+\.html$/);
   });
 
-  it('creates a self-contained HTML file with Chart.js script tag and embedded data', () => {
-    const simulation = LooperSingleton.getInstance().start(10, 10, 1, () => {});
+  it('creates a self-contained HTML file with Chart.js script tag and embedded data', async () => {
+    const simulation = await LooperSingleton.getInstance().start(10, 10, 1, () => {});
     writeReportHTML(simulation, 10, 10, 1, tmpDir);
 
     const filename = fs.readdirSync(tmpDir)[0];
@@ -37,9 +37,9 @@ describe('writeReportHTML', () => {
     expect(content).toContain('<canvas');
   });
 
-  it('creates the output directory if it does not exist', () => {
+  it('creates the output directory if it does not exist', async () => {
     const nestedDir = path.join(tmpDir, 'nested', 'output');
-    const simulation = LooperSingleton.getInstance().start(10, 10, 2, () => {});
+    const simulation = await LooperSingleton.getInstance().start(10, 10, 2, () => {});
     writeReportHTML(simulation, 10, 10, 2, nestedDir);
 
     expect(fs.existsSync(nestedDir)).toBe(true);
