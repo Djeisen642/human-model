@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import Handlebars from 'handlebars';
 import Simulation from '../App/Simulation';
+import Constants from './Constants';
 import { classifyOutcome, formatEndReport } from './Reporters';
 
 /**
@@ -81,6 +82,7 @@ function buildHTML(
       births: d.births,
       deathRate: deathRate.toFixed(2),
       avgResources: d.avgResources.toFixed(2),
+      consumption: mean(chunk.map(c => c.totalConsumption)).toFixed(2),
       naturalResources: d.avgNaturalResources.toFixed(2),
       ceiling: mean(chunk.map(c => c.naturalResourceCeiling)).toFixed(2),
       commonsFill: commonsFill.toFixed(4),
@@ -111,6 +113,7 @@ function buildHTML(
   const birthsSeries = aggregatedHistory.map(a => a.births);
   const deathRateSeries = aggregatedHistory.map(a => a.deathRate);
   const avgResourceSeries = aggregatedHistory.map(a => a.avgResources);
+  const consumptionSeries = aggregatedHistory.map(a => a.consumption);
   const naturalResourceSeries = aggregatedHistory.map(a => a.naturalResources);
   const ceilingSeries = aggregatedHistory.map(a => a.ceiling);
   const commonsFillSeries = aggregatedHistory.map(a => a.commonsFill);
@@ -140,6 +143,28 @@ function buildHTML(
   const killingSeries = decadeHistory.map(d => d.deathsByKilling);
   const disasterSeries = decadeHistory.map(d => d.deathsByDisaster);
 
+  // Age-at-death distribution: bucket every deceased person by age decade, split by cause.
+  const AGE_BUCKET_SIZE = 10;
+  const AGE_BUCKET_COUNT = 10; // 0–9 … 80–89, plus a final 90+ bucket
+  const ageDeathLabels = Array.from({ length: AGE_BUCKET_COUNT }, (_, i) =>
+    i === AGE_BUCKET_COUNT - 1 ? `${(AGE_BUCKET_COUNT - 1) * AGE_BUCKET_SIZE}+` : `${i * AGE_BUCKET_SIZE}–${i * AGE_BUCKET_SIZE + AGE_BUCKET_SIZE - 1}`);
+  const ageDeathByCause: Record<number, number[]> = {
+    [Constants.CAUSE_OF_DEATH.ILLNESS]: new Array(AGE_BUCKET_COUNT).fill(0),
+    [Constants.CAUSE_OF_DEATH.SUICIDE]: new Array(AGE_BUCKET_COUNT).fill(0),
+    [Constants.CAUSE_OF_DEATH.MURDER]: new Array(AGE_BUCKET_COUNT).fill(0),
+    [Constants.CAUSE_OF_DEATH.DISASTER]: new Array(AGE_BUCKET_COUNT).fill(0),
+  };
+  for (const p of simulation.getDeceased()) {
+    const cause = p.causeOfDeath?.cause;
+    if (cause === undefined || !(cause in ageDeathByCause)) continue;
+    const bucket = Math.min(AGE_BUCKET_COUNT - 1, Math.floor(p.age / AGE_BUCKET_SIZE));
+    ageDeathByCause[cause][bucket] += 1;
+  }
+  const ageDeathIllnessSeries = ageDeathByCause[Constants.CAUSE_OF_DEATH.ILLNESS];
+  const ageDeathSuicideSeries = ageDeathByCause[Constants.CAUSE_OF_DEATH.SUICIDE];
+  const ageDeathMurderSeries = ageDeathByCause[Constants.CAUSE_OF_DEATH.MURDER];
+  const ageDeathDisasterSeries = ageDeathByCause[Constants.CAUSE_OF_DEATH.DISASTER];
+
   const embeddedData = JSON.stringify({
     meta: { seed, ticks, n, outcome },
     decadeHistory,
@@ -162,6 +187,7 @@ function buildHTML(
       fertileCoupleCount: s.fertileCoupleCount,
       averageAge: s.averageAge,
       medianAge: s.medianAge,
+      totalConsumption: s.totalConsumption,
       educationCounts: s.educationCounts,
       deathsByMurder: s.deathsByMurder,
       deathsByIllness: s.deathsByIllness,
@@ -234,6 +260,7 @@ function buildHTML(
     birthsSeries: JSON.stringify(birthsSeries),
     deathRateSeries: JSON.stringify(deathRateSeries),
     avgResourceSeries: JSON.stringify(avgResourceSeries),
+    consumptionSeries: JSON.stringify(consumptionSeries),
     naturalResourceSeries: JSON.stringify(naturalResourceSeries),
     ceilingSeries: JSON.stringify(ceilingSeries),
     commonsFillSeries: JSON.stringify(commonsFillSeries),
@@ -265,6 +292,11 @@ function buildHTML(
     disasterSeries: JSON.stringify(disasterSeries),
     totalCoupleSeries: JSON.stringify(totalCoupleSeries),
     fertileCoupleSeries: JSON.stringify(fertileCoupleSeries),
+    ageDeathLabels: JSON.stringify(ageDeathLabels),
+    ageDeathIllnessSeries: JSON.stringify(ageDeathIllnessSeries),
+    ageDeathSuicideSeries: JSON.stringify(ageDeathSuicideSeries),
+    ageDeathMurderSeries: JSON.stringify(ageDeathMurderSeries),
+    ageDeathDisasterSeries: JSON.stringify(ageDeathDisasterSeries),
     happinessOptions: chartOptions('Happiness Over Time', ', y: { min: 0, grid: { color: "#f0f0f0" } }'),
     intentOptions: chartOptions('Antisocial Intent Per Capita', ', y: { min: 0, grid: { color: "#f0f0f0" } }'),
     ageOptions: chartOptions('Population Age Structure', ', y: { beginAtZero: true, grid: { color: "#f0f0f0" }, title: { display: true, text: "Age (years)" } }')

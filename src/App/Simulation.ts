@@ -77,6 +77,8 @@ export interface TickSnapshot {
   averageAge: number;
   /** Median age across living population at end of tick. 0 when none exist. */
   medianAge: number;
+  /** Total resources consumed by the living population this tick (ConsumptionEvent + JailEvent). */
+  totalConsumption: number;
   /** Count of living persons by education tier, indexed by Constants.EDUCATION value (length 6). */
   educationCounts: number[];
 }
@@ -114,6 +116,7 @@ export default class Simulation {
   private tickDeathCauses: number[] = [];
   private tickBirths = 0;
   private tickSteals = 0;
+  private tickConsumption = 0;
 
   /**
    * Returns a shallow copy of the living population.
@@ -122,6 +125,16 @@ export default class Simulation {
    */
   getLiving(): Person[] {
     return [...this.living];
+  }
+
+  /**
+   * Returns a shallow copy of the deceased population (persons retain their
+   * age at death and `causeOfDeath`). Used for end-of-run age-mortality reporting.
+   *
+   * @returns deceased persons
+   */
+  getDeceased(): Person[] {
+    return [...this.deceased];
   }
 
   /**
@@ -244,6 +257,16 @@ export default class Simulation {
    */
   recordSteal(): void {
     this.tickSteals++;
+  }
+
+  /**
+   * Accumulates resources consumed this tick. Called by ConsumptionEvent and
+   * JailEvent with the actual amount deducted from a person's resources.
+   *
+   * @param amount - resources consumed (>= 0)
+   */
+  recordConsumption(amount: number): void {
+    this.tickConsumption += amount;
   }
 
   /**
@@ -516,6 +539,7 @@ export default class Simulation {
     const births = this.tickBirths;
     const cumulativeBirths = (prev?.cumulativeBirths ?? 0) + births;
     const stealsCommitted = this.tickSteals;
+    const totalConsumption = this.tickConsumption;
 
     const partnered = this.living.filter(p => p.isInRelationshipWith !== null);
     const totalCoupleCount = Math.round(partnered.length / 2);
@@ -559,6 +583,7 @@ export default class Simulation {
       fertileCoupleCount,
       averageAge,
       medianAge,
+      totalConsumption,
       educationCounts,
     };
 
@@ -566,6 +591,7 @@ export default class Simulation {
     this.tickDeathCauses = [];
     this.tickBirths = 0;
     this.tickSteals = 0;
+    this.tickConsumption = 0;
     return snap;
   }
 }

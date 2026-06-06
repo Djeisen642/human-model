@@ -27,11 +27,13 @@ export default class JailEvent implements IEvent {
     person.resources += granted;
 
     const cost = Variables.JAIL_CONSUMPTION_AMOUNT;
+    const before = person.resources;
     if (person.resources < cost) {
       person.illness = Math.min(1, person.illness + Variables.STARVATION_ILLNESS_RATE);
       person.resources = 0;
     } else {
       person.resources -= cost;
     }
+    simulation.recordConsumption(before - person.resources);
   }
 }
