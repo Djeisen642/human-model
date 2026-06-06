@@ -855,6 +855,45 @@ describe('Simulation', () => {
       const snap = sim.snapshot();
       expect(snap.communityPool).toBeCloseTo(100 * Variables.TAX_RATE);
     });
+
+    it('snapshot counts total couples and fertile couples', () => {
+      const sim = new Simulation();
+      const p1 = new Person([]);
+      const p2 = new Person([]);
+      p1.age = 28;
+      p2.age = 30;
+      p1.isInRelationshipWith = p2;
+      p2.isInRelationshipWith = p1;
+      sim.add(p1);
+      sim.add(p2);
+      const snap = sim.snapshot();
+      expect(snap.totalCoupleCount).toBe(1);
+      expect(snap.fertileCoupleCount).toBe(1);
+    });
+
+    it('snapshot counts old couple as not fertile (max age > 40)', () => {
+      const sim = new Simulation();
+      const p1 = new Person([]);
+      const p2 = new Person([]);
+      p1.age = 55;
+      p2.age = 58;
+      p1.isInRelationshipWith = p2;
+      p2.isInRelationshipWith = p1;
+      sim.add(p1);
+      sim.add(p2);
+      const snap = sim.snapshot();
+      expect(snap.totalCoupleCount).toBe(1);
+      expect(snap.fertileCoupleCount).toBe(0);
+    });
+
+    it('snapshot counts zero couples when no one is partnered', () => {
+      const sim = new Simulation();
+      const p = new Person([]);
+      sim.add(p);
+      const snap = sim.snapshot();
+      expect(snap.totalCoupleCount).toBe(0);
+      expect(snap.fertileCoupleCount).toBe(0);
+    });
   });
 
   describe('distributeWelfare (ARD 034)', () => {

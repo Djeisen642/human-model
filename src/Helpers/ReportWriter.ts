@@ -79,6 +79,8 @@ function buildHTML(
       killingIntent: mean(chunk.map(c => c.population > 0 ? c.aggregateKillingIntent / c.population : 0)).toFixed(5),
       stealingIntent: mean(chunk.map(c => c.population > 0 ? c.aggregateStealingIntent / c.population : 0)).toFixed(5),
       jailed: mean(chunk.map(c => c.jailedPopulation)).toFixed(1),
+      totalCoupleCount: mean(chunk.map(c => c.totalCoupleCount)).toFixed(1),
+      fertileCoupleCount: mean(chunk.map(c => c.fertileCoupleCount)).toFixed(1),
       murders: chunk.reduce((sum, c) => sum + c.deathsByMurder, 0),
       steals: chunk.reduce((sum, c) => sum + c.stealsCommitted, 0),
       deathsIllness: d.deathsByIllness,
@@ -104,6 +106,8 @@ function buildHTML(
   const jailedSeries = aggregatedHistory.map(a => a.jailed);
   const murdersPerTickSeries = aggregatedHistory.map(a => a.murders);
   const stealsPerTickSeries = aggregatedHistory.map(a => a.steals);
+  const totalCoupleSeries = aggregatedHistory.map(a => a.totalCoupleCount);
+  const fertileCoupleSeries = aggregatedHistory.map(a => a.fertileCoupleCount);
   const deathsIllnessTickSeries = aggregatedHistory.map(a => a.deathsIllness);
   const deathsSuicideTickSeries = aggregatedHistory.map(a => a.deathsSuicide);
   const deathsMurderTickSeries = aggregatedHistory.map(a => a.deathsMurder);
@@ -132,6 +136,8 @@ function buildHTML(
       employmentRate: s.employmentRate,
       stealsCommitted: s.stealsCommitted,
       jailedPopulation: s.jailedPopulation,
+      totalCoupleCount: s.totalCoupleCount,
+      fertileCoupleCount: s.fertileCoupleCount,
       deathsByMurder: s.deathsByMurder,
       deathsByIllness: s.deathsByIllness,
       deathsBySuicide: s.deathsBySuicide,
@@ -222,6 +228,8 @@ function buildHTML(
     suicideSeries: JSON.stringify(suicideSeries),
     killingSeries: JSON.stringify(killingSeries),
     disasterSeries: JSON.stringify(disasterSeries),
+    totalCoupleSeries: JSON.stringify(totalCoupleSeries),
+    fertileCoupleSeries: JSON.stringify(fertileCoupleSeries),
     giniOptions: chartOptions('Inequality (Gini) Over Time', ', y: { min: 0, max: 1, grid: { color: \'#f0f0f0\' } }'),
     happinessOptions: chartOptions('Happiness Over Time', ', y: { min: 0, grid: { color: "#f0f0f0" } }'),
     intentOptions: chartOptions('Antisocial Intent Per Capita', ', y: { min: 0, grid: { color: "#f0f0f0" } }'),
