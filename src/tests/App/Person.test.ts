@@ -11,7 +11,7 @@ describe('Person', () => {
     expect(person.age).toBe(0);
   });
 
-  it('Should create a Person with parents', () => {
+  it('Should create a Person with two parents', () => {
     const parent1 = new Person([]);
     const parent2 = new Person([]);
     const parents = [parent1, parent2];
@@ -19,6 +19,22 @@ describe('Person', () => {
 
     expect(person).toBeTruthy();
     expect(person.childOf).toBe(parents);
+  });
+
+  it('should create a Person with one parent (ARD 052)', () => {
+    const parent = new Person([]);
+    const person = new Person([parent]);
+
+    expect(person).toBeTruthy();
+    expect(person.childOf).toHaveLength(1);
+    expect(person.childOf[0]).toBe(parent);
+  });
+
+  it('should throw when given more than two parents', () => {
+    const p1 = new Person([]);
+    const p2 = new Person([]);
+    const p3 = new Person([]);
+    expect(() => new Person([p1, p2, p3])).toThrow('Invalid parents given');
   });
 
   describe('happiness', () => {

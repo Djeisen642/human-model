@@ -25,6 +25,7 @@ export default class RelationshipEvent implements IEvent {
    * @param simulation - current simulation state
    */
   execute(person: Person, simulation: Simulation): void {
+    if (person.age < Variables.RELATIONSHIP_MIN_AGE) return;
     if (person.isInRelationshipWith === null) {
       const formProb = Variables.BASE_RELATIONSHIP_RATE
         * (1 + person.charisma * Variables.RELATIONSHIP_CHARISMA_SCALAR)

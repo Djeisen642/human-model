@@ -44,7 +44,7 @@ export default class Person {
    * @throws {Error} if invalid parents are given
    */
   constructor(parents: Person[]) {
-    if (parents.length !== 0 && parents.length !== 2) {
+    if (parents.length > 2) {
       throw new Error('Invalid parents given');
     }
     this.childOf = parents;

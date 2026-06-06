@@ -343,11 +343,11 @@ describe('Simulation', () => {
       });
     });
 
-    it('age should be in [15, 50)', () => {
+    it('age should be in [SEED_AGE_FLOOR, 50)', () => {
       const sim = new Simulation();
       sim.seed(50, Math.random);
       sim.getLiving().forEach(p => {
-        expect(p.age).toBeGreaterThanOrEqual(15);
+        expect(p.age).toBeGreaterThanOrEqual(Variables.SEED_AGE_FLOOR);
         expect(p.age).toBeLessThan(50);
       });
     });
@@ -403,20 +403,34 @@ describe('Simulation', () => {
       });
     });
 
-    it('minimum age with rng always 0 should be 15', () => {
+    it('minimum age with rng always 0 should be SEED_AGE_FLOOR', () => {
       const sim = new Simulation();
       sim.seed(1, alwaysFirst);
-      expect(sim.getLiving()[0].age).toBe(15);
+      expect(sim.getLiving()[0].age).toBe(Variables.SEED_AGE_FLOOR);
     });
 
-    it('persons aged <= GRADUATION_HS_MAX_AGE are seeded with isWorkingOnEd = HIGH_SCHOOL when rng passes', () => {
-      // alwaysFirst returns 0: age = 15 (≤17), enrollment check 0 < 0.7 → enrolled
+    it('persons aged >= RELATIONSHIP_MIN_AGE and <= GRADUATION_HS_MAX_AGE get HS enrollment seeding', () => {
+      // Seed many persons and verify those in HS age range get at most HS enrollment (never BACHELORS+)
       const sim = new Simulation();
-      sim.seed(5, alwaysFirst);
-      sim.getLiving().forEach(p => {
-        expect(p.age).toBe(15);
-        expect(p.isWorkingOnEd).toBe(Constants.EDUCATION.HIGH_SCHOOL);
-      });
+      sim.seed(200, Math.random);
+      sim.getLiving()
+        .filter(p => p.age >= Variables.RELATIONSHIP_MIN_AGE && p.age <= Variables.GRADUATION_HS_MAX_AGE)
+        .forEach(p => {
+          expect(p.isWorkingOnEd).not.toBe(Constants.EDUCATION.BACHELORS);
+          expect(p.isWorkingOnEd).not.toBe(Constants.EDUCATION.MASTERS);
+          expect(p.isWorkingOnEd).not.toBe(Constants.EDUCATION.PHD);
+        });
+    });
+
+    it('persons below RELATIONSHIP_MIN_AGE have no education seeding', () => {
+      const sim = new Simulation();
+      sim.seed(200, Math.random);
+      sim.getLiving()
+        .filter(p => p.age < Variables.RELATIONSHIP_MIN_AGE)
+        .forEach(p => {
+          expect(p.education).toBe(Constants.EDUCATION.NONE);
+          expect(p.isWorkingOnEd).toBe(Constants.EDUCATION.NONE);
+        });
     });
 
     it('persons aged > GRADUATION_COLLEGE_MAX_AGE always have isWorkingOnEd = NONE', () => {
@@ -471,6 +485,46 @@ describe('Simulation', () => {
         .filter(p => p.age > Variables.GRADUATION_HS_MAX_AGE && p.age <= Variables.GRADUATION_COLLEGE_MAX_AGE)
         .forEach(p => {
           expect(p.isWorkingOnEd).not.toBe(Constants.EDUCATION.HIGH_SCHOOL);
+        });
+    });
+
+    it('seeded adults are paired at approximately SEED_PAIRING_FRACTION (ARD 052)', () => {
+      const sim = new Simulation();
+      sim.seed(100, new SeededRandom(42).asRNG());
+      const adults = sim.getLiving().filter(p => p.age >= Variables.RELATIONSHIP_MIN_AGE);
+      const paired = adults.filter(p => p.isInRelationshipWith !== null).length;
+      const fraction = adults.length > 0 ? paired / adults.length : 0;
+      expect(fraction).toBeGreaterThanOrEqual(Variables.SEED_PAIRING_FRACTION - 0.05);
+    });
+
+    it('seeded children below RELATIONSHIP_MIN_AGE have at least one parent when eligible adults exist (ARD 052)', () => {
+      const sim = new Simulation();
+      sim.seed(100, new SeededRandom(42).asRNG());
+      const children = sim.getLiving().filter(p => p.age < Variables.RELATIONSHIP_MIN_AGE);
+      children.forEach(child => {
+        expect(child.childOf.length).toBeGreaterThanOrEqual(1);
+      });
+    });
+
+    it('seeded children are not in a relationship (ARD 052)', () => {
+      const sim = new Simulation();
+      sim.seed(100, new SeededRandom(42).asRNG());
+      sim.getLiving()
+        .filter(p => p.age < Variables.RELATIONSHIP_MIN_AGE)
+        .forEach(child => {
+          expect(child.isInRelationshipWith).toBeNull();
+        });
+    });
+
+    it('assigned parents have the child in their hasChildren array (ARD 052)', () => {
+      const sim = new Simulation();
+      sim.seed(100, new SeededRandom(42).asRNG());
+      sim.getLiving()
+        .filter(p => p.age < Variables.RELATIONSHIP_MIN_AGE)
+        .forEach(child => {
+          child.childOf.forEach(parent => {
+            expect(parent.hasChildren).toContain(child);
+          });
         });
     });
   });
