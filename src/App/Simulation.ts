@@ -135,7 +135,7 @@ export default class Simulation {
   getRandomOther(exclude: Person, rng: RNG): Person | null {
     const candidates = this.living.filter(p => p !== exclude);
     if (candidates.length === 0) return null;
-    const index = Math.floor(rng() * candidates.length);
+    const index = Math.min(Math.floor(rng() * candidates.length), candidates.length - 1);
     return candidates[index];
   }
 
@@ -368,13 +368,14 @@ export default class Simulation {
       }
     }
 
-    // Post-seed adult pairing: pair unpartnered adults until SEED_PAIRING_FRACTION is reached. See ARD 052.
+    // Post-seed adult pairing: pair unpartnered adults until SEED_PAIRING_FRACTION is reached.
+    // Sort by age so adjacent pairs are age-proximate, consistent with ARD 054's age-gap preference. See ARD 052, ARD 054.
     const adults = this.living.filter(p => p.age >= Variables.RELATIONSHIP_MIN_AGE);
     const totalAdults = adults.length;
     if (totalAdults > 0) {
       let pairedCount = adults.filter(p => p.isInRelationshipWith !== null).length;
       const unpartnered = adults.filter(p => p.isInRelationshipWith === null);
-      seedShuffle(unpartnered, rng);
+      unpartnered.sort((a, b) => a.age - b.age);
       let idx = 0;
       while (idx + 1 < unpartnered.length && pairedCount / totalAdults < Variables.SEED_PAIRING_FRACTION) {
         unpartnered[idx].isInRelationshipWith = unpartnered[idx + 1];

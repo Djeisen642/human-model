@@ -18,7 +18,7 @@ export default class RelationshipEvent implements IEvent {
 
   /**
    * Run formation or dissolution branch depending on current relationship status.
-   * Formation draws a random other from the simulation and checks they are unpartnered.
+   * Formation draws a random other, then applies age-gap compatibility scaling (ARD 054).
    * Dissolution mutually clears both persons' isInRelationshipWith fields.
    *
    * @param person - person whose relationship status is updated
@@ -27,7 +27,7 @@ export default class RelationshipEvent implements IEvent {
   execute(person: Person, simulation: Simulation): void {
     if (person.age < Variables.RELATIONSHIP_MIN_AGE) return;
     if (person.isInRelationshipWith === null) {
-      const formProb = Variables.BASE_RELATIONSHIP_RATE
+      const baseFormProb = Variables.BASE_RELATIONSHIP_RATE
         * (1 + person.charisma * Variables.RELATIONSHIP_CHARISMA_SCALAR)
         * ageModifier(
           person.age,
@@ -35,11 +35,20 @@ export default class RelationshipEvent implements IEvent {
           Variables.RELATIONSHIP_AGE_SCALE,
           Variables.RELATIONSHIP_AGE_FLOOR,
         );
-      if (this.rng() < formProb) {
+      for (let attempt = 0; attempt < Variables.RELATIONSHIP_MAX_FORMATION_ATTEMPTS && person.isInRelationshipWith === null; attempt++) {
         const other = simulation.getRandomOther(person, this.rng);
-        if (other && other.isInRelationshipWith === null) {
-          person.isInRelationshipWith = other;
-          other.isInRelationshipWith = person;
+        if (other !== null && other.isInRelationshipWith === null) {
+          const ageGap = Math.abs(person.age - other.age);
+          const formProb = baseFormProb * ageModifier(
+            ageGap,
+            0,
+            Variables.RELATIONSHIP_AGE_GAP_SCALE,
+            Variables.RELATIONSHIP_AGE_GAP_FLOOR,
+          );
+          if (this.rng() < formProb) {
+            person.isInRelationshipWith = other;
+            other.isInRelationshipWith = person;
+          }
         }
       }
     } else {

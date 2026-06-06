@@ -292,8 +292,14 @@ export default class Variables {
   static BASE_RELATIONSHIP_RATE = 0.18;
   /** Multiplies charisma (1–10) into formation probability; range 1.06–1.60. */
   static RELATIONSHIP_CHARISMA_SCALAR = 0.06;
-  /** Flat per-tick probability that an existing relationship dissolves. Calibrated to ~40% lifetime dissolution at ~8yr average. */
-  static BASE_BREAKUP_RATE = 0.03;
+  /** Flat per-tick probability that an existing relationship dissolves. Recalibrated to 0.04 (from 0.03) per docs/research-pairing-calibration.md: higher churn frees old-cohort pairs for age-proximate re-pairing via ARD 054, maximising births and peak population. Consistent with empirical ~3–5%/year separation rate. */
+  static BASE_BREAKUP_RATE = 0.04;
+  /** Scale of the age-gap compatibility bell curve: controls how steeply formation probability falls with age difference. See ARD 054. */
+  static RELATIONSHIP_AGE_GAP_SCALE = 10;
+  /** Minimum age-gap compatibility modifier at arbitrarily large gaps; keeps cross-generational relationships possible at a realistic low rate. See ARD 054. */
+  static RELATIONSHIP_AGE_GAP_FLOOR = 0.1;
+  /** Maximum candidate draws per tick in the formation branch; gives each person multiple chances to find an age-compatible partner. See ARD 055. */
+  static RELATIONSHIP_MAX_FORMATION_ATTEMPTS = 5;
 
   // Seed population structure constants (ARD 052)
   /** Minimum age in the seeded population; allows children to be present in the initial age pyramid. */
