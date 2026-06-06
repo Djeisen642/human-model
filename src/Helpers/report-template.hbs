@@ -108,11 +108,13 @@
       <div class="card"><canvas id="populationChart"></canvas></div>
       <div class="card"><canvas id="happinessChart"></canvas></div>
       <div class="card"><canvas id="healthEmploymentChart"></canvas></div>
+      <div class="card"><canvas id="ageStructureChart"></canvas></div>
+      <div class="card"><canvas id="ecologyChart"></canvas></div>
+      <div class="card span-full"><canvas id="educationChart"></canvas></div>
       <div class="card span-full"><canvas id="poolDynamicsChart"></canvas></div>
       <div class="card span-full"><canvas id="coupleChart"></canvas></div>
       <div class="card"><canvas id="intentChart"></canvas></div>
       <div class="card"><canvas id="crimeChart"></canvas></div>
-      <div class="card span-full"><canvas id="jailChart"></canvas></div>
       <div class="card span-full" style="position: relative;">
         <div style="position: absolute; top: 1.25rem; right: 1.5rem; z-index: 10;">
           <div class="toggle-group" id="deathsChartToggleGroup">
@@ -148,11 +150,27 @@
       type: 'line',
       data: {
         labels: tickLabels,
-        datasets: [{ label: 'Resource Gini', data: {{{giniSeries}}},
-          borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.06)',
-          fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }]
+        datasets: [
+          { label: 'Resource Gini', data: {{{giniSeries}}},
+            borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.06)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Population', data: {{{populationSeries}}},
+            borderColor: '#2980b9', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [4,3], yAxisID: 'y2' }
+        ]
       },
-      options: {{{giniOptions}}}
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Inequality vs Population', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' } },
+          y: { position: 'left', min: 0, max: 1, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Gini [0–1]' } },
+          y2: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'Population' } }
+        }
+      }
     });
 
     new Chart(document.getElementById('populationChart'), {
@@ -163,21 +181,21 @@
           { label: 'Population', data: {{{populationSeries}}},
             borderColor: '#2980b9', backgroundColor: 'rgba(41,128,185,0.06)',
             fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
-          { label: 'Births per Decade', data: {{{birthsSeries}}},
-            borderColor: '#16a085', backgroundColor: 'transparent',
+          { label: 'Death Rate (per 100 / decade)', data: {{{deathRateSeries}}},
+            borderColor: '#c0392b', backgroundColor: 'transparent',
             tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [4,3], yAxisID: 'y2' }
         ]
       },
       options: {
         responsive: true,
         plugins: {
-          title: { display: true, text: 'Population & Births Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          title: { display: true, text: 'Population & Mortality Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
           legend: { position: 'bottom' }
         },
         scales: {
           x: { grid: { color: '#f0f0f0' } },
-          y: { position: 'left', grid: { color: '#f0f0f0' } },
-          y2: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true }
+          y: { position: 'left', grid: { color: '#f0f0f0' }, title: { display: true, text: 'Population' } },
+          y2: { position: 'right', grid: { drawOnChartArea: false }, beginAtZero: true, title: { display: true, text: 'Deaths per 100' } }
         }
       }
     });
@@ -250,6 +268,81 @@
       }
     });
 
+    new Chart(document.getElementById('ageStructureChart'), {
+      type: 'line',
+      data: {
+        labels: tickLabels,
+        datasets: [
+          { label: 'Median Age', data: {{{medianAgeSeries}}},
+            borderColor: '#2c3e50', backgroundColor: 'rgba(44,62,80,0.06)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Average Age', data: {{{averageAgeSeries}}},
+            borderColor: '#16a085', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [4,3] }
+        ]
+      },
+      options: {{{ageOptions}}}
+    });
+
+    new Chart(document.getElementById('ecologyChart'), {
+      type: 'line',
+      data: {
+        labels: tickLabels,
+        datasets: [
+          { label: 'Commons Fill (resources ÷ ceiling)', data: {{{commonsFillSeries}}},
+            borderColor: '#8e44ad', backgroundColor: 'rgba(142,68,173,0.08)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Extraction Productivity', data: {{{productivitySeries}}},
+            borderColor: '#e67e22', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [4,3], yAxisID: 'y2' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Carrying Capacity & Productivity', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' } },
+          y: { position: 'left', min: 0, max: 1, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Commons fill [0–1]' } },
+          y2: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'Productivity' } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('educationChart'), {
+      type: 'line',
+      data: {
+        labels: tickLabels,
+        datasets: [
+          { label: 'None',         data: {{{educationNoneSeries}}},
+            borderColor: '#95a5a6', backgroundColor: 'rgba(149,165,166,0.5)', fill: true, stack: 'edu', tension: 0.2, pointRadius: 0, borderWidth: 1 },
+          { label: 'High School',  data: {{{educationHsSeries}}},
+            borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,0.5)', fill: true, stack: 'edu', tension: 0.2, pointRadius: 0, borderWidth: 1 },
+          { label: 'Trade School', data: {{{educationTradeSeries}}},
+            borderColor: '#1abc9c', backgroundColor: 'rgba(26,188,156,0.5)', fill: true, stack: 'edu', tension: 0.2, pointRadius: 0, borderWidth: 1 },
+          { label: 'Bachelors',    data: {{{educationBachelorsSeries}}},
+            borderColor: '#27ae60', backgroundColor: 'rgba(39,174,96,0.5)', fill: true, stack: 'edu', tension: 0.2, pointRadius: 0, borderWidth: 1 },
+          { label: 'Masters',      data: {{{educationMastersSeries}}},
+            borderColor: '#f39c12', backgroundColor: 'rgba(243,156,18,0.5)', fill: true, stack: 'edu', tension: 0.2, pointRadius: 0, borderWidth: 1 },
+          { label: 'PhD',          data: {{{educationPhdSeries}}},
+            borderColor: '#9b59b6', backgroundColor: 'rgba(155,89,182,0.5)', fill: true, stack: 'edu', tension: 0.2, pointRadius: 0, borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Education Distribution Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' } },
+          y: { stacked: true, beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Living persons' } }
+        }
+      }
+    });
+
     new Chart(document.getElementById('poolDynamicsChart'), {
       type: 'line',
       data: {
@@ -304,39 +397,26 @@
       data: {
         labels: tickLabels,
         datasets: [
-          { label: 'Murders', data: {{{murdersPerTickSeries}}},
-            borderColor: '#c0392b', backgroundColor: 'rgba(192,57,43,0.06)',
-            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
-          { label: 'Thefts', data: {{{stealsPerTickSeries}}},
+          { label: 'Thefts per Decade', data: {{{stealsPerTickSeries}}},
             borderColor: '#7d3c98', backgroundColor: 'rgba(125,60,152,0.06)',
-            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2, yAxisID: 'y2' }
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Avg Jailed Population', data: {{{jailedSeries}}},
+            borderColor: '#d35400', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [4,3], yAxisID: 'y2' }
         ]
       },
       options: {
         responsive: true,
         plugins: {
-          title: { display: true, text: 'Crime Activity Per Decade', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          title: { display: true, text: 'Crime & Punishment', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
           legend: { position: 'bottom' }
         },
         scales: {
           x: { grid: { color: '#f0f0f0' } },
-          y: { position: 'left', beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Murders' } },
-          y2: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'Thefts' } }
+          y: { position: 'left', beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Thefts' } },
+          y2: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'Jailed' } }
         }
       }
-    });
-
-    new Chart(document.getElementById('jailChart'), {
-      type: 'line',
-      data: {
-        labels: tickLabels,
-        datasets: [
-          { label: 'Jailed Population', data: {{{jailedSeries}}},
-            borderColor: '#d35400', backgroundColor: 'rgba(211,84,0,0.08)',
-            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 }
-        ]
-      },
-      options: {{{jailOptions}}}
     });
 
     new Chart(document.getElementById('deathsPerTickChart'), {

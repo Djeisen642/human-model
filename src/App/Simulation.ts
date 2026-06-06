@@ -73,6 +73,12 @@ export interface TickSnapshot {
   totalCoupleCount: number;
   /** Number of partnered pairs where the older partner's age gives childbirth ageModifier >= 0.5 (roughly max age ≤ 40). */
   fertileCoupleCount: number;
+  /** Mean age across living population at end of tick. 0 when none exist. */
+  averageAge: number;
+  /** Median age across living population at end of tick. 0 when none exist. */
+  medianAge: number;
+  /** Count of living persons by education tier, indexed by Constants.EDUCATION value (length 6). */
+  educationCounts: number[];
 }
 
 export default class Simulation {
@@ -484,6 +490,15 @@ export default class Simulation {
       ? workingAge.filter(p => p.hasJob).length / workingAge.length
       : 0;
     const jailedPopulation = this.living.filter(p => p.jailedTicksRemaining > 0).length;
+    const ages = this.living.map(p => p.age);
+    const averageAge = mean(ages);
+    const medianAge = median(ages);
+    const educationCounts = new Array<number>(6).fill(0);
+    for (const p of this.living) {
+      if (p.education >= 0 && p.education < educationCounts.length) {
+        educationCounts[p.education] += 1;
+      }
+    }
 
     const deaths = this.tickDeathCauses.length;
     const deathsByMurder = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.MURDER).length;
@@ -542,6 +557,9 @@ export default class Simulation {
       jailedPopulation,
       totalCoupleCount,
       fertileCoupleCount,
+      averageAge,
+      medianAge,
+      educationCounts,
     };
 
     this.history.push(snap);
@@ -622,6 +640,19 @@ function buildTypeAssignments(n: number, types: PersonTypes, rng: RNG): (string 
 function mean(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+/**
+ * @param values - numeric values
+ * @returns median value, or 0 if empty
+ */
+function median(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1] + sorted[mid]) / 2
+    : sorted[mid];
 }
 
 /**

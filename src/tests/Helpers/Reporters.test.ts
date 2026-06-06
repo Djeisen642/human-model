@@ -59,6 +59,11 @@ function makeSnapshot(
     employmentRate: overrides.employmentRate ?? 0,
     stealsCommitted: overrides.stealsCommitted ?? 0,
     jailedPopulation: overrides.jailedPopulation ?? 0,
+    totalCoupleCount: overrides.totalCoupleCount ?? 0,
+    fertileCoupleCount: overrides.fertileCoupleCount ?? 0,
+    averageAge: overrides.averageAge ?? 35,
+    medianAge: overrides.medianAge ?? 35,
+    educationCounts: overrides.educationCounts ?? [0, 0, 0, 0, 0, 0],
   };
 }
 
