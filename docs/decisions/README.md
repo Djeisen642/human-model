@@ -168,3 +168,4 @@ When in doubt:
 | [050](./050-carrying-capacity-degradation.md) | Carrying Capacity Degrades Under Overexploitation | Accepted |
 | [051](./051-multidimensional-outcome-classification.md) | Multi-Dimensional Outcome Classification | Accepted |
 | [052](./052-realistic-initial-population-seeding.md) | Realistic Initial Population Seeding | Proposed |
+| [053](./053-relationship-minimum-age-and-rate.md) | Relationship Formation Minimum Age and Rate Recalibration | Proposed |
