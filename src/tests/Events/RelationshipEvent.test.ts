@@ -222,6 +222,34 @@ describe('RelationshipEvent', () => {
     });
   });
 
+  describe('multiple formation attempts (ARD 055)', () => {
+    it('forms on a later attempt when the first drawn candidate has a large age gap', () => {
+      // person (26) draws oldOther (70) first — large gap, formProb ≈ 0.023, fails at rng=0.05.
+      // Second draw picks youngOther (28) — gap=2, formProb ≈ 0.230, passes at rng=0.05.
+      const sim = new Simulation();
+      const person = new Person([]);
+      person.age = 26;
+      person.charisma = 5;
+      const oldOther = new Person([]);
+      oldOther.age = 70;
+      const youngOther = new Person([]);
+      youngOther.age = 28;
+      sim.add(person);
+      sim.add(oldOther);    // candidates[0]
+      sim.add(youngOther);  // candidates[1]
+
+      // RNG seq: [0 → oldOther, 0.05 → formProb fails, 0.5 → youngOther, 0.05 → formProb passes]
+      const seq = [0, 0.05, 0.5, 0.05];
+      let i = 0;
+      const event = new RelationshipEvent(() => seq[i++ % seq.length]);
+      event.execute(person, sim);
+
+      expect(person.isInRelationshipWith).toBe(youngOther);
+      expect(youngOther.isInRelationshipWith).toBe(person);
+      expect(oldOther.isInRelationshipWith).toBeNull();
+    });
+  });
+
   describe('EventFactory includes RelationshipEvent', () => {
     it('always includes RelationshipEvent in the event list', () => {
       const factory = new EventFactory(() => 0.5);

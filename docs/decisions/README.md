@@ -170,3 +170,4 @@ When in doubt:
 | [052](./052-realistic-initial-population-seeding.md) | Realistic Initial Population Seeding | Accepted |
 | [053](./053-relationship-minimum-age-and-rate.md) | Relationship Formation Minimum Age and Rate Recalibration | Accepted |
 | [054](./054-relationship-age-preference.md) | Relationship Age Preference | Accepted |
+| [055](./055-relationship-formation-attempts.md) | Multiple Relationship Formation Attempts per Tick | Accepted |

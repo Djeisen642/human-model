@@ -27,26 +27,28 @@ export default class RelationshipEvent implements IEvent {
   execute(person: Person, simulation: Simulation): void {
     if (person.age < Variables.RELATIONSHIP_MIN_AGE) return;
     if (person.isInRelationshipWith === null) {
-      const other = simulation.getRandomOther(person, this.rng);
-      if (other !== null) {
-        const ageGap = Math.abs(person.age - other.age);
-        const formProb = Variables.BASE_RELATIONSHIP_RATE
-          * (1 + person.charisma * Variables.RELATIONSHIP_CHARISMA_SCALAR)
-          * ageModifier(
-            person.age,
-            Variables.RELATIONSHIP_PEAK_AGE,
-            Variables.RELATIONSHIP_AGE_SCALE,
-            Variables.RELATIONSHIP_AGE_FLOOR,
-          )
-          * ageModifier(
+      const baseFormProb = Variables.BASE_RELATIONSHIP_RATE
+        * (1 + person.charisma * Variables.RELATIONSHIP_CHARISMA_SCALAR)
+        * ageModifier(
+          person.age,
+          Variables.RELATIONSHIP_PEAK_AGE,
+          Variables.RELATIONSHIP_AGE_SCALE,
+          Variables.RELATIONSHIP_AGE_FLOOR,
+        );
+      for (let attempt = 0; attempt < Variables.RELATIONSHIP_MAX_FORMATION_ATTEMPTS && person.isInRelationshipWith === null; attempt++) {
+        const other = simulation.getRandomOther(person, this.rng);
+        if (other !== null && other.isInRelationshipWith === null) {
+          const ageGap = Math.abs(person.age - other.age);
+          const formProb = baseFormProb * ageModifier(
             ageGap,
             0,
             Variables.RELATIONSHIP_AGE_GAP_SCALE,
             Variables.RELATIONSHIP_AGE_GAP_FLOOR,
           );
-        if (this.rng() < formProb && other.isInRelationshipWith === null) {
-          person.isInRelationshipWith = other;
-          other.isInRelationshipWith = person;
+          if (this.rng() < formProb) {
+            person.isInRelationshipWith = other;
+            other.isInRelationshipWith = person;
+          }
         }
       }
     } else {

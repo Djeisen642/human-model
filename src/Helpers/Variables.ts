@@ -298,6 +298,8 @@ export default class Variables {
   static RELATIONSHIP_AGE_GAP_SCALE = 10;
   /** Minimum age-gap compatibility modifier at arbitrarily large gaps; keeps cross-generational relationships possible at a realistic low rate. See ARD 054. */
   static RELATIONSHIP_AGE_GAP_FLOOR = 0.1;
+  /** Maximum candidate draws per tick in the formation branch; gives each person multiple chances to find an age-compatible partner. See ARD 055. */
+  static RELATIONSHIP_MAX_FORMATION_ATTEMPTS = 5;
 
   // Seed population structure constants (ARD 052)
   /** Minimum age in the seeded population; allows children to be present in the initial age pyramid. */
