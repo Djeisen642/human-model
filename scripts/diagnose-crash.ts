@@ -4,7 +4,7 @@
  * to understand whether the crash is resource-driven, demographic, or illness-driven.
  * Also tracks age-stratified deaths and population composition to trace the next generation.
  *
- * Usage: npx ts-node scripts/diagnose-crash.ts [--seeds N] [--ticks N]
+ * Usage: npx ts-node scripts/diagnose-crash.ts [--seeds N] [--ticks N] [--set KEY=VAL ...]
  */
 
 import Simulation from '../src/App/Simulation';
@@ -22,6 +22,17 @@ const getArg = (flag: string, def: number): number => {
 const NUM_SEEDS = getArg('--seeds', 16);
 const TICKS = getArg('--ticks', 500);
 const PERSONS = getArg('--persons', 100);
+
+// Apply --set KEY=VAL overrides to Variables
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--set' && i + 1 < args.length) {
+    const [key, val] = args[i + 1].split('=');
+    if (key && val !== undefined && key in Variables) {
+      (Variables as unknown as Record<string, number>)[key] = parseFloat(val);
+    }
+    i++;
+  }
+}
 
 function shuffleInPlace<T>(arr: T[], rng: RNG): void {
   for (let i = arr.length - 1; i > 0; i--) {
