@@ -749,13 +749,6 @@ describe('Simulation', () => {
       expect(snap.naturalResources).toBe(5_000);
     });
 
-    it('snapshot naturalResources reflects post-extraction state', () => {
-      const sim = new Simulation();
-      sim.naturalResources = 3_000;
-      const snap = sim.snapshot();
-      expect(snap.naturalResources).toBe(3_000);
-    });
-
     it('snapshot captures extractionProductivity and naturalResourceCeiling (ARD 032)', () => {
       const sim = new Simulation();
       sim.extractionProductivity = 0.65;

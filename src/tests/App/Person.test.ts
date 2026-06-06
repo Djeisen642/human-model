@@ -283,18 +283,6 @@ describe('Person', () => {
       expect(person.happiness).toBe(0);
     });
 
-    it('zero boosts leave happiness unchanged', () => {
-      const person = new Person([]);
-      person.resources = 50;
-      person.age = 30;
-      person.hasJob = true;
-      person.helpHappinessBoost = 0;
-      person.killHappinessBoost = 0;
-
-      const base = person.happiness;
-
-      expect(person.happiness).toBe(base);
-    });
   });
 
   describe('ageMortalityModifier', () => {
