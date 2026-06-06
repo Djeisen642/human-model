@@ -65,23 +65,38 @@ function buildHTML(
     
     const mean = (arr: number[]) => arr.length === 0 ? 0 : arr.reduce((a, b) => a + b, 0) / arr.length;
 
+    const decadeDeaths = d.deathsByIllness + d.deathsBySuicide + d.deathsByKilling + d.deathsByDisaster;
+    const meanPopulation = mean(chunk.map(c => c.population));
+    // Deaths per 100 living persons over the decade — separates mortality pressure from raw population scale.
+    const deathRate = meanPopulation > 0 ? (decadeDeaths / meanPopulation) * 100 : 0;
+    // Commons fill: how full the accessible pool is relative to its (degrading) ceiling — the ARD 051 ecological-strain dimension.
+    const commonsFill = mean(chunk.map(c => c.naturalResourceCeiling > 0 ? c.naturalResources / c.naturalResourceCeiling : 0));
+    // Mean per-tier living-population counts across the decade (indexed by Constants.EDUCATION value).
+    const education = Array.from({ length: 6 }, (_, tier) =>
+      mean(chunk.map(c => c.educationCounts?.[tier] ?? 0)));
+
     return {
       gini: d.avgResourceGini.toFixed(4),
       population: d.endPopulation,
       births: d.births,
+      deathRate: deathRate.toFixed(2),
       avgResources: d.avgResources.toFixed(2),
       naturalResources: d.avgNaturalResources.toFixed(2),
       ceiling: mean(chunk.map(c => c.naturalResourceCeiling)).toFixed(2),
+      commonsFill: commonsFill.toFixed(4),
+      productivity: mean(chunk.map(c => c.extractionProductivity)).toFixed(4),
       communityPool: d.avgCommunityPool.toFixed(2),
       happiness: d.avgHappiness.toFixed(4),
       illness: mean(chunk.map(c => c.averageIllness)).toFixed(4),
       employmentRate: mean(chunk.map(c => c.employmentRate)).toFixed(4),
+      averageAge: mean(chunk.map(c => c.averageAge)).toFixed(2),
+      medianAge: mean(chunk.map(c => c.medianAge)).toFixed(2),
+      education: education.map(v => v.toFixed(2)),
       killingIntent: mean(chunk.map(c => c.population > 0 ? c.aggregateKillingIntent / c.population : 0)).toFixed(5),
       stealingIntent: mean(chunk.map(c => c.population > 0 ? c.aggregateStealingIntent / c.population : 0)).toFixed(5),
       jailed: mean(chunk.map(c => c.jailedPopulation)).toFixed(1),
       totalCoupleCount: mean(chunk.map(c => c.totalCoupleCount)).toFixed(1),
       fertileCoupleCount: mean(chunk.map(c => c.fertileCoupleCount)).toFixed(1),
-      murders: chunk.reduce((sum, c) => sum + c.deathsByMurder, 0),
       steals: chunk.reduce((sum, c) => sum + c.stealsCommitted, 0),
       deathsIllness: d.deathsByIllness,
       deathsSuicide: d.deathsBySuicide,
@@ -94,17 +109,24 @@ function buildHTML(
   const giniSeries = aggregatedHistory.map(a => a.gini);
   const populationSeries = aggregatedHistory.map(a => a.population);
   const birthsSeries = aggregatedHistory.map(a => a.births);
+  const deathRateSeries = aggregatedHistory.map(a => a.deathRate);
   const avgResourceSeries = aggregatedHistory.map(a => a.avgResources);
   const naturalResourceSeries = aggregatedHistory.map(a => a.naturalResources);
   const ceilingSeries = aggregatedHistory.map(a => a.ceiling);
+  const commonsFillSeries = aggregatedHistory.map(a => a.commonsFill);
+  const productivitySeries = aggregatedHistory.map(a => a.productivity);
   const communityPoolSeries = aggregatedHistory.map(a => a.communityPool);
   const happinessSeries = aggregatedHistory.map(a => a.happiness);
   const illnessSeries_ = aggregatedHistory.map(a => a.illness);
   const employmentSeries = aggregatedHistory.map(a => a.employmentRate);
+  const averageAgeSeries = aggregatedHistory.map(a => a.averageAge);
+  const medianAgeSeries = aggregatedHistory.map(a => a.medianAge);
+  // One series per education tier for the stacked distribution chart.
+  const educationTierSeries = Array.from({ length: 6 }, (_, tier) =>
+    aggregatedHistory.map(a => a.education[tier]));
   const killingIntentSeries = aggregatedHistory.map(a => a.killingIntent);
   const stealingIntentSeries = aggregatedHistory.map(a => a.stealingIntent);
   const jailedSeries = aggregatedHistory.map(a => a.jailed);
-  const murdersPerTickSeries = aggregatedHistory.map(a => a.murders);
   const stealsPerTickSeries = aggregatedHistory.map(a => a.steals);
   const totalCoupleSeries = aggregatedHistory.map(a => a.totalCoupleCount);
   const fertileCoupleSeries = aggregatedHistory.map(a => a.fertileCoupleCount);
@@ -138,6 +160,9 @@ function buildHTML(
       jailedPopulation: s.jailedPopulation,
       totalCoupleCount: s.totalCoupleCount,
       fertileCoupleCount: s.fertileCoupleCount,
+      averageAge: s.averageAge,
+      medianAge: s.medianAge,
+      educationCounts: s.educationCounts,
       deathsByMurder: s.deathsByMurder,
       deathsByIllness: s.deathsByIllness,
       deathsBySuicide: s.deathsBySuicide,
@@ -207,17 +232,27 @@ function buildHTML(
     giniSeries: JSON.stringify(giniSeries),
     populationSeries: JSON.stringify(populationSeries),
     birthsSeries: JSON.stringify(birthsSeries),
+    deathRateSeries: JSON.stringify(deathRateSeries),
     avgResourceSeries: JSON.stringify(avgResourceSeries),
     naturalResourceSeries: JSON.stringify(naturalResourceSeries),
     ceilingSeries: JSON.stringify(ceilingSeries),
+    commonsFillSeries: JSON.stringify(commonsFillSeries),
+    productivitySeries: JSON.stringify(productivitySeries),
     communityPoolSeries: JSON.stringify(communityPoolSeries),
     happinessSeries: JSON.stringify(happinessSeries),
     illnessSeries_: JSON.stringify(illnessSeries_),
     employmentSeries: JSON.stringify(employmentSeries),
+    averageAgeSeries: JSON.stringify(averageAgeSeries),
+    medianAgeSeries: JSON.stringify(medianAgeSeries),
+    educationNoneSeries: JSON.stringify(educationTierSeries[0]),
+    educationHsSeries: JSON.stringify(educationTierSeries[1]),
+    educationTradeSeries: JSON.stringify(educationTierSeries[2]),
+    educationBachelorsSeries: JSON.stringify(educationTierSeries[3]),
+    educationMastersSeries: JSON.stringify(educationTierSeries[4]),
+    educationPhdSeries: JSON.stringify(educationTierSeries[5]),
     killingIntentSeries: JSON.stringify(killingIntentSeries),
     stealingIntentSeries: JSON.stringify(stealingIntentSeries),
     jailedSeries: JSON.stringify(jailedSeries),
-    murdersPerTickSeries: JSON.stringify(murdersPerTickSeries),
     stealsPerTickSeries: JSON.stringify(stealsPerTickSeries),
     deathsIllnessTickSeries: JSON.stringify(deathsIllnessTickSeries),
     deathsSuicideTickSeries: JSON.stringify(deathsSuicideTickSeries),
@@ -230,9 +265,8 @@ function buildHTML(
     disasterSeries: JSON.stringify(disasterSeries),
     totalCoupleSeries: JSON.stringify(totalCoupleSeries),
     fertileCoupleSeries: JSON.stringify(fertileCoupleSeries),
-    giniOptions: chartOptions('Inequality (Gini) Over Time', ', y: { min: 0, max: 1, grid: { color: \'#f0f0f0\' } }'),
     happinessOptions: chartOptions('Happiness Over Time', ', y: { min: 0, grid: { color: "#f0f0f0" } }'),
     intentOptions: chartOptions('Antisocial Intent Per Capita', ', y: { min: 0, grid: { color: "#f0f0f0" } }'),
-    jailOptions: chartOptions('Jailed Population Over Time', ', y: { beginAtZero: true, grid: { color: "#f0f0f0" } }')
+    ageOptions: chartOptions('Population Age Structure', ', y: { beginAtZero: true, grid: { color: "#f0f0f0" }, title: { display: true, text: "Age (years)" } }')
   });
 }
