@@ -106,6 +106,18 @@ A small tax fraction is taken from everyone each year and pooled. Persons below 
 
 Each run ends with a verdict based on four dimensions: population decline from its peak, final Gini coefficient, average happiness, and how full the resource pool is. The verdicts are `EXTINCTION`, `COLLAPSE`, `STRUGGLING`, `STABLE`, and `THRIVING`. THRIVING requires all four to look good simultaneously — in practice it's rare, because the model is collapse-prone by design.
 
+## Known gaps and limitations
+
+The event set is complete and the model is usable, but it has known structural holes worth understanding before drawing conclusions from runs.
+
+**The population almost always collapses to extinction.** At long horizons (500–800 ticks) the dominant outcome is extinction regardless of parameters. Population booms once, then crashes straight through to zero. This isn't a calibration failure — it's a HANDY-consistent finding that overexploitation and inequality drive collapse. But it does mean THRIVING is rare in practice and that no amount of constant-tuning produces a stable long-run population. The missing piece is crash recovery: when a population crashes, survivors are too old and too sparse to rebuild (a partnership-density Allee effect), so the crash completes itself. Fixing this requires a structural mechanic that doesn't exist yet — something like a low-density fertility boost or a younger age structure after a crash. See `docs/future-ideas.md` and `docs/research-tuning-defaults.md`.
+
+**The Gini signal includes dependent children.** The resource Gini is computed over all living persons, including newborns and young children who start at zero resources by design. This means a high child-share population reads as more unequal than an identical adult population — the metric conflates dependency ratio with inequality. It's consistent run-to-run, but worth keeping in mind when comparing across parameter regimes that produce different age structures.
+
+**No voluntary trade.** Every resource transfer in the model is zero-sum or negative-sum: gathering, theft, taxation, gifts, windfalls, inheritance. The positive-sum exchange channel — where two people each hold a surplus of something the other needs and both benefit — is not implemented. Sugarscape, the direct ancestor of this model's Gini focus, includes bilateral trade as a core mechanic. Its absence may be part of why THRIVING is so rare.
+
+**Redistribution is probably near-inert.** Taxation and welfare are implemented, but at the current calibration the community pool circulates a small fraction of total resources and is unlikely to be compressing the Gini meaningfully. This is a known calibration gap — see `docs/future-ideas.md` for the proposed fix.
+
 ## Docs
 
 * `docs/odd-protocol.md` — full formal model specification (ODD 2020 protocol)

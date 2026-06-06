@@ -109,6 +109,23 @@ The report contains charts showing population, inequality, resource levels, deat
 
 ---
 
+## Updating the project
+
+When new changes are pushed to the repository, here's how to pull them down and update your local copy.
+
+Open a terminal, navigate to the `human-model` folder (using `cd human-model` if you're not already there), and run:
+
+```bash
+git pull
+npm install
+```
+
+`git pull` downloads the latest changes. `npm install` updates your dependencies in case any libraries were added or changed. After that, `npm start` will use the latest code.
+
+If you're not sure whether you're in the right folder, run `pwd` (Mac/Linux) or `cd` with no arguments (Windows) — it will print the current path. It should end in `human-model`.
+
+---
+
 ## Troubleshooting
 
 **`command not found: node` or `command not found: npm`**
