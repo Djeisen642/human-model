@@ -4,10 +4,14 @@
 **Commands:** `npx ts-node scripts/metric-probe.ts --seeds 8 --ticks 700 [--set KEY=VAL | --sweep KEY=v1,v2,…]`
 **Key context vars:** `TAX_RATE=0.02`, `WELFARE_THRESHOLD=20`, `COMMUNITY_POOL_RESERVE_FRACTION=0.20`, `ESTATE_COMMUNITY_SHARE=0.40`, `BASE_CHILDBIRTH_RATE=0.6`
 
-**Status: hypothesis, not an established result.** Everything below rests on 8–10 seeds, one seed
-set, unreplicated, and on `matureGini` — a metric defined in this study whose cutoff is a judgment
-call with no owner sign-off. It is written up because, if it holds, it affects how every prior
-calibration decision that leaned on the sweep table's Gini column should be read.
+**Status: hypothesis, not an established result.** Everything below rests on 8–20 seeds, largely one
+seed set, and on `matureGini` — a metric defined in this study whose cutoff is a judgment call with
+no owner sign-off. It is written up because, if it holds, it affects how every prior calibration
+decision that leaned on the sweep table's Gini column should be read.
+
+**Read the noise floor first (§ Noise floor).** At 10 seeds this harness cannot resolve `matureGini`
+differences below roughly ±0.05. Only two results in this document clear that bar. Every other
+comparison here is reported as unresolved, not as an effect.
 
 ---
 
@@ -85,9 +89,88 @@ Two secondary observations from the same runs:
   small end-of-run balance (~18 against ~2,600 total resources). That reads a stock as a flow — the
   pool is small because it turns over every tick, not because it is idle. Removing it raises
   `matureGini` by ~57% (0.366 → 0.574).
-- **`WELFARE_THRESHOLD` is not the lever; `TAX_RATE` is.** Raising the threshold from 20 to 60
-  slightly *worsened* inequality (0.142 → 0.171), plausibly by diluting bottom-targeting across
-  more recipients — though that gap is small enough to be noise at this sample size.
+- **`WELFARE_THRESHOLD` is a second, weaker lever, pointing the other way.** An initial two-point
+  comparison suggested raising the threshold slightly worsened inequality and was probably noise;
+  a four-point sweep (below) shows it is monotone and roughly 2.5× the noise floor — 0.345 at
+  threshold 10 rising to 0.468 at 80. Widening the net appears to dilute bottom-targeting. Measured
+  only at the default `TAX_RATE=0.02`, so the interaction with tax rate is unmeasured.
+
+## Noise floor
+
+A robustness check re-ran one `KILL_GINI_SCALAR` sweep at 20 seeds instead of 10. The **default
+cell moved by 0.056 on seed sampling alone** — larger than the entire range of the 10-seed sweep it
+came from (0.063), and enough to erase an apparent dip. Peak population in the same cell moved
+476 → 558.
+
+So: **at n=10, `matureGini` differences below roughly ±0.05 are not resolvable, and neither is
+peak population below ~15%.** This bounds not just the results here but every sweep run this
+session, and arguably prior single-seed-set calibration work at similar n. It should be established
+properly (repeated seed families, reported dispersion) before more parameter hunting — the probe
+prints medians only, which is itself a defect worth fixing.
+
+Against that bar:
+
+| result | effect size | verdict |
+|---|---|---|
+| `TAX_RATE` 0 → 0.35 | 0.474 | ~10× floor — the one decisive result |
+| `WELFARE_THRESHOLD` 10 → 80 | 0.123 | ~2.5× floor, monotone over 4 points — probably real |
+| `CONSUMPTION_ELDER_MULTIPLIER` | ~0.08, non-monotone | marginal; direction unstable |
+| estate ladder, `HELP_FRACTION`, kill amplifiers, detection, jail | ≤0.06, no ordering | unresolved — not distinguishable from noise |
+
+## Dose-response: `TAX_RATE`
+
+10 seeds, 700 ticks, medians. The one lever that clears the noise floor decisively.
+
+| `TAX_RATE` | peakGini | giniAtPeakPop | matureGini | compression vs untaxed |
+|---|---|---|---|---|
+| 0 | 0.733 | 0.644 | 0.565 | — |
+| 0.01 | 0.795 | 0.492 | 0.435 | 23.0% |
+| 0.02 (default) | 0.821 | 0.373 | 0.366 | 35.2% |
+| 0.05 | 0.814 | 0.326 | 0.316 | 44.1% |
+| 0.10 | 0.853 | 0.198 | 0.224 | 60.4% |
+| 0.20 | 0.813 | 0.116 | 0.134 | 76.3% |
+| 0.35 | 0.748 | 0.076 | 0.091 | 83.9% |
+
+Monotone with no reversal across seven points; roughly log-linear above 0.02 (≈ constant
+proportional cut per doubling), decaying toward a floor near 0.09 rather than plateauing inside the
+tested range. `peakGini` over the same runs spans 0.733–0.853 with no ordering.
+
+**Against the OECD target** `future-ideas.md` cites (~25% compression, range 5–40%):
+`TAX_RATE=0.01` lands nearest at 23%. The current 0.02 default gives 35% — inside the range, above
+centre. Everything from 0.05 up exceeds the empirical envelope entirely.
+
+## Follow-up: re-testing this session's nulls
+
+Four variables previously declared inert on `peakGini` were re-measured. The headline is not that
+the better metric rescued them — mostly it did not — but **that `peakGini` produces false positives
+as well as false negatives**:
+
+- **`CONSUMPTION_ELDER_MULTIPLIER` — an apparent effect that evaporates.** `peakGini` rises cleanly
+  and monotonically with harsher elder costs (0.722 → 0.821 → 0.875 → 0.898), and this was flagged
+  during the session as the single best candidate for a real effect. `matureGini` does not
+  reproduce it: 0.463 → 0.366 → 0.441 → 0.444, non-monotone, endpoints indistinguishable, with
+  `giniAtPeakPop` agreeing. Plausibly a crash-shape artifact — harsher costs shrink the peak
+  (641 → 425), and a smaller peak means a noisier terminal Gini. Not supported rather than refuted:
+  four points, one seed set, deltas only marginally above the floor.
+- **Kill amplifiers — nulls hold on a metric that could have refuted them.** `KILL_GINI_SCALAR`
+  (0 → 6.0) and `SITUATIONAL_KILL_SCALAR` (0 → 6.0) both wobble without ordering on `matureGini`,
+  inside the noise floor. Consistent with the independent measurement that murder is 5–12% of
+  deaths against ~88% illness: scaling a multiplier on a small term leaves it small. The one cell
+  worth replicating is `SITUATIONAL_KILL_SCALAR=0` (8/10 extinct vs 10/10 elsewhere) — turning the
+  mechanism off entirely is the only structural change in the set.
+- **`DETECTION_CRIME_COUNT_SCALAR` and `JAIL_TICKS_KILL` — nulls hold on inequality**, but
+  "does nothing" was too broad. `JAIL_TICKS_KILL` shows a monotone ~25% rise in peak population
+  (437 → 545 over a 50× range) that `peakGini` missed entirely. Inside the population noise band,
+  so unresolved, but it is a different claim from the Gini null.
+- **Estate ladder (conservation preserved) — unresolved.** Holding the three shares summed to 1.0:
+  0.464 (pure family) / 0.366 (default) / 0.417 / 0.416 (fully socialised). The default sits at the
+  minimum and the U-shape survived fixing the conservation bug, but the gaps are ~0.05 — at the
+  floor, so no conclusion. `HELP_FRACTION` scatters 0.366–0.429 with no ordering.
+
+**A confound in `matureGini` itself**, surfaced by this round: the window is defined relative to
+*each run's own* peak, so configs whose peak population differs (476–661 across these sweeps) are
+measured over different windows. A fixed-population or fixed-tick window may be the sounder
+definition. This is a real weakness in the proposed metric, not a footnote.
 
 ## Incidental finding: estate shares have an unenforced sum invariant
 
@@ -102,10 +185,12 @@ together. Worth deciding separately whether the constants should be normalised o
 
 ## What this would mean if it holds
 
-- **Inequality and collapse look decoupled in the current model.** Cutting `matureGini` fourfold
-  via taxation left extinction at 8/8 seeds. That sits awkwardly against the project's framing of
-  the resource Gini as the primary collapse signal and of inequality mattering more than scarcity —
-  in these runs inequality is highly tractable and collapse is indifferent to it.
+- **Inequality and collapse may be decoupled — but this design cannot establish it.** Compressing
+  `matureGini` by 84% via taxation left extinction at 9–10/10 seeds. That sits awkwardly against the
+  project's framing of the resource Gini as the primary collapse signal and of inequality mattering
+  more than scarcity. The honest limit: extinction is *saturated* at 9–10/10 across every config
+  tested, so the column cannot detect a moderate collapse effect even if one exists. Testing the
+  decoupling properly needs a lower-mortality regime where the extinction rate has room to move.
 - **Calibration decisions that leaned on the sweep table's Gini column deserve re-reading**, since
   that column may have been reporting crash noise rather than the economy.
 - **The harness's reported column is the thing to fix first** — before any further parameter
@@ -114,16 +199,26 @@ together. Worth deciding separately whether the constants should be normalised o
 
 ## Open questions
 
-1. Does the effect survive replication on independent seed sets, and is it stable to the
-   `MATURE_POP_FRACTION` cutoff?
-2. Which of this session's other null results were metric artifacts? (Re-tests of the kill
-   amplifiers, elder consumption, detection escalation, and jail length are the obvious first pass.)
-3. What `TAX_RATE` hits the ~25% Gini-compression target `future-ideas.md` takes from OECD data?
-   The gap between 0.02 (≈36% compression versus untaxed) and 0.20 (≈75%) brackets it.
-4. Should `classifyOutcome` be revisited? It reads final-decade Gini rather than peak Gini, so it
+1. **Establish the noise floor properly.** The ±0.05 figure comes from a single 10-vs-20-seed
+   comparison. How many seeds does a `matureGini` comparison actually need, and the probe should
+   report dispersion rather than medians alone. This gates everything else.
+2. **Is `matureGini` the right definition?** The window currently moves with each run's own peak
+   (see above), and the 50% cutoff is unjustified. Compare against fixed-tick and
+   fixed-population-level windows before adopting anything.
+3. Does the `TAX_RATE` result survive replication on independent seed families and alternative
+   cutoffs? It is ~10× the noise floor and monotone over seven points, so it is the most likely to
+   hold — and the cheapest to falsify.
+4. *(Partly answered.)* Which other nulls were metric artifacts? Re-tests found mostly genuine nulls
+   but one apparent-effect-that-evaporates (`CONSUMPTION_ELDER_MULTIPLIER`). The open part: the
+   `JAIL_TICKS_KILL` peak-population trend and the `SITUATIONAL_KILL_SCALAR=0` extinction cell both
+   sit at the noise floor and want replication.
+5. *(Answered, provisionally.)* `TAX_RATE=0.01` lands nearest the OECD ~25% target at 23%; the
+   current 0.02 default gives 35%. Whether to recalibrate is an owner decision, not a measurement
+   one — and it should wait on question 1.
+6. Should `classifyOutcome` be revisited? It reads final-decade Gini rather than peak Gini, so it
    may be less affected — but "final decade" on a run that went extinct at tick 116 has the same
    tiny-N problem.
-5. Is the volatility itself the real finding? A Gini that swings 0.145–0.672 within one run may be
+7. Is the volatility itself the real finding? A Gini that swings 0.145–0.672 within one run may be
    telling us something about the resource dynamics that no summary statistic will capture.
 
 ## Tooling
