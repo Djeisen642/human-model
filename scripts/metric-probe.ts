@@ -93,6 +93,15 @@ async function runOne(
   };
 }
 
+/** Parse a CLI numeric argument, failing loudly rather than silently yielding NaN. */
+function num(raw: string | undefined, flag: string): number {
+  const n = Number(raw);
+  if (raw === undefined || raw === '' || !Number.isFinite(n)) {
+    throw new Error(`${flag} expects a number, got: ${raw ?? '(missing)'}`);
+  }
+  return n;
+}
+
 /** Parse `--flag value` / `KEY=VAL` argv into options. */
 function parseArgs(argv: string[]) {
   let seeds = 8;
@@ -106,14 +115,14 @@ function parseArgs(argv: string[]) {
 
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
-    if (a === '--seeds') { seeds = Number(argv[i + 1]); i += 1; } else if (a === '--seed-start') { seedStart = Number(argv[i + 1]); i += 1; } else if (a === '--mature-fraction') { matureFraction = Number(argv[i + 1]); i += 1; } else if (a === '--ticks') { ticks = Number(argv[i + 1]); i += 1; } else if (a === '--persons') { persons = Number(argv[i + 1]); i += 1; } else if (a === '--set') {
-      const [k, v] = argv[i + 1].split('=');
-      sets.push([k, Number(v)]);
+    if (a === '--seeds') { seeds = num(argv[i + 1], a); i += 1; } else if (a === '--seed-start') { seedStart = num(argv[i + 1], a); i += 1; } else if (a === '--mature-fraction') { matureFraction = num(argv[i + 1], a); i += 1; } else if (a === '--ticks') { ticks = num(argv[i + 1], a); i += 1; } else if (a === '--persons') { persons = num(argv[i + 1], a); i += 1; } else if (a === '--set') {
+      const [k, v] = (argv[i + 1] ?? '').split('=');
+      sets.push([k, num(v, `--set ${k}`)]);
       i += 1;
     } else if (a === '--sweep') {
-      const [k, v] = argv[i + 1].split('=');
+      const [k, v] = (argv[i + 1] ?? '').split('=');
       sweepKey = k;
-      sweepVals = v.split(',').map(Number);
+      sweepVals = (v ?? '').split(',').map(x => num(x, `--sweep ${k}`));
       i += 1;
     }
   }
