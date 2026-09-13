@@ -85,6 +85,14 @@ Swept `BASE_BREAKUP_RATE` over [0.03, 0.04, 0.05] using the crash diagnostic (16
 
 **0.04 is the optimum.** Births and peak population are highest; the boom lasts 21 ticks longer. At 0.05, breakup rate exceeds the formation rate's ability to replenish pairs and overall pair inventory drops, eroding births.
 
+> **Re-verified 2026-09-13 (commit 6dc793a) — the experiment did not hold up, though the recommended value survives for other reasons.**
+>
+> Two problems. First, the metrics: peak population and pre-crash births measure the *size of the overshoot*, not persistence. `research-tuning-defaults.md`, recorded the day before this study, had already established that judging a config that way is misleading. Re-run at 16 seeds the gap between 0.03 and 0.04 is inside the noise (peak 499 vs 463 on the crash diagnostic, 575 vs 564.5 on the sweep harness median) — an 8-seed re-run had them 34% apart with the *opposite* winner, which is how wide the noise is here.
+>
+> Second, and more fundamental: **breakup rate does not affect the outcome at all.** Swept from 0 (pairs only ever end at death) to 0.30 at 16 seeds and 800 ticks, every value gives 16/16 extinction and zero sustained cycles. Adult pairing prevalence moves enormously across that range (77% at 0, 54% at 0.04, 24% at 0.30) and the collapse trajectory does not respond, because fertility is gated on couple *age* — the extra pairs that low churn preserves are mostly past the fertile window. Details in `research-fertility-window.md`; the window itself was corrected by ARD 059.
+>
+> So keep `BASE_BREAKUP_RATE = 0.04`, but on the empirical grounds in the sections above (a 3–5%/year separation rate is realistic), not because it won a sweep. The equilibrium arithmetic here also assumes an effective formation rate near 0.093/year that the model does not actually deliver: backing it out of the observed equilibrium gives roughly 0.047/year, which is why measured pairing sits near 54% instead of the 66–69% target this document sets.
+
 ### Why higher breakup rate raises births (with ARD 054/055 in place)
 
 With the age-gap compatibility modifier, fertility per couple is strongly sensitive to age proximity. At `BASE_BREAKUP_RATE = 0.03`, old founding-cohort pairs stay locked in permanently — their old-young or old-old pairings freeze potential young-young combinations. A higher breakup rate churns these pairings, freeing partners for re-pairing with more age-proximate candidates. The net effect is more fertile couples even at a slightly lower paired fraction.
@@ -96,7 +104,7 @@ This interaction did not exist before ARD 054 — raising breakup rate would pre
 Set `BASE_BREAKUP_RATE = 0.04`. This is:
 - Within the empirical range (~3–5%/year annual separation rate for committed relationships)
 - Consistent with the equilibrium math (0.04 × 0.70 / 0.30 ≈ 0.093/year effective formation rate, within the empirical 0.07–0.15 range for prime-age singles)
-- The best-performing value on births, peak population, and boom duration in a 16-seed diagnostic
+- The best-performing value on births, peak population, and boom duration in a 16-seed diagnostic **(2026-09-13: this third bullet no longer stands — see the dated note above. The first two bullets, which are the empirical case, are unaffected and are now the whole justification.)**
 
 ## Sources
 
