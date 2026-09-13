@@ -135,6 +135,23 @@ Monotone with no reversal across seven points; roughly log-linear above 0.02 (�
 proportional cut per doubling), decaying toward a floor near 0.09 rather than plateauing inside the
 tested range. `peakGini` over the same runs spans 0.733–0.853 with no ordering.
 
+**Verification (the two checks this doc asked for).** Both came back clean for this result
+specifically:
+
+| | `TAX_RATE=0` | 0.02 | 0.10 | 0.20 |
+|---|---|---|---|---|
+| seeds 1–10, cutoff 0.5 | 0.565 | 0.366 | 0.224 | 0.134 |
+| **seeds 101–110** (independent family), cutoff 0.5 | 0.557 | 0.430 | 0.219 | 0.134 |
+| seeds 1–10, cutoff 0.3 | 0.541 | 0.369 | 0.234 | 0.138 |
+| seeds 1–10, cutoff 0.7 | 0.585 | 0.377 | 0.209 | 0.126 |
+
+A disjoint seed family reproduces the curve (endpoints 0.557 vs 0.565 and 0.134 vs 0.134); only the
+0.02 cell drifts meaningfully, by 0.064, consistent with the noise floor. Varying the cutoff across
+0.3/0.5/0.7 shifts individual cells by less than 0.05 and never breaks the ordering. So the
+`TAX_RATE` effect is not an artifact of the seed family or of the arbitrary cutoff. That does
+**not** generalise to the smaller results in this document, which remain inside the noise floor and
+untested against either check.
+
 **Against the OECD target** `future-ideas.md` cites (~25% compression, range 5–40%):
 `TAX_RATE=0.01` lands nearest at 23%. The current 0.02 default gives 35% — inside the range, above
 centre. Everything from 0.05 up exceeds the empirical envelope entirely.
@@ -202,12 +219,14 @@ together. Worth deciding separately whether the constants should be normalised o
 1. **Establish the noise floor properly.** The ±0.05 figure comes from a single 10-vs-20-seed
    comparison. How many seeds does a `matureGini` comparison actually need, and the probe should
    report dispersion rather than medians alone. This gates everything else.
-2. **Is `matureGini` the right definition?** The window currently moves with each run's own peak
-   (see above), and the 50% cutoff is unjustified. Compare against fixed-tick and
-   fixed-population-level windows before adopting anything.
-3. Does the `TAX_RATE` result survive replication on independent seed families and alternative
-   cutoffs? It is ~10× the noise floor and monotone over seven points, so it is the most likely to
-   hold — and the cheapest to falsify.
+2. **Is `matureGini` the right definition?** *(Partly answered.)* The 50% cutoff turns out not to
+   matter for the `TAX_RATE` result: 0.3/0.5/0.7 shift cells by <0.05 and preserve ordering. The
+   deeper objection stands, though — the window still moves with each run's own peak, so configs
+   with different population trajectories are compared over different windows. Fixed-tick and
+   fixed-population-level windows are still worth testing.
+3. *(Answered for `TAX_RATE`.)* The result reproduces on a disjoint seed family (101–110) and
+   across cutoffs. It is the one finding here that has survived both checks. Nothing else in this
+   document has been subjected to them.
 4. *(Partly answered.)* Which other nulls were metric artifacts? Re-tests found mostly genuine nulls
    but one apparent-effect-that-evaporates (`CONSUMPTION_ELDER_MULTIPLIER`). The open part: the
    `JAIL_TICKS_KILL` peak-population trend and the `SITUATIONAL_KILL_SCALAR=0` extinction cell both

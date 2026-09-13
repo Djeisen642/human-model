@@ -19,7 +19,9 @@
  *   npx ts-node scripts/metric-probe.ts [options]
  *
  * Options:
- *   --seeds N            seeds 1..N (default 8)
+ *   --seeds N            number of seeds to run (default 8)
+ *   --seed-start N       first seed (default 1); use to get an independent seed family
+ *   --mature-fraction F  mature-phase cutoff as a fraction of run peak (default 0.5)
  *   --ticks N            ticks per run (default 700)
  *   --persons N          initial population (default 100)
  *   --set KEY=VAL        override a Variables constant for every run (repeatable)
@@ -33,8 +35,8 @@ import LooperSingleton from '../src/App/LooperSingleton';
 import Simulation from '../src/App/Simulation';
 import Variables from '../src/Helpers/Variables';
 
-/** Population floor, as a fraction of a run's own peak, defining its "mature" phase. */
-const MATURE_POP_FRACTION = 0.5;
+/** Default population floor, as a fraction of a run's own peak, defining the "mature" phase. */
+const DEFAULT_MATURE_POP_FRACTION = 0.5;
 
 interface Row { pop: number; gini: number }
 
@@ -70,13 +72,18 @@ Simulation.prototype.snapshot = function (this: Simulation) {
 interface RunResult { peakGini: number; atPeakPop: number; mature: number; peakPop: number; extinct: boolean }
 
 /** Run one simulation and reduce its tick series to the three Gini statistics. */
-async function runOne(persons: number, ticks: number, seed: number): Promise<RunResult | null> {
+async function runOne(
+  persons: number,
+  ticks: number,
+  seed: number,
+  matureFraction: number,
+): Promise<RunResult | null> {
   rows = [];
   await LooperSingleton.getInstance().start(persons, ticks, seed, () => {}, {});
   const live = rows.filter(r => r.pop > 0);
   if (live.length === 0) return null;
   const peakPop = Math.max(...live.map(r => r.pop));
-  const mature = live.filter(r => r.pop >= MATURE_POP_FRACTION * peakPop).map(r => r.gini);
+  const mature = live.filter(r => r.pop >= matureFraction * peakPop).map(r => r.gini);
   return {
     peakGini: Math.max(...live.map(r => r.gini)),
     atPeakPop: live.find(r => r.pop === peakPop)!.gini,
@@ -89,15 +96,17 @@ async function runOne(persons: number, ticks: number, seed: number): Promise<Run
 /** Parse `--flag value` / `KEY=VAL` argv into options. */
 function parseArgs(argv: string[]) {
   let seeds = 8;
+  let seedStart = 1;
   let ticks = 700;
   let persons = 100;
+  let matureFraction = DEFAULT_MATURE_POP_FRACTION;
   const sets: [string, number][] = [];
   let sweepKey = '';
   let sweepVals: number[] = [];
 
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
-    if (a === '--seeds') { seeds = Number(argv[i + 1]); i += 1; } else if (a === '--ticks') { ticks = Number(argv[i + 1]); i += 1; } else if (a === '--persons') { persons = Number(argv[i + 1]); i += 1; } else if (a === '--set') {
+    if (a === '--seeds') { seeds = Number(argv[i + 1]); i += 1; } else if (a === '--seed-start') { seedStart = Number(argv[i + 1]); i += 1; } else if (a === '--mature-fraction') { matureFraction = Number(argv[i + 1]); i += 1; } else if (a === '--ticks') { ticks = Number(argv[i + 1]); i += 1; } else if (a === '--persons') { persons = Number(argv[i + 1]); i += 1; } else if (a === '--set') {
       const [k, v] = argv[i + 1].split('=');
       sets.push([k, Number(v)]);
       i += 1;
@@ -108,11 +117,13 @@ function parseArgs(argv: string[]) {
       i += 1;
     }
   }
-  return { seeds, ticks, persons, sets, sweepKey, sweepVals };
+  return { seeds, seedStart, ticks, persons, matureFraction, sets, sweepKey, sweepVals };
 }
 
 async function main(): Promise<void> {
-  const { seeds, ticks, persons, sets, sweepKey, sweepVals } = parseArgs(process.argv.slice(2));
+  const {
+    seeds, seedStart, ticks, persons, matureFraction, sets, sweepKey, sweepVals,
+  } = parseArgs(process.argv.slice(2));
   const vars = Variables as unknown as Record<string, number>;
 
   for (const [k, v] of sets) {
@@ -123,12 +134,12 @@ async function main(): Promise<void> {
 
   const values = sweepKey ? sweepVals : [NaN];
   const baseline = sweepKey ? vars[sweepKey] : NaN;
-  const seedList = Array.from({ length: seeds }, (_, i) => i + 1);
+  const seedList = Array.from({ length: seeds }, (_, i) => seedStart + i);
 
-  console.log(`seeds=1..${seeds} ticks=${ticks} persons=${persons}`
+  console.log(`seeds=${seedStart}..${seedStart + seeds - 1} ticks=${ticks} persons=${persons}`
     + `${sets.length ? ` set:${sets.map(([k, v]) => `${k}=${v}`).join(',')}` : ''}`
     + `${sweepKey ? ` sweep:${sweepKey}` : ''}`);
-  console.log(`mature phase = ticks with pop >= ${MATURE_POP_FRACTION * 100}% of that run's peak\n`);
+  console.log(`mature phase = ticks with pop >= ${matureFraction * 100}% of that run's peak\n`);
   const label = sweepKey || 'baseline';
   console.log(`${label.padEnd(30)} | peakGini  giniAtPeakPop  matureGini  peakPop  extinct`);
   console.log('-'.repeat(88));
@@ -138,7 +149,7 @@ async function main(): Promise<void> {
     const pg: number[] = []; const ap: number[] = []; const mt: number[] = []; const pp: number[] = [];
     let extinct = 0;
     for (const seed of seedList) {
-      const r = await runOne(persons, ticks, seed);
+      const r = await runOne(persons, ticks, seed, matureFraction);
       if (!r) continue;
       pg.push(r.peakGini); ap.push(r.atPeakPop); mt.push(r.mature); pp.push(r.peakPop);
       if (r.extinct) extinct += 1;
