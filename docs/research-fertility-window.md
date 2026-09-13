@@ -1,6 +1,6 @@
 # Research: Fertility Window Width and the Age-38 Cliff
 
-**Recorded:** 2026-09-13 | **Commit:** 6dc793a | **Base config:** all Variables at defaults unless noted
+**Recorded:** 2026-09-13 | **Commit:** 6dc793a | **Latest ARD:** 058 | **Base config:** all Variables at defaults unless noted
 **Commands:** `npm run sweep -- --seeds {16,32} --ticks {300,800} [--sweep KEY=v1,v2,… | --set KEY=VAL]`
 **Key context vars:** `CHILDBIRTH_PEAK_AGE=26`, `CHILDBIRTH_AGE_SCALE=12`, `CHILDBIRTH_AGE_FLOOR=0.02`, `BASE_CHILDBIRTH_RATE=0.6`, `SEED_AGE_DISTRIBUTION_EXPONENT=1.8`, `SEED_AGE_MAX=80`
 

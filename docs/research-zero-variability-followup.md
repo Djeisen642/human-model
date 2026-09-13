@@ -78,6 +78,10 @@ BASE_DETECT_RATE_STEAL=0.4    EXTINCTION×2 COLLAPSE×6               endPop=70 
 
 **Implication for calibration:** The baseline detection rate (0.05) sits in the worst zone. Either lower it (let theft redistribute informally) or raise it significantly (true deterrence). A rate around 0.2–0.3 appears to be the inflection point where deterrence starts to outweigh the jail-drag cost. This warrants an ARD-level discussion before any change.
 
+> **Re-verified 2026-09-13 (commit 6dc793a) — the shape of this curve did not hold up.** Re-running the same sweep, the headline claim that *zero detection is the best point* is gone: at rate 0 extinctions are 4/8, tied with that date's baseline rather than the 1/8 reported here, and Gini only falls to 0.70 rather than 0.51. What survives is the high end — 0.2 and 0.4 still look best (extinct 3/8 and 2/8, Gini down to 0.58). So the curve reads less like "non-monotonic, worst in the middle, zero is great" and more like "only high detection rates help," which is a materially different calibration conclusion than the one drawn above.
+>
+> The direct knockout in `research-zero-variability-tests.md` test 8 weakened the same way, so the two measurements agree with each other and disagree with this document. Do not act on the "worst zone" framing without re-deriving it.
+
 ---
 
 ### 5. Invention rate sweep — `BASE_INVENTION_RATE`
@@ -109,11 +113,11 @@ The current baseline (0.002) is conservative: it provides modest carrying capaci
 | No illness + no consumption | STRUGGLING×8 — Gini + resource commons alone enforce STRUGGLING even in a near-immortal world |
 | No disasters + no killing | Still COLLAPSE-dominant — illness + resource dynamics are the real drivers, not violence/shocks |
 | No welfare | peakPop barely exceeds seeded 100 — welfare enables population growth, not just inequality smoothing |
-| Jail detection sweep | Non-monotonic: worst outcomes at 0.05–0.1 (current baseline); best at 0 (redistribution) or high deterrence |
+| Jail detection sweep | Non-monotonic: worst outcomes at 0.05–0.1 (current baseline); best at 0 (redistribution) or high deterrence — **2026-09-13: the "best at 0" half did not reproduce; see the dated note in section 4** |
 | Invention sweep | Monotonic improvement; baseline (0.002) is deliberately conservative; 0.004 is the resource-sustainability sweet spot |
 
 ## Candidates for ARD-level discussion
 
-1. **Jail calibration** — baseline detection rate sits in the worst empirical zone. Decision: tolerate the drag as realistic (crime does impose social costs), tune toward deterrence (~0.2–0.3), or reframe jail as lower-productivity rather than full productivity loss.
+1. **Jail calibration** — baseline detection rate sits in the worst empirical zone. Decision: tolerate the drag as realistic (crime does impose social costs), tune toward deterrence (~0.2–0.3), or reframe jail as lower-productivity rather than full productivity loss. **(2026-09-13: on hold. The evidence for the "worst zone" framing did not reproduce — see section 4's dated note. Re-derive against current code before opening this ARD; the deterrence-at-high-rates half still looks real and may still be worth a discussion on its own.)**
 2. **Invention rate** — current baseline deliberately conservative. If innovation should stabilize the model meaningfully, 0.004 is the crossover where extinctions start dropping reliably.
 3. **Welfare as population gate** — the no-welfare test reveals welfare enables reproduction among the poor, not just redistribution. This interacts with any future discussion about varying tax/welfare thresholds.

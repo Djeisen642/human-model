@@ -261,9 +261,13 @@ Be concise but clear in every doc — `CLAUDE.md`, ARDs, `future-ideas.md`, `dec
 **Research docs (`docs/research-*.md`)** must open with a provenance block so results stay interpretable after Variables are recalibrated:
 
 ```
-**Recorded:** YYYY-MM-DD | **Commit:** <short hash> | **Base config:** all Variables at defaults unless noted
+**Recorded:** YYYY-MM-DD | **Commit:** <short hash> | **Latest ARD:** NNN | **Base config:** all Variables at defaults unless noted
 **Commands:** npm run sweep -- ...
 **Key context vars:** LIST=VAL, ... (the 3–5 Variables most likely to shift the results if recalibrated)
 ```
 
 The commit hash lets a reader run `git show <hash>:src/Helpers/Variables.ts` to see the exact config. List only the variables with meaningful leverage on the reported outcomes — not the full 127-constant dump.
+
+**Latest ARD** is the highest-numbered Accepted ARD when the study ran. Record it because `Key context vars` cannot be trusted alone: a 2026-09-13 re-verification found all six then-existing provenance blocks listing *unchanged* variables while the results had drifted anyway — what moved was the seeding and relationship structure of ARD 052–058, which no study had thought to list. Enumerating variables will always miss the structural change nobody anticipated; one ARD number tells the next reader exactly what landed since.
+
+**When a result doesn't reproduce, annotate — don't delete.** Add a dated note (`> **Re-verified YYYY-MM-DD (commit <hash>) — …**`) next to the original claim saying what was re-measured and what it showed, and flag the summary row and any follow-up item the claim feeds. The original stays: a study that was later contradicted is part of the record, and knowing a result was *checked and failed* is more useful than finding it quietly gone. See `research-zero-variability-tests.md` and `research-pairing-calibration.md` for worked examples.

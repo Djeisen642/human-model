@@ -97,6 +97,8 @@ EXTINCTION×4 COLLAPSE×3 STRUGGLING×1 | endPop=53.5 | peakPop=419 | peakGini=0
 
 **Verdict: PARTIAL PASS.** Gini does fall (0.69 vs 0.78) as expected. Outcome distribution marginally improves. Unexpectedly, peakPop is lower (419 vs 566) — possibly because in the baseline, killers with the `killHappinessBoost` survive better and sustain higher population peaks; without successful killing, those paths close off.
 
+> **Re-verified 2026-09-13 (commit 6dc793a) — this did not hold up.** Both surprising parts reverse. peakPop under `KILL_SUCCESS_BASE=0` is now *higher* than baseline (557 vs 462.5), the opposite sign, and the Gini drop is gone (0.77 vs 0.79, flat). Read against the re-run baseline of that date (`EXTINCTION×4 COLLAPSE×3 STRUGGLING×1`, peakPop 462.5, peakGini 0.79), not the 566/0.78 baseline above. The original text already hedged this as "possibly"; treat the peakPop claim as noise rather than an effect. The expected direction — removing killing removes murder deaths — is not in dispute.
+
 ---
 
 ### 8. No crime detection — `BASE_DETECT_RATE_STEAL=0` + `BASE_DETECT_RATE_KILL=0`
@@ -114,6 +116,10 @@ STRUGGLING×2 COLLAPSE×5 EXTINCTION×1 | endPop=137.5 | peakPop=465 | peakGini=
 3. **No jail forfeitures → community pool stays small** → bound% collapses to 4% because persons are richer (no tax-equivalent jail forfeitures).
 
 **Finding:** The jail system as implemented imposes a productivity cost that is larger than its deterrence benefit in the baseline regime. This is a real result, not a bug.
+
+> **Re-verified 2026-09-13 (commit 6dc793a) — this did not hold up, and it is the weakest claim in this document.** With both detection rates zeroed, extinctions are now 4/8, *identical* to that date's re-run baseline rather than the dramatic 1/8 reported here, and the Gini drop shrinks from ~31% relative to ~9% (0.72 vs a 0.79 baseline). The independent `BASE_DETECT_RATE_STEAL` sweep in `research-zero-variability-followup.md` shows the same weakening, so this is not a single-run fluke. The likely explanation is that the effect depended on population and employment composition that ARD 052–058 have since changed.
+>
+> The "jail costs more than it deters" conclusion should **not** be carried into a calibration decision on this evidence. It needs re-deriving against current code first. See the matching note on the follow-up doc's candidate list.
 
 ---
 
@@ -179,15 +185,17 @@ STABLE×3 STRUGGLING×5 | endPop=1263.5 | peakPop=1277 | peakGini=0.49 | bound%=
 | No illness deaths | 0 extinctions, endPop 502 | PASS |
 | No suicide | Outcomes unchanged (correct), Gini mild drop | PASS |
 | No disasters | −1 extinction, 2 STRUGGLING emerge | PASS |
-| No killing | Gini drops (correct), peakPop unexpectedly lower | PARTIAL PASS |
-| No crime detection | Gini drops (unexpected), fewer extinctions | SURPRISING |
+| No killing | Gini drops (correct), peakPop unexpectedly lower | PARTIAL PASS † |
+| No crime detection | Gini drops (unexpected), fewer extinctions | SURPRISING † |
 | No taxation | Fewer extinctions (unexpected), lower Gini | PARTIAL PASS |
 | No ceiling degradation | Within baseline noise | WEAK / EXPECTED |
 | No invention | peakPop −218, bound% +31% | STRONGER THAN EXPECTED |
 | No consumption | 12× endPop, STABLE×3 | PASS |
 
+† **Did not reproduce on 2026-09-13** (commit 6dc793a) — see the dated notes on tests 7 and 8. Every other row in this table re-ran consistently with what is recorded here.
+
 ## Follow-up candidates
 
-- **Jail productivity cost vs. deterrence** (finding from test 8): at current rates, jailing hurts the economy more than it deters crime. Could be a candidate for ARD-level calibration discussion.
+- **Jail productivity cost vs. deterrence** (finding from test 8): at current rates, jailing hurts the economy more than it deters crime. Could be a candidate for ARD-level calibration discussion. **(2026-09-13: on hold — the underlying result did not reproduce; re-derive before opening this discussion.)**
 - **Invention ceiling growth is a dominant carrying-capacity driver** (test 11): at BASE_INVENTION_RATE=0.002, it's growing peak population by ~60%. Is that the intended magnitude? May want a sweep across `BASE_INVENTION_RATE` to calibrate.
 - **200-tick horizon too short for ceiling degradation** (test 10): if ceiling degradation is meant to model Tainter collapse, 200 ticks may not be enough to see the effect. A 500-tick sweep would be informative.
