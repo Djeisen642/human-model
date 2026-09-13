@@ -455,4 +455,59 @@ describe('ChildbirthEvent', () => {
       expect(sim.getLiving().length).toBe(2);
     });
   });
+
+  describe('fertility window boundary (ARD 059)', () => {
+    /**
+     * Wire a healthy, well-resourced couple whose older partner is at `olderAge`.
+     *
+     * @param olderAge - age of the older partner; drives the childbirth ageModifier
+     * @returns the simulation and the lower-indexed partner to execute against
+     */
+    function fertileCoupleAged(olderAge: number): { sim: Simulation; a: Person } {
+      const sim = new Simulation();
+      const a = new Person([]);
+      const b = new Person([]);
+      a.resources = 100; b.resources = 100;
+      a.age = 26;
+      b.age = olderAge;
+      sim.add(a); sim.add(b);
+      partner(a, b);
+      return { sim, a };
+    }
+
+    // The window ends at PEAK + SCALE. Changing this is a biological claim, not a
+    // calibration tweak — it needs a new ARD superseding 059.
+    it('ends the fertile window at age 44', () => {
+      expect(Variables.CHILDBIRTH_PEAK_AGE + Variables.CHILDBIRTH_AGE_SCALE).toBe(44);
+    });
+
+    // At 43 the modifier is 0.108, so p ≈ 0.6 * 0.108 * happinessFactor ≥ 0.065.
+    // At 44+ it clamps to AGE_FLOOR (0.02), so p ≤ 0.6 * 0.02 * 1.5 ≈ 0.018.
+    // rng = 0.03 therefore fires inside the window and not past it.
+    it('a couple just inside the window conceives above the floor', () => {
+      const { sim, a } = fertileCoupleAged(43);
+
+      new ChildbirthEvent(() => 0.03).execute(a, sim);
+
+      expect(sim.getLiving().length).toBe(3);
+    });
+
+    it('a couple at the window edge is pinned to the floor', () => {
+      const { sim, a } = fertileCoupleAged(44);
+
+      new ChildbirthEvent(() => 0.03).execute(a, sim);
+
+      expect(sim.getLiving().length).toBe(2);
+    });
+
+    it('treats every age past the window edge identically', () => {
+      const past = [44, 50, 70].map(age => {
+        const { sim, a } = fertileCoupleAged(age);
+        new ChildbirthEvent(() => 0.03).execute(a, sim);
+        return sim.getLiving().length;
+      });
+
+      expect(past).toEqual([2, 2, 2]);
+    });
+  });
 });

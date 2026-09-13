@@ -254,7 +254,8 @@ export default class Variables {
 
   // Per-event age profile constants — used by EventFactory via ageModifier()
   static CHILDBIRTH_PEAK_AGE = 26;
-  static CHILDBIRTH_AGE_SCALE = 12;
+  /** Half-width of the fertile window: the modifier hits its floor at PEAK ± SCALE, so 18 ends fertility at 44 (ARD 059). */
+  static CHILDBIRTH_AGE_SCALE = 18;
   static CHILDBIRTH_AGE_FLOOR = 0.02;
 
   static WORK_PEAK_AGE = 35;

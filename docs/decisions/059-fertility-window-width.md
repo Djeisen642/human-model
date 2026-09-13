@@ -1,6 +1,6 @@
 # ARD 059: Fertility Window Width
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-13
 
 ## Context
@@ -23,7 +23,7 @@ The justification is the biological anchor, not the simulation outcome. The swee
 
 **Rejected: do both.** A 32-seed 2×2 factorial showed the combination worse than either change alone (31/32 extinct and 1/32 sustained cycles, against 29/32 and 3/32 for each single change). Both levers widen the same window, so applying both overshoots it, producing a larger boom and a deeper crash — the "bigger inputs buy a bigger boom, not stability" signature documented in `research-tuning-defaults.md`.
 
-**Rejected: widen much further,** pushing the cliff past 55. Worse than the status quo at 300 ticks (12/16 extinct against 9/16) and no better at 800. Past the biological range the change stops correcting an error and starts inflating the overshoot.
+**Rejected: widen much further,** pushing the cliff past 50. Worse than the status quo at 300 ticks (12/16 extinct against 9/16) and no better at 800. Past the biological range the change stops correcting an error and starts inflating the overshoot.
 
 **Rejected: lower the founding age structure instead.** Tested across several taper exponents plus a young-adult-heavy variant placing 55% of the seed population in the 18–35 band. It produced the best 300-tick result in the study (6/16 extinct, median end population 137) and decayed to 15/16 extinct by 800 ticks. Initial age structure is spent once and the endogenous dynamics regenerate the synchronised cohort, reproducing the pyramid-seeding probe's negative result in `research-tuning-defaults.md`. This is the core reason the fix belongs in the fertility rule, which applies to every cohort including post-crash survivors, rather than in the seed.
 

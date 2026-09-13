@@ -12,16 +12,16 @@
 
 ## The cliff
 
-`ageModifier` is `max(floor, 1 − ((age − peak)/scale)²)`, so it reaches its floor at `peak ± scale`. At peak 26 and scale 12 that is **age 38**: every couple whose older partner is 38+ is pinned at 2% of peak fertility for life. Real female fertility declines steeply through the thirties but runs to roughly 45–50, so the model ends fertility about eight years early.
+`ageModifier` is `max(floor, 1 − ((age − peak)/scale)²)`, so it reaches its floor at `peak ± scale`. At peak 26 and scale 12 that is **age 38**: every couple whose older partner is 38+ is pinned at 2% of peak fertility for life. Real female fertility declines steeply through the thirties but runs to roughly 45, so the model ends fertility several years early.
 
 ## Widening the window (16 seeds)
 
 | `CHILDBIRTH_AGE_SCALE` | cliff age | 300t extinct | 800t extinct | 800t `stable` |
 |---|---|---|---|---|
-| 12 (current) | 38 | 9/16 | 16/16 | 0/16 |
-| 18 | 46 | 6/16 | 14/16 | **2/16** |
-| 25 | 56 | 12/16 | 16/16 | 0/16 |
-| 35 | 71 | 12/16 | 14/16 | 2/16 |
+| 12 (previous) | 38 | 9/16 | 16/16 | 0/16 |
+| 18 (adopted) | 44 | 6/16 | 14/16 | **2/16** |
+| 25 | 51 | 12/16 | 16/16 | 0/16 |
+| 35 | 61 | 12/16 | 14/16 | 2/16 |
 
 | `CHILDBIRTH_AGE_FLOOR` | 300t extinct | 800t extinct | 800t `stable` |
 |---|---|---|---|

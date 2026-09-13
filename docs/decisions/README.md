@@ -174,4 +174,4 @@ When in doubt:
 | [056](./056-founding-age-structure.md) | Tapering Founding Age Structure | Accepted |
 | [057](./057-founding-resource-distribution.md) | Founding Resource Distribution — Child Subsidy and Compressed Adult Wealth | Accepted |
 | [058](./058-founding-employment-seeding.md) | Founding Employment Seeding | Accepted |
-| [059](./059-fertility-window-width.md) | Fertility Window Width | Proposed |
+| [059](./059-fertility-window-width.md) | Fertility Window Width | Accepted |
