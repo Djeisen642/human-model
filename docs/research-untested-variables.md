@@ -289,6 +289,61 @@ baseline and threshold should be derived together. **Raising `HAPPINESS_BASELINE
 recommendation** — it would manufacture THRIVING labels without preventing a single death in the
 default regime. Logged in `docs/future-ideas.md`.
 
+## Part 3b — What actually blocks THRIVING: happiness, and mostly because children read as destitute
+
+THRIVING requires all four ARD-051 conditions at once. Running `scripts/thrive-probe.ts` at 16 seeds
+and 5000 ticks and counting which gate fails:
+
+| Config | GINI | HAP | DECL | POOL | THRIVING runs |
+|---|---|---|---|---|---|
+| Default | 0/16 | **16/16** | 16/16 | 0/16 | 0 |
+| Pin only | 3/16 | **16/16** | 16/16 | 1/16 | 0 |
+| Pin + `BASE_CHILDBIRTH_RATE=1.0` | 12/16 | **16/16** | 15/16 | 11/16 | 0 |
+
+(GINI and POOL read as *passing* at default only because the runs are extinct — no people means no
+inequality and an untouched pool. Ignore those two cells.)
+
+**Happiness is the universal blocker: it fails in every run of every configuration.** This study's
+first guess was the commons gate, on the reasoning that `bound%` sits near 49%. That is wrong —
+the commons gate fails in 11 of 16, happiness in 16 of 16.
+
+Decomposing the happiness getter over the final population of the strongest config (8 seeds, 5000
+ticks) shows why. Mean happiness is **2.96** against a threshold of 6.0:
+
+| Cohort | Share | Happiness | job | resources | partner | illness | mean resources | below critical |
+|---|---|---|---|---|---|---|---|---|
+| child <18 | 24% | 2.32 | +5.00 | **−4.72** | +0.55 | −0.05 | **3.2** | **91%** |
+| adult 18–64 | 61% | 3.55 | +4.83 | −3.00 | +1.87 | −0.39 | 16.6 | 44% |
+| elder 65+ | 15% | 1.63 | +5.00 | −2.74 | +0.90 | −0.90 | 33.9 | 47% |
+
+**The resource term is negative for every cohort, and it is the only large negative.** Employment is
+94%, so the job bonus is nearly maxed; the term that could add +3
+(`HAPPINESS_RESOURCE_COMFORTABLE_BONUS`) requires 70 resources against an adult mean of 16.6, so it
+almost never fires while the low and critical penalties fire constantly.
+
+**The child row is a defect, not a finding.** Children hold a mean of 3.2 resources and 91% sit below
+the critical threshold, so they take the full −5 poverty penalty. But children with living parents
+are *consumption-subsidised* by design: ARD 024 has them pay `resources × CONSUMPTION_CHILD_RESOURCE_RATE`
+rather than a flat cost, so they cannot starve, and ARD 062 makes welfare **skip** them for exactly
+that reason. Two subsystems treat a subsidised child as not in need; the happiness getter scores the
+same child on their own near-zero balance and calls them destitute. A child in a prosperous household
+reads as maximally poor. At 24–31% of the population this costs roughly 1.1–1.5 points of the
+population mean, against a gate the model currently misses by 3.
+
+**Lowering the comfort thresholds does not rescue it**, which rules out the simplest explanation.
+Moving `HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD` 70 → 30 and `LOW` 30 → 15 lifts adults from 3.55 to
+5.22 and the overall mean from 2.96 to 4.34, still short of 6.0, and the gate still fails 16/16.
+Children barely move (−4.62) because their balances sit below even a lowered critical threshold.
+
+**What this means for the project's goal.** THRIVING's happiness condition is not an independent
+measure of wellbeing. It is dominated by a resource term that only turns positive in a genuinely
+resource-abundant society, so it functions as a second commons gate. That is consistent with
+`docs/research-thriving-reachability.md`'s transient THRIVING at tick 60 (happiness 6.94, commons at
+62%), and it explains why no long-horizon configuration has ever passed it. Combined with Part 3 —
+the gate's zero point is an uncalibrated constant — the honest summary is that **THRIVING is currently
+unreachable for reasons that are substantially measurement artifacts rather than statements about the
+simulated society.** Both are logged in `docs/future-ideas.md`.
+
 ## Part 4 — Gathering has an age profile that is wired to nothing
 
 `GATHERING_PEAK_AGE = 28`, `GATHERING_AGE_SCALE = 35` and `GATHERING_AGE_FLOOR = 0.1` exist in
