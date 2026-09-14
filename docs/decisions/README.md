@@ -177,3 +177,4 @@ When in doubt:
 | [059](./059-fertility-window-width.md) | Fertility Window Width | Accepted |
 | [060](./060-gini-measurement-basis.md) | Gini Measured Over Adults, Not All Living | Accepted |
 | [061](./061-welfare-shortfall-topup.md) | Welfare Pays the Shortfall, Not an Equal Split | Accepted |
+| [062](./062-welfare-skips-subsidised-children.md) | Welfare Skips Parentally Subsidised Children | Proposed |

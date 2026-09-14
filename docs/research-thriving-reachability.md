@@ -231,6 +231,23 @@ trajectory diverges from tick one regardless of the size of the effect.
 The rise in `bound%` (8% → 20% at 32 seeds) tracks the higher median peak population rather than
 anything in the two changes directly — a bigger boom extracts more, so the commons binds more often.
 
+### ARD 062 (welfare skips parentally subsidised children), measured the same way
+
+| | outcomes | extinct | median peak | bound% | `stable` |
+|---|---|---|---|---|---|
+| Before (ARD 061 recipient set), 32 seeds | `EXTINCTION×28 COLLAPSE×4` | 28/32 | 652 | 20% | 1/32 |
+| After (ARD 062), 32 seeds | `EXTINCTION×30 STRUGGLING×2` | 30/32 | 703 | 8% | 2/32 |
+
+**No material change at 32 seeds, and the differences pull in opposite directions** — extinction is
+marginally worse (28 → 30) while `stable` is marginally better (1 → 2) and the two surviving seeds
+land on the less severe label (COLLAPSE → STRUGGLING). All of these are small-count differences that
+32 seeds cannot resolve. Freeing roughly half the welfare volume for adults and orphans did not
+visibly rescue runs, and did not visibly harm them either.
+
+That is a useful null in itself: it says the welfare channel is not where the default config's fate
+is decided, which is consistent with the two larger defects (the productivity band and the missing
+commons brake) being the live work.
+
 ## Caveats
 
 - Two seeds per config. Enough for an existence claim, not for effect sizes.

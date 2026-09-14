@@ -76,7 +76,7 @@ One shared environment object. No spatial structure; all agent interactions are 
 | `inventionFasterCount` | integer | Cumulative depletion-faster invention outcomes (ARD 032) |
 | `inventionSlowerCount` | integer | Cumulative depletion-slower invention outcomes (ARD 032) |
 | `inventionCeilingCount` | integer | Cumulative ceiling-growth invention outcomes (ARD 032) |
-| `communityPool` | number | Pooled resources funded by per-tick taxation, jail forfeitures and estate shares; spent each tick topping shortfalls up toward `WELFARE_THRESHOLD`, retaining whatever need does not consume (ARD 034, ARD 061) |
+| `communityPool` | number | Pooled resources funded by per-tick taxation, jail forfeitures and estate shares; spent each tick topping shortfalls up toward `WELFARE_THRESHOLD` for adults and orphans, retaining whatever need does not consume (ARD 034, ARD 061, ARD 062) |
 
 #### Scale
 
@@ -120,7 +120,7 @@ Each tick executes in this order:
      15. `InventionEvent` — intelligence-scaled probability gate
      16. `StealEvent` — intent-gated with resource-pressure multiplier (ARD 036); detection + emboldening inside execute() (ARD 035, ARD 036)
      17. `StatDecayEvent` — always appended last; age-based constitution/intelligence decay (ARD 048)
-6. **`simulation.distributeWelfare(living)`** — pays each agent short of `WELFARE_THRESHOLD` their shortfall, drawn from `communityPool × (1 − COMMUNITY_POOL_RESERVE_FRACTION)`. Nobody receives more than their own shortfall, so welfare cannot lift an agent above the threshold; surplus stays in the pool. When total shortfall exceeds the distributable amount it is split in proportion to shortfall (ARD 034, ARD 061).
+6. **`simulation.distributeWelfare(living)`** — pays each recipient short of `WELFARE_THRESHOLD` their shortfall, drawn from `communityPool × (1 − COMMUNITY_POOL_RESERVE_FRACTION)`. Recipients are all agents with a positive shortfall **except** parentally subsidised children (`age < CONSUMPTION_CHILD_MAX_AGE` with a living parent), whose need is met by topping up their parents (ARD 062); orphans are recipients at any age. Nobody receives more than their own shortfall, so welfare cannot lift an agent above the threshold; surplus stays in the pool. When total shortfall exceeds the distributable amount it is split in proportion to shortfall (ARD 034, ARD 061, ARD 062).
 7. **`simulation.snapshot()`** — records per-tick aggregate metrics.
 8. **Every 10 ticks:** `buildTenYearSummary()` appended to `decadeHistory`; one-line console summary printed.
 9. **After the final tick (if `ticks % 10 !== 0`):** partial-decade summary built over the remaining ticks and appended to `decadeHistory` (ARD 031).

@@ -561,13 +561,24 @@ export default class Simulation {
    * resources fall short of the threshold, and nobody receives more than their own shortfall,
    * so welfare cannot lift anyone above it. When the distributable amount covers every
    * shortfall the surplus stays in the pool as a buffer; when it does not, the distributable
-   * amount is split in proportion to shortfall. Call once per tick after consumption events.
-   * ARD 061, revising ARD 034's equal split.
+   * amount is split in proportion to shortfall. Parentally subsidised children are skipped
+   * (ARD 062) — their need is met by topping up their parents. Call once per tick after
+   * consumption events. ARD 061, revising ARD 034's equal split.
    *
    * @param persons - living population to evaluate for eligibility
    */
   distributeWelfare(persons: Person[]): void {
     const recipients = persons
+      // Skip children a parent already supports: a transfer cannot reach their consumption
+      // (ConsumptionEvent charges them a fraction of their own resources, so starvation cannot
+      // fire), their happiness (which reads their parents' resources), or the inequality signal
+      // (adults only), so it would spend rationed capacity on a number that does nothing until
+      // they turn 18. This reuses ConsumptionEvent's own subsidy boundary rather than
+      // WORKING_AGE_MIN so the two cannot disagree about who a parent supports — retuning that
+      // boundary also retunes who receives welfare. ARD 062.
+      .filter(person => !(
+        person.age < Variables.CONSUMPTION_CHILD_MAX_AGE && person.livingParents.length > 0
+      ))
       .map(person => ({ person, shortfall: Variables.WELFARE_THRESHOLD - person.resources }))
       .filter(r => r.shortfall > 0);
     // Counted before the early returns: a person who qualified and got nothing because the pool
