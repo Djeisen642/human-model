@@ -62,12 +62,54 @@ way out of the crash?" The answer is instructive precisely because the short-hor
 | 0.01 (5×) | **4/16 ext** | 12/16 ext | **16/16 ext**, 0 stable |
 | 0.03 (15×) | 4/16 ext | 6/16 ext, 3 stable | **9/16 ext, 6 stable cycles** |
 
+> **Re-verified 2026-09-14 (commit 84c675d) — the ladder's methodological lesson holds; its
+> headline `stable=6/16` does not.** Full re-measurement, same 16 seeds and horizons
+> (`--sweep BASE_INVENTION_RATE=0.002,0.01,0.03`):
+>
+> | rate | 300 ticks | 500 ticks | 800 ticks |
+> |---|---|---|---|
+> | 0.002 | 10/16 ext | 13/16 ext | 15/16 ext, 1 stable |
+> | 0.01 | 6/16 ext | 9/16 ext | 15/16 ext, 1 stable |
+> | 0.03 | 7/16 ext | 9/16 ext, **0 stable** | **12/16 ext, 3 stable** |
+>
+> No individual cell differs significantly at n=16 (every Fisher p ≥ 0.23) — but the whole 0.03 row
+> moves against the original at all three horizons, so the 0.03/800 cell was re-run at **48 seeds**
+> against a **matched 48-seed default control** on the same commit and seeds:
+>
+> | | default | 0.03 (15×) | Fisher p |
+> |---|---|---|---|
+> | `stable` | 2/48 (4.2%) | 6/48 (12.5%) | **0.268** |
+> | extinct | 46/48 (95.8%) | 39/48 (81.2%) | 0.051 |
+>
+> Two conclusions. **(1) The extinction benefit is real at 800 ticks** — 95.8% → 81.2%, p=0.051.
+> *(Superseded 2026-09-14: it is not real at 2000 ticks. Extending the horizon ladder to
+> 800/1200/1600/2000 at 48 seeds gives invention 39 → 45 → 47 → **48/48** extinct against the
+> default's 46 → **48/48**. Invention delays total extinction by roughly 800 ticks and prevents
+> nothing. This study's sharp distinction between 0.01 "only delays the crash" and 0.03 "does more
+> than delay" collapses — **both only delay**, and no part of the invention lever survives an
+> adequate horizon.)* **(2) The sustained-cycle claim does not hold either.** The recorded 37.5%
+> (6/16) is three times the best current estimate of 12.5% (6/48) and sits outside its 95% CI
+> [5.9%, 24.7%]; more importantly, at matched power 12.5% is **not distinguishable from the default's
+> 4.2%** (p=0.27, CIs overlap heavily). So "the only single-lever change to produce genuine sustained
+> cycles" is not supported: at n=48 this lever does not demonstrably move `stable` off the default at
+> all.
+>
+> The horizon rule this section exists to teach is untouched — 0.01 still evaporates from 6/16 extinct
+> at 300 ticks to 15/16 by 800, and the 0.002 row reproduces. What failed is a `stable` count read off
+> 16 seeds, which is exactly the failure mode the "Statistical power of the sweep metrics" item in
+> `docs/future-ideas.md` predicted. Cause of the drift is not separable from noise here, but ARDs
+> 052–062 landed between the two measurements and none of them appear in this study's
+> `Key context vars`. Measurement recorded in `docs/research-sweep-session-2026-09-14.md`.
+
 Two distinct behaviors:
 
 - **A modest boost (0.01) only *delays* the crash.** The 4/16-survival at 300 ticks is the
   mid-overshoot artifact in full force — it evaporates to total extinction (16/16) by 800. This is
   the cautionary case that motivates the horizon rule above.
-- **A large boost (0.03, ~15×) does more than delay.** It is the only single-lever change to
+- **A large boost (0.03, ~15×) does more than delay.** *(⚠ Re-verified 2026-09-14: this bullet's
+  central claim did not reproduce — at 48 seeds `stable` is 6/48 and not distinguishable from the
+  default control. The extinction reduction survives; "sustained cycles" does not. See the note above
+  the table.)* It is the only single-lever change to
   produce genuine *sustained* cycles that survive to the long horizon — `stable=6/16` at 800 ticks,
   confirmed by the cycle detector, so not an artifact. Frequent small ceiling lifts keep the
   carrying capacity rising and jostling, so the demographic wave rides a moving `K` instead of
@@ -115,7 +157,10 @@ framing (`research-fertility.md`, ARD 050) is confirmed and sharpened: it is not
 oscillator (HANDY's "cycles of prosperity and collapse") but a *terminal* one — it booms once and
 goes extinct. The two single-lever exceptions that move `stable` off zero — high invention (6/16 at
 800t) and a strong anti-Allee probe (3/16) — both leave the majority extinct, so neither is a sane
-default by itself. Genuine long-run persistence needs a **new structural factor**, and the evidence
+default by itself. *(⚠ Re-verified 2026-09-14: the high-invention exception does not hold at 48
+seeds — `stable` 6/48 vs a matched default control's 2/48, p=0.27. It reduces extinction but is not
+shown to move `stable`. The anti-Allee probe's 3/16 was never re-measured and rests on the same
+n=16 basis, so treat it with the same suspicion. See the note under the invention ladder.)* Genuine long-run persistence needs a **new structural factor**, and the evidence
 points at **crash recovery**: an anti-Allee mechanism, designed carefully and likely combined with a
 second recovery channel (weakened partnership-density dependence at low N, or a younger
 continuously-replenished age structure) so crashes bounce off a floor rather than ratcheting to
