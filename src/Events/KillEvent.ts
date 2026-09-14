@@ -31,18 +31,41 @@ export default class KillEvent implements IEvent {
    * @param simulation - current simulation state
    */
   execute(person: Person, simulation: Simulation): void {
-    const currentGini = resourceGini(simulation.getLiving());
-
     const happinessPressure = Math.max(
       0,
       1 - person.happiness / Variables.SITUATIONAL_KILL_HAPPINESS_THRESHOLD,
     );
 
-    const attemptProb = person.killingIntent
-      * ageModifier(person.age, Variables.KILLING_PEAK_AGE, Variables.KILLING_AGE_SCALE, Variables.KILLING_AGE_FLOOR)
-      * (1 + currentGini * Variables.KILL_GINI_SCALAR)
-      * (1 + happinessPressure * Variables.SITUATIONAL_KILL_SCALAR);
-    if (this.rng() >= attemptProb) return;
+    // The attempt probability is `intentAge * giniFactor * happinessFactor`, where the only
+    // expensive term is the population-wide Gini. Draw first, then bracket: `resourceGini`
+    // returns [0, 1), so `giniFactor` lies in [1, 1 + KILL_GINI_SCALAR] and the probability is
+    // bracketed by evaluating the same expression at both ends. A roll outside that bracket
+    // decides the branch without the Gini at all, which is the common case — the bracket is
+    // only `KILL_GINI_SCALAR` wide relative to a probability already below ~0.1, so the
+    // population scan runs for a few percent of person-ticks instead of all of them.
+    //
+    // Two properties make this exactly equivalent to computing the Gini up front rather than
+    // an approximation of it. `resourceGini` is pure and draws no random numbers, so hoisting
+    // the roll above it leaves the RNG stream untouched; and the in-bracket expression below
+    // multiplies its terms in the original order, so it is bit-for-bit the old probability.
+    const intentAge = person.killingIntent
+      * ageModifier(person.age, Variables.KILLING_PEAK_AGE, Variables.KILLING_AGE_SCALE, Variables.KILLING_AGE_FLOOR);
+    const happinessFactor = 1 + happinessPressure * Variables.SITUATIONAL_KILL_SCALAR;
+
+    const roll = this.rng();
+    const upperBound = intentAge * (1 + Variables.KILL_GINI_SCALAR) * happinessFactor;
+    if (roll >= upperBound) return;
+
+    // Multiplication is monotonic over non-negative operands, so the Gini=0 evaluation is a
+    // true lower bound and a roll beneath it attempts regardless of the real Gini.
+    let attemptProb = intentAge * 1 * happinessFactor;
+    if (roll >= attemptProb) {
+      const currentGini = resourceGini(simulation.getLiving());
+      attemptProb = intentAge
+        * (1 + currentGini * Variables.KILL_GINI_SCALAR)
+        * happinessFactor;
+    }
+    if (roll >= attemptProb) return;
 
     const victim = simulation.getRandomOther(person, this.rng);
     if (!victim) return;

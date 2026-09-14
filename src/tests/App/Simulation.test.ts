@@ -60,6 +60,98 @@ describe('Simulation', () => {
       sim.add(p2);
       expect(sim.getRandomOther(p1, alwaysFirst)).toBe(p2);
     });
+
+    // Selection maps a draw over the candidate count onto the living array by skipping the
+    // excluded slot. These pin that mapping: excluding a person in the middle must leave the
+    // candidates in their original order, with no slot unreachable and none returned twice.
+    it('should map every draw onto the candidates in order, skipping the excluded slot', () => {
+      const sim = new Simulation();
+      const persons = [new Person([]), new Person([]), new Person([]), new Person([])];
+      for (const p of persons) sim.add(p);
+
+      // Exclude index 1; candidates are [p0, p2, p3] in that order.
+      const drawn = [0, 1, 2].map(i => sim.getRandomOther(persons[1], () => i / 3));
+      expect(drawn).toEqual([persons[0], persons[2], persons[3]]);
+    });
+
+    it('should return the last candidate when the draw rounds to the top of the range', () => {
+      const sim = new Simulation();
+      const p1 = new Person([]);
+      const p2 = new Person([]);
+      const p3 = new Person([]);
+      sim.add(p1);
+      sim.add(p2);
+      sim.add(p3);
+      // A draw of exactly 1 would index past the end without the clamp.
+      expect(sim.getRandomOther(p1, () => 1)).toBe(p3);
+    });
+
+    it('should draw from the whole population when the excluded person is already dead', () => {
+      const sim = new Simulation();
+      const dead = new Person([]);
+      const p2 = new Person([]);
+      sim.add(dead);
+      sim.add(p2);
+      sim.kill(dead, Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      // The dead person is no longer a candidate, so the sole survivor is reachable rather
+      // than being skipped as though they still occupied a slot.
+      expect(sim.getRandomOther(dead, alwaysFirst)).toBe(p2);
+    });
+
+    it('should not consume a random number when there are no candidates', () => {
+      const sim = new Simulation();
+      const p = new Person([]);
+      sim.add(p);
+      let calls = 0;
+      const counting: () => number = () => {
+        calls++;
+        return 0;
+      };
+      expect(sim.getRandomOther(p, counting)).toBeNull();
+      expect(calls).toBe(0);
+    });
+  });
+
+  describe('indexOfLiving', () => {
+    it('should report positions in insertion order', () => {
+      const sim = new Simulation();
+      const persons = [new Person([]), new Person([]), new Person([])];
+      for (const p of persons) sim.add(p);
+      expect(persons.map(p => sim.indexOfLiving(p))).toEqual([0, 1, 2]);
+    });
+
+    it('should close the gap left by a death and report -1 for the dead', () => {
+      const sim = new Simulation();
+      const persons = [new Person([]), new Person([]), new Person([])];
+      for (const p of persons) sim.add(p);
+      sim.kill(persons[0], Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      expect(sim.indexOfLiving(persons[0])).toBe(-1);
+      expect(sim.indexOfLiving(persons[1])).toBe(0);
+      expect(sim.indexOfLiving(persons[2])).toBe(1);
+    });
+
+    it('should keep positions consistent with getLiving across interleaved births and deaths', () => {
+      const sim = new Simulation();
+      const persons = Array.from({ length: 6 }, () => new Person([]));
+      for (const p of persons) sim.add(p);
+      sim.kill(persons[4], Constants.CAUSE_OF_DEATH.ILLNESS);
+      sim.kill(persons[1], Constants.CAUSE_OF_DEATH.ILLNESS);
+      const newborn = new Person([]);
+      sim.add(newborn);
+      sim.kill(persons[0], Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      const living = sim.getLiving();
+      expect(living.map(p => sim.indexOfLiving(p))).toEqual(living.map((_, i) => i));
+      expect(sim.indexOfLiving(newborn)).toBe(living.indexOf(newborn));
+    });
+
+    it('should return -1 for a person who was never added', () => {
+      const sim = new Simulation();
+      sim.add(new Person([]));
+      expect(sim.indexOfLiving(new Person([]))).toBe(-1);
+    });
   });
 
   describe('kill', () => {

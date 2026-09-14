@@ -65,6 +65,17 @@ Sweep options: `--seeds 42,7,1` (or a single `N` → seeds 1..N; default 1..8), 
 
 **Read `docs/calibration-guide.md` before sweeping.** It defines every output column, flags which ones are unreliable (`peakGini` is a max-of-noise statistic), and explains why short-horizon results mislead — judge configs at 500–800 ticks, never at 100.
 
+### Parity harness (`scripts/parity-check.ts`)
+
+Proves an engine change is behaviour-preserving. `--emit FILE` runs a seed set and writes the full per-tick snapshot history; `--verify FILE` re-runs the same configuration (seeds/ticks/persons are stored in the file, so the two runs can't disagree) and reports the first divergence as `seed, tick, field, baseline, got`. Emit a baseline on the unmodified revision, apply the change, verify.
+
+```bash
+npx ts-node scripts/parity-check.ts --emit /tmp/baseline.json --seeds 8 --ticks 200
+npx ts-node scripts/parity-check.ts --verify /tmp/baseline.json
+```
+
+Use it for refactors and optimisations, where the bar is a bitwise-identical history. Calibration changes are *expected* to diverge — this tool does not apply to them. It is also the contract check the multi-tier engine work in `docs/future-ideas.md` needs.
+
 ### CLI flags (entry point)
 
 ```bash
