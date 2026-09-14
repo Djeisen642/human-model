@@ -3,7 +3,7 @@ import * as path from 'path';
 import Handlebars from 'handlebars';
 import Simulation from '../App/Simulation';
 import Constants from './Constants';
-import { classifyOutcome, formatEndReport } from './Reporters';
+import { classifyOutcome, formatEndReport, share } from './Reporters';
 
 /**
  * Writes a self-contained HTML report to <outputDir>/report-<seed>-<outcome>-<timestamp>.html.
@@ -101,6 +101,12 @@ function buildHTML(
       killingIntent: mean(chunk.map(c => c.population > 0 ? c.aggregateKillingIntent / c.population : 0)).toFixed(5),
       stealingIntent: mean(chunk.map(c => c.population > 0 ? c.aggregateStealingIntent / c.population : 0)).toFixed(5),
       jailed: mean(chunk.map(c => c.jailedPopulation)).toFixed(1),
+      orphans: d.avgOrphanCount.toFixed(2),
+      // Share of the child population that is orphaned — the count alone tracks the population boom.
+      orphanShareOfChildren: (share(d.avgOrphanCount, d.avgChildPopulation) * 100).toFixed(2),
+      welfareRecipients: d.avgWelfareRecipients.toFixed(2),
+      // Share of the living population drawing welfare — the ARD 034 channel's actual reach.
+      welfareShareOfPopulation: (share(d.avgWelfareRecipients, d.avgPopulation) * 100).toFixed(2),
       totalCoupleCount: mean(chunk.map(c => c.totalCoupleCount)).toFixed(1),
       fertileCoupleCount: mean(chunk.map(c => c.fertileCoupleCount)).toFixed(1),
       steals: chunk.reduce((sum, c) => sum + c.stealsCommitted, 0),
@@ -135,6 +141,10 @@ function buildHTML(
   const stealingIntentSeries = aggregatedHistory.map(a => a.stealingIntent);
   const jailedSeries = aggregatedHistory.map(a => a.jailed);
   const stealsPerTickSeries = aggregatedHistory.map(a => a.steals);
+  const orphanSeries = aggregatedHistory.map(a => a.orphans);
+  const orphanShareSeries = aggregatedHistory.map(a => a.orphanShareOfChildren);
+  const welfareSeries = aggregatedHistory.map(a => a.welfareRecipients);
+  const welfareShareSeries = aggregatedHistory.map(a => a.welfareShareOfPopulation);
   const totalCoupleSeries = aggregatedHistory.map(a => a.totalCoupleCount);
   const fertileCoupleSeries = aggregatedHistory.map(a => a.fertileCoupleCount);
   const deathsIllnessTickSeries = aggregatedHistory.map(a => a.deathsIllness);
@@ -204,6 +214,9 @@ function buildHTML(
       medianAge: s.medianAge,
       totalConsumption: s.totalConsumption,
       educationCounts: s.educationCounts,
+      childPopulation: s.childPopulation,
+      orphanCount: s.orphanCount,
+      welfareRecipients: s.welfareRecipients,
       deathsByMurder: s.deathsByMurder,
       deathsByIllness: s.deathsByIllness,
       deathsBySuicide: s.deathsBySuicide,
@@ -310,6 +323,10 @@ function buildHTML(
     suicideSeries: JSON.stringify(suicideSeries),
     killingSeries: JSON.stringify(killingSeries),
     disasterSeries: JSON.stringify(disasterSeries),
+    orphanSeries: JSON.stringify(orphanSeries),
+    orphanShareSeries: JSON.stringify(orphanShareSeries),
+    welfareSeries: JSON.stringify(welfareSeries),
+    welfareShareSeries: JSON.stringify(welfareShareSeries),
     totalCoupleSeries: JSON.stringify(totalCoupleSeries),
     fertileCoupleSeries: JSON.stringify(fertileCoupleSeries),
     ageDeathLabels: JSON.stringify(ageDeathLabels),

@@ -117,6 +117,8 @@
       <div class="card span-full"><canvas id="educationChart"></canvas></div>
       <div class="card span-full"><canvas id="poolDynamicsChart"></canvas></div>
       <div class="card span-full"><canvas id="coupleChart"></canvas></div>
+      <div class="card span-full"><canvas id="orphanChart"></canvas></div>
+      <div class="card span-full"><canvas id="welfareChart"></canvas></div>
       <div class="card"><canvas id="intentChart"></canvas></div>
       <div class="card"><canvas id="crimeChart"></canvas></div>
       <div class="card span-full" style="position: relative;">
@@ -232,6 +234,60 @@
           x: { grid: { color: '#f0f0f0' } },
           y: { position: 'left', beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Couple count' } },
           y2: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'Births per decade' } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('orphanChart'), {
+      type: 'line',
+      data: {
+        labels: tickLabels,
+        datasets: [
+          { label: 'Orphaned Children', data: {{{orphanSeries}}},
+            borderColor: '#8e44ad', backgroundColor: 'rgba(142,68,173,0.10)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Orphan Share of Children (%)', data: {{{orphanShareSeries}}},
+            borderColor: '#c0392b', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [4,3], yAxisID: 'y2' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Orphans Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' } },
+          y: { position: 'left', beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Orphaned children' } },
+          y2: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: '% of children orphaned' } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('welfareChart'), {
+      type: 'line',
+      data: {
+        labels: tickLabels,
+        datasets: [
+          { label: 'On Welfare (persons/tick)', data: {{{welfareSeries}}},
+            borderColor: '#16a085', backgroundColor: 'rgba(22,160,133,0.10)',
+            fill: true, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+          { label: 'Share of Population (%)', data: {{{welfareShareSeries}}},
+            borderColor: '#c0392b', backgroundColor: 'transparent',
+            tension: 0.2, pointRadius: 0, borderWidth: 2, borderDash: [4,3], yAxisID: 'y2' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Welfare Coverage Over Time', font: { size: 13, weight: '600' }, padding: { bottom: 12 } },
+          legend: { position: 'bottom' }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' } },
+          y: { position: 'left', beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Persons on welfare' } },
+          y2: { position: 'right', beginAtZero: true, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: '% of population' } }
         }
       }
     });

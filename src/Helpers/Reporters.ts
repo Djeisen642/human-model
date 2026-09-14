@@ -45,6 +45,10 @@ export function buildTenYearSummary(
   const avgNaturalResourceCeiling = avg(window.map(s => s.naturalResourceCeiling));
   const peakResourceGini = Math.max(...window.map(s => s.resourceGini));
   const avgCommunityPool = avg(window.map(s => s.communityPool));
+  const avgChildPopulation = avg(window.map(s => s.childPopulation));
+  const avgOrphanCount = avg(window.map(s => s.orphanCount));
+  const avgWelfareRecipients = avg(window.map(s => s.welfareRecipients));
+  const avgPopulation = avg(window.map(s => s.population));
 
   return {
     endTick,
@@ -63,7 +67,24 @@ export function buildTenYearSummary(
     peakResourceGini,
     births,
     avgCommunityPool,
+    avgChildPopulation,
+    avgOrphanCount,
+    avgWelfareRecipients,
+    avgPopulation,
   };
+}
+
+/**
+ * Share of a sub-population within its cohort, as a fraction in [0, 1].
+ * Used for orphans-within-children and welfare-recipients-within-population, both of which
+ * hit an empty denominator in a dying run.
+ *
+ * @param part - size of the sub-population
+ * @param whole - size of the cohort it is measured against
+ * @returns part ÷ whole, or 0 when the cohort is empty
+ */
+export function share(part: number, whole: number): number {
+  return whole > 0 ? part / whole : 0;
 }
 
 /**
@@ -96,6 +117,7 @@ export function formatDecadeSummary(summary: TenYearSummary): string {
     `Resources: ${summary.avgResources.toFixed(1)}  ` +
     `Happiness: ${summary.avgHappiness.toFixed(1)}  ` +
     `Births: ${summary.births}  ` +
+    `Orphans: ${summary.avgOrphanCount.toFixed(1)}  ` +
     `Deaths: ${summary.totalDeaths} ` +
     `(ill:${summary.deathsByIllness} sui:${summary.deathsBySuicide} ` +
     `kill:${summary.deathsByKilling} dis:${summary.deathsByDisaster})`
@@ -265,6 +287,7 @@ export function summarizeSurvivors(living: Person[]): SurvivorSummary {
     avgIllness: 0,
     partnered: 0,
     withChildren: 0,
+    orphans: 0,
   };
 
   if (living.length === 0) return summary;
@@ -287,6 +310,7 @@ export function summarizeSurvivors(living: Person[]): SurvivorSummary {
 
     if (p.isInRelationshipWith !== null) summary.partnered++;
     if (p.hasChildren.length > 0) summary.withChildren++;
+    if (p.age < Variables.WORKING_AGE_MIN && p.livingParents.length === 0) summary.orphans++;
   }
 
   summary.avgIllness = illnessSum / living.length;
@@ -324,7 +348,8 @@ export function formatSurvivorSection(s: SurvivorSummary): string[] {
       `severe ${s.healthSevere} (≥${Variables.HEALTH_MILD_THRESHOLD})   ` +
       `avg illness ${s.avgIllness.toFixed(2)}`,
     `  Family:     partnered ${s.partnered} (${pct(s.partnered, s.total)})  ` +
-      `with children ${s.withChildren} (${pct(s.withChildren, s.total)})`,
+      `with children ${s.withChildren} (${pct(s.withChildren, s.total)})  ` +
+      `orphans ${s.orphans} of ${s.children} children (${pct(s.orphans, s.children)})`,
   ];
 }
 
@@ -390,6 +415,21 @@ export function formatEndReport(
     decadeHistory[0],
   );
 
+  // Orphan load is reported as a share of the child population — the raw count tracks the
+  // population boom, the share tracks how often children are actually losing their parents.
+  const peakOrphanDecade = decadeHistory.reduce(
+    (best, d) => (d.avgOrphanCount > best.avgOrphanCount ? d : best),
+    decadeHistory[0],
+  );
+  const peakWelfareDecade = decadeHistory.reduce(
+    (best, d) => (d.avgWelfareRecipients > best.avgWelfareRecipients ? d : best),
+    decadeHistory[0],
+  );
+  const welfarePct = (d: TenYearSummary): string =>
+    `${(share(d.avgWelfareRecipients, d.avgPopulation) * 100).toFixed(0)}%`;
+  const orphanPct = (d: TenYearSummary): string =>
+    `${(share(d.avgOrphanCount, d.avgChildPopulation) * 100).toFixed(0)}%`;
+
   const decadeTableRows = decadeHistory.map(d => {
     const delta = d.populationDelta >= 0 ? `+${d.populationDelta}` : String(d.populationDelta);
     return (
@@ -397,6 +437,8 @@ export function formatEndReport(
       `  ${String(d.endPopulation).padStart(4)}` +
       `  ${delta.padStart(4)}` +
       `  ${String(d.births).padStart(6)}` +
+      `  ${d.avgOrphanCount.toFixed(1).padStart(7)}` +
+      `  ${d.avgWelfareRecipients.toFixed(1).padStart(7)}` +
       `  ${d.avgResourceGini.toFixed(2)}` +
       `  ${d.peakResourceGini.toFixed(2).padStart(6)}` +
       `  ${d.avgResources.toFixed(1).padStart(5)}` +
@@ -422,6 +464,8 @@ export function formatEndReport(
     'POPULATION',
     `  Start: ${startPopulation}  End: ${final.endPopulation}  Births: ${totalBirths}  Deaths: ${totalDeaths}   (net: ${netPopStr})`,
     `  By cause — illness: ${byIllness}  suicide: ${bySuicide}  killing: ${byKilling}  disaster: ${byDisaster}`,
+    `  Orphans: ${first.avgOrphanCount.toFixed(1)} (${orphanPct(first)}) → ${final.avgOrphanCount.toFixed(1)} (${orphanPct(final)})   ` +
+      `peak ${peakOrphanDecade.avgOrphanCount.toFixed(1)} (Yr ${String(peakOrphanDecade.endTick).padStart(3, '0')})   [decade averages, % of children]`,
     '',
     'INEQUALITY (Gini)',
     `  Start: ${first.avgResourceGini.toFixed(2)}  End: ${final.avgResourceGini.toFixed(2)}  Peak: ${peakGiniDecade.peakResourceGini.toFixed(2)} (Yr ${String(peakGiniDecade.endTick).padStart(3, '0')})`,
@@ -431,6 +475,8 @@ export function formatEndReport(
     `  Avg resources/person: ${first.avgResources.toFixed(1)} → ${final.avgResources.toFixed(1)}`,
     `  Natural resources remaining: ${Math.round(naturalResources)} / ${Math.round(naturalResourceCeiling)} ceiling`,
     `  Community pool: ${Math.round(communityPool)}`,
+    `  On welfare: ${first.avgWelfareRecipients.toFixed(1)} (${welfarePct(first)}) → ${final.avgWelfareRecipients.toFixed(1)} (${welfarePct(final)})   ` +
+      `peak ${peakWelfareDecade.avgWelfareRecipients.toFixed(1)} (Yr ${String(peakWelfareDecade.endTick).padStart(3, '0')})   [decade averages, % of population]`,
     `  Inventions: ${inventionCounts.faster} faster  ${inventionCounts.slower} slower  ${inventionCounts.ceiling} ceiling   ` +
       `(final efficiency: ${extractionProductivity.toFixed(2)}, ceiling: ${Math.round(naturalResourceCeiling)})`,
     '',
@@ -452,7 +498,7 @@ export function formatEndReport(
   lines.push(
     '',
     'DECADE SUMMARY TABLE',
-    '  Yr   Pop  ΔPop  Births  Gini  PkGini    Res  Happy  Deaths',
+    '  Yr   Pop  ΔPop  Births  Orphans  Welfare  Gini  PkGini    Res  Happy  Deaths',
     ...decadeTableRows,
   );
   return lines.join('\n');

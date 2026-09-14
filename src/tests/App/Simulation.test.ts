@@ -3,6 +3,7 @@ import Person from '../../App/Person';
 import Constants from '../../Helpers/Constants';
 import Variables from '../../Helpers/Variables';
 import SeededRandom from '../../Helpers/SeededRandom';
+import DeathRecord from '../../Records/DeathRecord';
 
 const alwaysFirst: () => number = () => 0;
 
@@ -962,6 +963,85 @@ describe('Simulation', () => {
       const snap = sim.snapshot();
       expect(snap.totalCoupleCount).toBe(0);
       expect(snap.fertileCoupleCount).toBe(0);
+    });
+
+    it('snapshot counts orphans as children with no living parent', () => {
+      const sim = new Simulation();
+      const parent = new Person([]);
+      parent.age = 40;
+      const deadParent = new Person([]);
+      deadParent.age = 40;
+      deadParent.causeOfDeath = new DeathRecord(Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      const parented = new Person([parent]);
+      parented.age = 8;
+      const bereaved = new Person([deadParent]);
+      bereaved.age = 8;
+      const neverParented = new Person([]);
+      neverParented.age = 8;
+
+      sim.add(parent);
+      sim.add(parented);
+      sim.add(bereaved);
+      sim.add(neverParented);
+
+      const snap = sim.snapshot();
+      expect(snap.childPopulation).toBe(3);
+      expect(snap.orphanCount).toBe(2);
+    });
+
+    it('snapshot records the welfare-eligible count from distributeWelfare', () => {
+      const sim = new Simulation();
+      sim.communityPool = 100;
+      const poor = new Person([]);
+      poor.age = 30;
+      poor.resources = Variables.WELFARE_THRESHOLD - 1;
+      const rich = new Person([]);
+      rich.age = 30;
+      rich.resources = Variables.WELFARE_THRESHOLD + 1000;
+      sim.add(poor);
+      sim.add(rich);
+
+      sim.distributeWelfare(sim.getLiving());
+      const snap = sim.snapshot();
+      // The payout lifts `poor` back over the threshold; the recipient still counts.
+      expect(poor.resources).toBeGreaterThan(Variables.WELFARE_THRESHOLD);
+      expect(snap.welfareRecipients).toBe(1);
+    });
+
+    it('snapshot counts welfare-eligible persons even when the pool is empty', () => {
+      const sim = new Simulation();
+      sim.communityPool = 0;
+      const poor = new Person([]);
+      poor.age = 30;
+      poor.resources = 0;
+      sim.add(poor);
+
+      sim.distributeWelfare(sim.getLiving());
+      expect(sim.snapshot().welfareRecipients).toBe(1);
+    });
+
+    it('resets the welfare count between ticks', () => {
+      const sim = new Simulation();
+      const poor = new Person([]);
+      poor.age = 30;
+      poor.resources = 0;
+      sim.add(poor);
+
+      sim.distributeWelfare(sim.getLiving());
+      expect(sim.snapshot().welfareRecipients).toBe(1);
+      // Next tick without a distribution call: the accumulator must not carry over.
+      expect(sim.snapshot().welfareRecipients).toBe(0);
+    });
+
+    it('snapshot does not count parentless adults as orphans', () => {
+      const sim = new Simulation();
+      const adult = new Person([]);
+      adult.age = Variables.WORKING_AGE_MIN;
+      sim.add(adult);
+      const snap = sim.snapshot();
+      expect(snap.childPopulation).toBe(0);
+      expect(snap.orphanCount).toBe(0);
     });
   });
 
