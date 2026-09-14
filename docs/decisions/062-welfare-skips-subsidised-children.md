@@ -1,6 +1,6 @@
 # ARD 062: Welfare Skips Parentally Subsidised Children
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-14
 
 ## Context
