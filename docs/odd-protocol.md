@@ -94,7 +94,7 @@ Each tick executes in this order:
 2. **`DisasterEvent`** — fires once per tick (not per agent); probabilistic trigger; random subset of living agents may be killed or lose resources.
 3. **`simulation.collectTax(living)`** — deducts `TAX_RATE × resources` from each living agent; credited to `communityPool` (ARD 034).
 4. **Jail countdown** — for each living agent, if `jailedTicksRemaining > 0`, decrement by 1. Happens before EventFactory so the decremented value governs this tick's event set (ARD 035).
-5. **Per-agent event loop** — extraction order shuffled each tick via Fisher-Yates (seeded RNG). For each living agent, `EventFactory` fires events based on jail status:
+5. **Per-agent event loop** (routing per ARD 010) — extraction order shuffled each tick via Fisher-Yates (seeded RNG). For each living agent, `EventFactory` fires events based on jail status:
    - **If jailed (`jailedTicksRemaining > 0` before decrement, i.e. > 0 after decrement still running the remaining ticks):**
      - **Note:** after the decrement in step 4, `jailedTicksRemaining` is checked again by `EventFactory`. If still > 0 after decrement, agent gets reduced suite.
      1. `AgeEvent`
@@ -118,8 +118,9 @@ Each tick executes in this order:
      13. `EnrollmentEvent` **or** `GraduationEvent` (mutually exclusive)
      14. `WindfallEvent` — probability-gated
      15. `InventionEvent` — intelligence-scaled probability gate
-     16. `StealEvent` — intent-gated with resource-pressure multiplier (ARD 036); detection + emboldening inside execute() (ARD 035, ARD 036)
-     17. `StatDecayEvent` — always appended last; age-based constitution/intelligence decay (ARD 048)
+     16. `HelpEvent` — intent-gated; voluntary transfer to a poorer agent (ARD 045)
+     17. `StealEvent` — intent-gated with resource-pressure multiplier (ARD 036); detection + emboldening inside execute() (ARD 035, ARD 036)
+     18. `StatDecayEvent` — always appended last; age-based constitution/intelligence decay (ARD 048)
 6. **`simulation.distributeWelfare(living)`** — pays each recipient short of `WELFARE_THRESHOLD` their shortfall, drawn from `communityPool × (1 − COMMUNITY_POOL_RESERVE_FRACTION)`. Recipients are all agents with a positive shortfall **except** parentally subsidised children (`age < CONSUMPTION_CHILD_MAX_AGE` with a living parent), whose need is met by topping up their parents (ARD 062); orphans are recipients at any age. Nobody receives more than their own shortfall, so welfare cannot lift an agent above the threshold; surplus stays in the pool. When total shortfall exceeds the distributable amount it is split in proportion to shortfall (ARD 034, ARD 061, ARD 062).
 7. **`simulation.snapshot()`** — records per-tick aggregate metrics.
 8. **Every 10 ticks:** `buildTenYearSummary()` appended to `decadeHistory`; one-line console summary printed.
@@ -239,8 +240,9 @@ Two branches (mutually exclusive per tick):
 - Gain (when unemployed): `prob = (experience × JOB_GAIN_EXPERIENCE_SCALAR + charisma × JOB_GAIN_CHARISMA_SCALAR) × ageModifier(work profile) × (1 + education × EDUCATION_JOB_GAIN_SCALAR)`
 - Loss (when employed): `prob = JOB_LOSS_BASE + JOB_LOSS_STAT_SCALAR / (experience+1) / (charisma+1)`
 
-#### RelationshipEvent (ARD 025)
-Formation (when unpartnered): `prob = BASE_RELATIONSHIP_RATE × (1 + charisma × RELATIONSHIP_CHARISMA_SCALAR) × ageModifier(26, 35, 0.1)`. Draws `getRandomOther()`; fires only if target also unpartnered; mutually assigns both `isInRelationshipWith` fields.
+#### RelationshipEvent (ARD 025, ARD 053, ARD 054)
+Agents below `RELATIONSHIP_MIN_AGE` skip the event entirely (ARD 053).
+Formation (when unpartnered): `prob = BASE_RELATIONSHIP_RATE × (1 + charisma × RELATIONSHIP_CHARISMA_SCALAR) × ageModifier(26, 35, 0.1) × ageModifier(|ageGap|, 0, RELATIONSHIP_AGE_GAP_SCALE, RELATIONSHIP_AGE_GAP_FLOOR)` — the second modifier discounts cross-generational pairings in proportion to the age gap (ARD 054). Draws `getRandomOther()` first, then rolls; fires only if target also unpartnered; mutually assigns both `isInRelationshipWith` fields.
 Dissolution (when partnered): flat `BASE_BREAKUP_RATE` per tick; mutually clears both fields.
 Partner death (via `Simulation.kill()`) clears the surviving partner's field.
 
@@ -258,7 +260,7 @@ Success: `prob = KILL_SUCCESS_BASE / max(1, victim.constitution)`
 On success: `simulation.kill(victim, MURDER, person)` — creates `DeathRecord` and `KillingRecord`.
 Detection (after successful kill): `prob = BASE_DETECT_RATE_KILL × (1 + priorCrimes × DETECTION_CRIME_COUNT_SCALAR)`. On detection: `JAIL_RESOURCE_FORFEIT_FRACTION` of killer's resources transferred to `communityPool`; `jailedTicksRemaining += JAIL_TICKS_KILL`.
 
-#### MisfortuneEvent (ARD 019, recalibrated ARD 049)
+#### MisfortuneEvent (ARD 019, superseding ARD 013; recalibrated ARD 049)
 Two sequential checks; first cause wins:
 1. Illness death: `prob = illness × ILLNESS_DEATH_SCALAR × ageMortalityModifier` (zero when illness = 0). With ARD 049 illness senescence, this is the dominant old-age cause — age-related death is disease-mediated (routes through `CAUSE_OF_DEATH.ILLNESS`, no separate "natural" cause).
 2. Suicide: `prob = SUICIDE_PROBABILITY_SCALE / (happiness + 1)`. ARD 049 cut the scale ~2 orders of magnitude to realistic rates (~1–4% of deaths).
@@ -291,6 +293,18 @@ Transfers `min(victim.resources × STEAL_FRACTION, STEAL_MAX_AMOUNT)` from victi
 Detection: `prob = BASE_DETECT_RATE_STEAL × (1 + priorCrimes × DETECTION_CRIME_COUNT_SCALAR)` where `priorCrimes = amountStolen.length + killed.size`.
 - Detected: forfeits `JAIL_RESOURCE_FORFEIT_FRACTION` of thief's resources to `communityPool`; `jailedTicksRemaining += JAIL_TICKS_STEAL`.
 - Not detected: `stealingIntent = min(stealingIntent + STEALING_EMBOLDEN_INCREMENT, STEALING_INTENT_CAP)`.
+
+#### HelpEvent (ARD 045, ARD 046)
+Intent gate at factory: `rng() < helpingIntent × (1 + charisma × HELP_CHARISMA_SCALAR) × ageModifier(40, 40, 0.1)`.
+Draws `getRandomOther()`; no-ops if there is no target, the target is not poorer than the helper, or the helper has zero resources.
+Transfers `min(resources × HELP_FRACTION, HELP_MAX_AMOUNT)` from helper to target.
+On a successful transfer: `helpHappinessBoost = min(helpHappinessBoost + HELP_HAPPINESS_BOOST, HELP_HAPPINESS_MAX)` — transient, decayed per tick by `LooperSingleton` (ARD 046). No record.
+
+#### StatDecayEvent (ARD 048)
+Unconditional, appended last; runs for jailed and free agents alike (aging does not pause in jail). Two independent rolls:
+- `prob = CONSTITUTION_DECAY_BASE_RATE × max(0, age − CONSTITUTION_DECAY_START_AGE)` → `constitution -= 1`
+- `prob = INTELLIGENCE_DECAY_BASE_RATE × max(0, age − INTELLIGENCE_DECAY_START_AGE)` → `intelligence -= 1`
+Each stat floors at 1. `ExerciseEvent` and `LearnEvent` are the counterforce.
 
 #### JailEvent (ARD 035, ARD 041)
 Replaces the normal gather/consume cycle for agents with `jailedTicksRemaining > 0`.

@@ -102,9 +102,11 @@ When in doubt:
 
 1. Add to the Index below (as **Proposed**).
 2. Discuss with project owner; update status to **Accepted** only after approval.
-3. Reference in `CLAUDE.md` under "Key design decisions" (if it changes a project-level invariant) and "What's implemented" (when the code lands).
+3. Reference in `docs/model-reference.md` under the relevant subsystem, and in `docs/odd-protocol.md` when the code lands and changes a mechanism, agent field, or the tick order.
 4. Update `docs/future-ideas.md` — move subsumed items to Discarded; delete obsolete ones with a note in the ARD.
 5. Same commit as implementation when possible; otherwise cross-reference in commit messages.
+
+**Note on older ARDs.** Consequences sections written before 2026-09 tell you to update CLAUDE.md sections called "Key design decisions" and "What's implemented". Those moved to `docs/model-reference.md`; the mechanism detail moved to `docs/odd-protocol.md`. ARDs are immutable, so the stale instructions stay — follow the table in CLAUDE.md's "Keeping the handoff docs current" instead.
 
 ## Statuses
 
