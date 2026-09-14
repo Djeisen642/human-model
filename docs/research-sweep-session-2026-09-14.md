@@ -74,12 +74,17 @@ be a third crash, which `detectCycles` can't yet see because it only requires 2 
 That item's prior claim — "a scan across seeds, long horizons, and even zero ceiling degradation
 finds **none**" — was run at default productivity dynamics. This session didn't test the *default*
 regime; it found the oscillating regime specifically *because* it removed productivity drift, which
-nobody had tried before pairing with a long-horizon `stable` measurement. If the 1500-tick check
-confirms real persistence, this is a materially new data point for that future-ideas item and for
+nobody had tried before pairing with a long-horizon `stable` measurement. The 1500-tick check (see
+addendum below) confirms this is real but incomplete: most populations that start cycling keep
+cycling well past the point the original scan would have measured them, several rebuild to most of
+their historical peak, but roughly 1-in-5 of them still roll an extinction on a later down-phase. So
+this is a materially new data point for that future-ideas item and for
 `docs/research-tuning-defaults.md`'s "no single constant fixes overshoot→extinction" conclusion —
-not a refutation (COLLAPSE still dominates the outcome-label tally), but evidence that the
-*underlying dynamics* are already escaping the one-shot pattern once one specific bug (productivity
-drift) is removed, well before any deliberate crash-recovery mechanism is built.
+not a refutation (COLLAPSE still dominates the outcome-label tally, and extinction is still a live
+risk, not eliminated), but evidence that the *underlying dynamics* are already most of the way to
+escaping the one-shot pattern once one specific bug (productivity drift) is removed, well before any
+deliberate crash-recovery mechanism is built. That remaining gap looks like exactly the shape a
+crash-recovery mechanism (the still-unbuilt anti-Allee item) is meant to close.
 
 ## H5 — Jail/detection severity: a real lever, direction is suspicious, needs more seeds
 
@@ -160,4 +165,55 @@ resources just relocate where the wall is, they don't add a brake.
 
 ## Addendum: 1500-tick horizon check on the full-pin config
 
-*(Filled in after the sweep referenced above completed.)*
+`npx ts-node scripts/sweep.ts --seeds 16 --ticks 1500 --set INVENTION_DEPLETION_FASTER_WEIGHT=0 --set INVENTION_DEPLETION_SLOWER_WEIGHT=0 --workers 2 --verbose`, same 16 seeds as the 800-tick run above.
+
+```
+outcomes (n=16)                     endPop  peakPop  peakGini  bound%  orphPk%  welf%  extinct  cyc  stable
+-----------------------------------------------------------------------------------------------------------
+STRUGGLING×3 COLLAPSE×7 EXTINCTION×6    40.5     1214      0.56     39%     100%    49%     6/16  4.5    7/16
+```
+
+**Answer: partly confirmed, partly refuted — this is a genuinely mixed result, not a clean yes or no.**
+
+Tracking the 10 seeds tagged `STABLE-CYCLE` at 800 ticks individually out to 1500:
+
+| Seed | 800t | 1500t |
+|---|---|---|
+| 1 | COLLAPSE, end=224, cyc=2 | **STRUGGLING, end=831, cyc=5, still STABLE-CYCLE** — rebuilt to 68% of peak |
+| 3 | COLLAPSE, end=175, cyc=2 | COLLAPSE, end=218, cyc=4, still STABLE-CYCLE |
+| 4 | COLLAPSE, end=249, cyc=2 | **STRUGGLING, end=1193, cyc=4, still STABLE-CYCLE** — 97% of its own peak |
+| 5 | COLLAPSE, end=228, cyc=2 | COLLAPSE, end=50, cyc=5, still STABLE-CYCLE |
+| 6 | COLLAPSE, end=98, cyc=2 | **EXTINCTION, extinct@1324** |
+| 7 | COLLAPSE, end=142, cyc=2 | COLLAPSE, end=31, cyc=5, still STABLE-CYCLE |
+| 8 | COLLAPSE, end=142, cyc=2 | **STRUGGLING, end=758, cyc=5, still STABLE-CYCLE** — rebuilt to 61% of peak |
+| 9 | COLLAPSE, end=312, cyc=2 | COLLAPSE, end=464, cyc=5, **lost STABLE-CYCLE tag** (trough trend fell 0.67→0.38) |
+| 12 | COLLAPSE, end=49, cyc=2 | COLLAPSE, end=455, cyc=5, still STABLE-CYCLE |
+| 13 | COLLAPSE, end=2, cyc=2 | **EXTINCTION, extinct@852** |
+
+The two seeds flagged as suspicious in the first draft of this doc (very low `end` population relative
+to peak right at the tick-800 cutoff) resolved exactly as feared for one of them and worse than feared
+for the other: **seed 13 (end=2 at 800t) went extinct 52 ticks later**, confirming that a low-margin
+ending at an arbitrary horizon can be a real terminal crash the detector hadn't seen yet. **Seed 6
+(end=98, comfortably tagged `STABLE-CYCLE` with `trTrend=0.98`) also went extinct**, 524 ticks further
+out — so passing the detector's 2-cycle bar is not sufficient to guarantee survival; the "stable"
+label from a 2-cycle read is provisional, not a persistence guarantee.
+
+But the majority of the 800-tick "stable" cohort did not do this. Seven of the ten sustained a 4th or
+5th oscillation and are still alive at 1500 ticks, three of them (seeds 1, 4, 8) rebuilding to 61–97%
+of their historical peak — genuine recovery, not a slow bleed-out. Aggregate: `extinct` rose from
+4/16 → 6/16 and `stable` fell from 10/16 → 7/16 between the two horizons, both consistent with an
+ongoing, non-trivial attrition rate among cycling populations rather than either a hard floor or an
+inevitable ratchet to zero.
+
+**Conclusion:** removing productivity drift produces a real, qualitatively different regime — most
+populations that start cycling keep cycling for at least 1500 ticks, several substantially rebuild —
+but it is not (at least not yet, on this evidence) a stable equilibrium in the strict sense. There is
+a continuing background hazard of the down-phase of a cycle bottoming out at true zero, roughly
+1-in-5 of the 800-tick "stable" cohort by tick 1500. This is still a dramatically better regime than
+the default's near-universal one-shot terminal collapse (94% extinct by 800 ticks with `stable=6%`),
+and a genuinely new data point for the shelved `OSCILLATING` label item — but the honest framing is
+"productivity drift was suppressing a real oscillatory mode, and even the fixed version keeps
+occasionally rolling extinction on its down-phases," not "productivity drift was the whole answer."
+A crash-recovery mechanism (the still-unbuilt anti-Allee item) would plausibly close this remaining
+gap by rescuing exactly the low-trough seeds that currently sometimes fail to recover — that is a
+sharper, evidence-backed version of the same future-ideas item, not a new one.
