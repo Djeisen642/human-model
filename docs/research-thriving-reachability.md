@@ -1,7 +1,7 @@
 # Research: Is THRIVING Reachable?
 
 **Recorded:** 2026-09-14 | **Commit:** 7e47605 | **Latest ARD:** 059 | **Base config:** all Variables at defaults unless noted
-**Commands:** `npx ts-node scripts/thrive-probe.ts --ticks 800 --seeds 2 --decades [--set KEY=VAL …]`; `npx ts-node scripts/gini-decomp.ts`
+**Commands:** `npx ts-node scripts/thrive-probe.ts --ticks 800 --seeds 2 --decades [--set KEY=VAL …]`; `npx ts-node scripts/gini-decomp.ts`; `npx ts-node scripts/gini-basis-probe.ts` (the 2026-09-14 re-measurement)
 **Key context vars:** `EXTRACTION_PRODUCTIVITY_FLOOR=0.01`, `MAX_EXTRACTION_PRODUCTIVITY=10`, `NATURAL_RESOURCE_CEILING_INITIAL=10000`, `NATURAL_RESOURCE_REGEN_FRACTION=0.03`, `TAX_RATE=0.02`, `WELFARE_THRESHOLD=20`, `BASE_CHILDBIRTH_RATE=0.6`, `THRIVING_*` thresholds
 
 CLAUDE.md flagged ARD 051's THRIVING label as possibly "definitionally unreachable" and asked for that
@@ -133,7 +133,39 @@ A society with genuinely equal adults (0.19) reads 0.35 and fails the 0.30 THRIV
 dependency ratio alone. Since population growth raises child share, **growth mechanically pushes Gini
 through the gate** — a direct conflict with the peak-decline gate, which wants the population rising.
 This is the already-filed future-ideas item "Resource Gini counts dependent children's structural
-zeros"; this study quantifies it at roughly +0.15 in a healthy growing phase.
+zeros".
+
+> **Re-measured 2026-09-14 (commit 900171f) — the +0.15 above is the tail, not the typical case.**
+> The single-tick figure was one decade at a 30% child share. Measured properly across 840
+> decade-observations (`npx ts-node scripts/gini-basis-probe.ts`; 8 default seeds × 800 ticks, 8
+> seeds × 300 ticks, and 3 seeds of the thriving config), the gap between the two bases is:
+>
+> | Child share | n | Median gap (all − adult) |
+> |---|---|---|
+> | 0–5% | 150 | +0.002 |
+> | 5–15% | 127 | +0.012 |
+> | 15–25% | 232 | +0.078 |
+> | 25–35% | 135 | +0.086 |
+> | 35%+ | 196 | +0.033 |
+>
+> Pooled p90 is +0.092 and the maximum observed is +0.192, so +0.15 sits near the 99th percentile.
+> The gap shrinks again above a 35% child share because those decades are booms and crashes where
+> adult inequality is itself high and dominates the measure. In **12.5%** of decades the adult basis
+> reads *higher* than all-living — children can hold more than the poorest adults once welfare and
+> estates have moved resources around.
+>
+> The pathology this item describes — adults below the 0.30 THRIVING gate while the all-living
+> number is at or above it — fires in **6.7%** of decades (46 of them at a child share ≥ 20%). Real,
+> and worth fixing so the metric means what it says, but **not** a dominant reason THRIVING is rare.
+> The two mechanisms above it on this list matter far more.
+>
+> Recalibration basis for [ARD 060](decisions/060-gini-measurement-basis.md): moving each ARD-051
+> threshold to the same quantile of the adult-basis distribution gives THRIVING 0.30 → **0.268**,
+> STRUGGLING 0.45 → **0.427**, COLLAPSE 0.60 → **0.631**. The first two are stable across every
+> reference set tried (default-only, default+short, all three: 0.268–0.275 and 0.427). The COLLAPSE
+> figure is not trustworthy — the two distributions' upper tails coincide (p99 = 0.762 and max =
+> 0.830 on both bases), so that threshold is expected to stand at 0.60 rather than move on a noisy
+> quantile estimate.
 
 ### 4. Welfare concentrates when few qualify
 
@@ -159,9 +191,15 @@ In priority order, and each is ARD-level:
    rescues the trough, a soft brake prevents the crash.
 3. **Decide what Gini is measuring.** Adult-only or household Gini would make the primary collapse
    signal track adult inequality instead of dependency ratio. Already on the future-ideas list;
-   this study is the case for promoting it.
+   this study is the case for promoting it. Agreed and specified in
+   [ARD 060](decisions/060-gini-measurement-basis.md) (adults 18+, one definition everywhere,
+   ARD-051 thresholds re-derived by quantile preservation). Note the re-measurement above: the
+   effect is smaller than this study first reported, so this is a correctness fix for the metric,
+   not a lever expected to move outcomes much.
 4. **Fix welfare concentration.** Cap the per-capita share, or make the payout proportional to the
-   shortfall rather than an equal split of the whole pool.
+   shortfall rather than an equal split of the whole pool. Agreed and specified in
+   [ARD 061](decisions/061-welfare-shortfall-topup.md) (pay each recipient their shortfall to
+   `WELFARE_THRESHOLD`, retain the surplus, split proportionally when the pool is short).
 
 Items 1 and 2 are the ones that would plausibly move the default config. 3 and 4 are measurement and
 mechanism defects that will distort any calibration attempted before they are fixed.

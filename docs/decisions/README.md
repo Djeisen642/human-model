@@ -175,3 +175,5 @@ When in doubt:
 | [057](./057-founding-resource-distribution.md) | Founding Resource Distribution — Child Subsidy and Compressed Adult Wealth | Accepted |
 | [058](./058-founding-employment-seeding.md) | Founding Employment Seeding | Accepted |
 | [059](./059-fertility-window-width.md) | Fertility Window Width | Accepted |
+| [060](./060-gini-measurement-basis.md) | Gini Measured Over Adults, Not All Living | Proposed |
+| [061](./061-welfare-shortfall-topup.md) | Welfare Pays the Shortfall, Not an Equal Split | Proposed |
