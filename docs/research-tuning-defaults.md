@@ -81,8 +81,13 @@ way out of the crash?" The answer is instructive precisely because the short-hor
 > | `stable` | 2/48 (4.2%) | 6/48 (12.5%) | **0.268** |
 > | extinct | 46/48 (95.8%) | 39/48 (81.2%) | 0.051 |
 >
-> Two conclusions. **(1) The extinction benefit is real** — 95.8% → 81.2%, p=0.051 — so invention as
-> a *partial mitigator* stands. **(2) The sustained-cycle claim does not.** The recorded 37.5%
+> Two conclusions. **(1) The extinction benefit is real at 800 ticks** — 95.8% → 81.2%, p=0.051.
+> *(Superseded 2026-09-14: it is not real at 2000 ticks. Extending the horizon ladder to
+> 800/1200/1600/2000 at 48 seeds gives invention 39 → 45 → 47 → **48/48** extinct against the
+> default's 46 → **48/48**. Invention delays total extinction by roughly 800 ticks and prevents
+> nothing. This study's sharp distinction between 0.01 "only delays the crash" and 0.03 "does more
+> than delay" collapses — **both only delay**, and no part of the invention lever survives an
+> adequate horizon.)* **(2) The sustained-cycle claim does not hold either.** The recorded 37.5%
 > (6/16) is three times the best current estimate of 12.5% (6/48) and sits outside its 95% CI
 > [5.9%, 24.7%]; more importantly, at matched power 12.5% is **not distinguishable from the default's
 > 4.2%** (p=0.27, CIs overlap heavily). So "the only single-lever change to produce genuine sustained

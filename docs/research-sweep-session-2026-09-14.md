@@ -377,3 +377,58 @@ headline table above. The methodological lesson the tuning-defaults study exists
 horizon ladder, short horizons lie — is untouched and reproduces cleanly. It just needs a companion
 rule: **run 48+ seeds before believing a `stable` difference, or use a continuous per-run measure
 (trough depth, `cyc`, peak-relative decline) that carries more information per seed.**
+
+## Addendum 4: everything re-run at 48 seeds out to 2000 ticks — 800 ticks was too short
+
+A performance change (PR #107, bitwise-identical, verified here by reproducing the 48-seed default
+baseline exactly) made sweeps ~20× faster, so every config in this study was re-run at **48 seeds**
+across a 800/1200/1600/2000 horizon ladder. These supersede the 16-seed figures above.
+
+**Extinct seeds out of 48:**
+
+| Config | 800t | 1200t | 1600t | 2000t |
+|---|---|---|---|---|
+| Default | 46 | **48** | 48 | 48 |
+| `BASE_INVENTION_RATE=0.03` (15×) | 39 | 45 | 47 | **48** |
+| Full productivity pin | 8 | 12 | 20 | **23** |
+| `FLOOR=0.1` + invention 0.03 | 8 | 14 | 21 | **26** |
+
+### The invention lever has no surviving benefit at all
+
+Addendum 3 concluded that invention's extinction reduction held up even though its sustained-cycle
+claim didn't. **That conclusion was itself an artifact of stopping at 800 ticks.** Invention delays
+total extinction from ~1200 ticks to ~2000 and then everything dies anyway: 48/48, identical to
+default. The original study drew a sharp distinction between 0.01 ("only *delays* the crash") and
+0.03 ("does more than delay"). At an adequate horizon that distinction disappears — **both rates only
+delay.** Nothing about the invention lever survives.
+
+### The productivity configs are qualitatively different, but still decaying
+
+They are the only configs with survivors at 2000 ticks (25 and 22 of 48). But survival is not
+stabilising — it decays at a roughly constant rate:
+
+| Config | survivors lost per 400 ticks | exponential half-life | extrapolated to 5000t |
+|---|---|---|---|
+| Full pin | 10%, 22%, 11% | ~1770 ticks | ~8 of 48 |
+| `FLOOR=0.1` + invention | 15%, 21%, 19% | ~1391 ticks | ~5 of 48 |
+
+A constant hazard with no sign of flattening is exponential decay, not equilibrium. Sustained-cycle
+counts erode in step (pin 36 → 18 of 48; floor+invention 34 → 14). This confirms the prediction in
+addendum 2 quantitatively: the cycles pass close enough to zero that extinction is a matter of time.
+Productivity drift is still the one intervention that changes the *shape* of the failure — half the
+seeds are alive at 2000 where every other config is at zero — but it postpones collapse rather than
+preventing it.
+
+### Methodological: the 800-tick rule has the same flaw it was written to fix
+
+`docs/calibration-guide.md` says judge configs at 500–800 ticks because shorter horizons measure
+mid-overshoot. **800 ticks reproduces that error one level up.** At 800 ticks invention-alone looks
+like a genuine improvement over default (39 vs 46 extinct, p≈0.05); at 2000 it is exactly null. Any
+config whose benefit is *delay* will read as *rescue* at a horizon shorter than the delay it buys.
+
+Two rules follow, and they compound with the seed-count rule from addendum 3:
+
+1. **Judge extinction claims at 2000 ticks, not 800.** 800 is the new 300.
+2. **Prefer the extinction-vs-horizon curve to any single-horizon count.** A config that is
+   genuinely different has a curve that flattens; a config that merely delays has one that keeps
+   climbing to 48/48. That distinction is invisible at any one horizon and obvious across four.
