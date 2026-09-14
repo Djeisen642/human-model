@@ -17,11 +17,15 @@ STRUGGLING×2`, median peak population 703, `bound%=8%`, `stable=2/32`** (from
 `docs/research-tuning-defaults.md` scanned for the `OSCILLATING` regime (population sustaining
 repeated boom-bust cycles instead of a single terminal collapse) and "finds none" outside two narrow
 cases: a 15× `BASE_INVENTION_RATE` (`stable=6/16` at 800t) and a strong anti-Allee fertility probe
-(`stable≈3/16`). This session found a third, much stronger lever, and it was hiding behind a
-mechanism nobody had isolated before: **`extractionProductivity`'s downward drift (see
+(`stable≈3/16`). **Addendum 3 below re-measures the first of those and finds it doesn't hold at
+adequate power** (6/48 vs a matched default control's 2/48, p=0.27), and the second has never been
+re-measured — so the honest starting point is that *no* lever had an established `stable` effect.
+Against that, this session found one that does move the dynamics, hiding behind a mechanism nobody
+had isolated: **`extractionProductivity`'s downward drift (see
 `docs/research-thriving-reachability.md` item 1) isn't just an unchosen pessimism — removing it
 changes the model's *qualitative* dynamics from "boom once, crash to extinction" to "boom, crash
-partway, boom again."**
+partway, boom again."** Note the same power caveat applies to the `stable` counts in the table below;
+the `cyc=0` column is the part of this finding that rests on firmer ground.
 
 | Config (16 seeds, 800 ticks unless noted) | `stable` | never cycles (`cyc=0`) | Extinction | Median peak pop | `bound%` |
 |---|---|---|---|---|---|
@@ -48,8 +52,11 @@ revisions). None of those variables appear in that study's `Key context vars` li
 could have known to list them. This is precisely the drift the provenance convention in CLAUDE.md was
 added to catch, and it is a live example: an invention-lever result that everyone has been citing as
 `6/16` reads `3/16` on current `master`. Treat the invention-alone figure — and the "synergy"
-inference that rests on comparing against it — as the least trustworthy claim in this table, and
-consider re-measuring `docs/research-tuning-defaults.md`'s invention ladder outright.
+inference that rests on comparing against it — as the least trustworthy claim in this table.
+
+> **Followed up: the full invention ladder was re-measured (addendum 3 below), and the `6/16` claim
+> does not survive.** At 48 seeds against a matched default control it is 6/48 vs 2/48, p=0.27 — the
+> lever's sustained-cycle effect was never distinguishable from the default.
 
 **The gradient is not a single clean axis — an earlier draft of this doc overstated that.** The two
 resource rows at the bottom carry the *same* productivity treatment as the `FLOOR=0.1`-alone row
@@ -330,3 +337,43 @@ exactly where these cycles bottom out and exactly where the model currently has 
 The measurable success criterion is trough depth, not `stable` counts — raise the trough floor and the
 per-cycle hazard falls out of it. That is a better-specified ARD than "add crash recovery," and it is
 the single most actionable thing this session produced.
+
+## Addendum 3: re-measuring `docs/research-tuning-defaults.md`'s invention ladder
+
+The invention-alone control above disagreed with the recorded figure, so the whole ladder was re-run
+(`--seeds 16 --sweep BASE_INVENTION_RATE=0.002,0.01,0.03` at each of 300/500/800 ticks), then the
+decisive cell was re-run at 48 seeds against a matched control.
+
+| `BASE_INVENTION_RATE` | 300t (orig → new) | 500t (orig → new) | 800t (orig → new) |
+|---|---|---|---|
+| 0.002 (default) | 11/16 → **10/16** ext | — → 13/16 ext | — → 15/16 ext, 1 stable |
+| 0.01 (5×) | 4/16 → **6/16** ext | 12/16 → **9/16** ext | 16/16 → **15/16** ext, 0 → 1 stable |
+| 0.03 (15×) | 4/16 → **7/16** ext | 6/16 → **9/16** ext, 3 → **0** stable | 9/16 → **12/16** ext, 6 → **3** stable |
+
+**No individual cell differs significantly at n=16** — every Fisher p ≥ 0.23, and a 3-seed swing at
+this sample size is p ≈ 0.46. But the 0.03 row moves against the original at all three horizons, so
+the headline cell was re-run properly:
+
+| 800 ticks, 48 seeds, same commit and seeds | default | `BASE_INVENTION_RATE=0.03` | Fisher p |
+|---|---|---|---|
+| `stable` | 2/48 (4.2%) | 6/48 (12.5%) | **0.268** |
+| extinct | 46/48 (95.8%) | 39/48 (81.2%) | 0.051 |
+
+**What survives:** the extinction benefit. 95.8% → 81.2% at p=0.051 supports invention as a *partial
+mitigator*, as that study concluded.
+
+**What doesn't:** the sustained-cycle claim, which was the interesting half. The recorded 37.5%
+(6/16) is 3× the best current estimate of 12.5% (6/48) and outside its 95% CI [5.9%, 24.7%] — and at
+matched power, 12.5% vs the default's 4.2% is **not a distinguishable difference** (p=0.27, CIs
+overlapping). "The only single-lever change to produce genuine sustained cycles" is not supported by
+data at adequate power. It may still be true; it has simply never been shown.
+
+**What this is really about.** The drift cannot be cleanly separated from noise — ARDs 052–062 landed
+between the two measurements, but the original cell was also just underpowered. That second point is
+the transferable one: **`stable` is a binary count over 16 seeds, and at that n it cannot resolve the
+effect sizes this project routinely reports.** The same applies to the anti-Allee probe's 2–3/16
+(never re-measured), to several cells in this very document, and to the sustained-cycle counts in the
+headline table above. The methodological lesson the tuning-defaults study exists to teach — run the
+horizon ladder, short horizons lie — is untouched and reproduces cleanly. It just needs a companion
+rule: **run 48+ seeds before believing a `stable` difference, or use a continuous per-run measure
+(trough depth, `cyc`, peak-relative decline) that carries more information per seed.**
