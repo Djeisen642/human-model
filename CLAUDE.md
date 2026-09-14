@@ -263,9 +263,33 @@ If it finds a plausible new direction that isn't in the current plan: add it to 
 - Single quotes, semicolons, 2-space indent (ESLint)
 - Test files mirror source path: `src/tests/App/Person.test.ts` ↔ `src/App/Person.ts`
 
+## Communication conventions
+
+For things a human reads once — chat replies, result summaries, commit messages, PR descriptions. (Docs an agent re-reads have their own rules below.)
+
+**Lead with the answer.** First sentence says what happened. Method, caveats, and context come after. If the result is "this didn't work," that goes in line one, not paragraph four.
+
+**Gloss the jargon or drop it.** Statistical and model terms need plain English on first use. Metric names (`stable`, `bound%`, `cyc`, `orphPk%`) belong in tables; in prose, say what they measure.
+
+> ✗ "`stable` 3/32 → 2/32, inside binomial noise."
+> ✓ "Sustained cycles went from 3 seeds out of 32 to 2 — too small a difference to mean anything."
+
+> ✗ "The bounds are log-asymmetric, so the reflected walk's stationary median is 0.35×."
+> ✓ "The productivity band `[0.01, 10]` has far more room below 1.0 than above, so a long run drifts down to about a third of its starting output."
+
+**Give every number a direction.** "0.081 vs 0.091 deaths per birth" is not a result until you say which is better and whether the gap matters.
+
+**Plain words.** No "the point that falls out is," "tempering the urgency," "which is itself informative," "ended with three Accepted ARDs." Say the thing.
+
+**One hedge per claim.** A result needing three qualifications isn't a result — call it unmeasured and move on.
+
+**Size the PR description to the reviewer, not the research.** Target under 400 words: what changed, why, how it was verified, what's still open. The evidence, the failed hypotheses, and the full tables go in `docs/research-*.md` and get linked. If the description runs long, the research doc isn't carrying its weight.
+
+Before sending: could someone who didn't run this work say what happened after reading the first two sentences? If not, rewrite them.
+
 ## Documentation conventions
 
-Be concise but clear in every doc — `CLAUDE.md`, ARDs, `future-ideas.md`, `decisions/README.md`. These files load into agent context; bloat is a real cost. Cut hedging, restated points, and elaborations the next reader can infer. One sentence beats three when it carries the same information. Keep the why; trim the throat-clearing.
+Be concise but clear in every doc — `CLAUDE.md`, ARDs, `future-ideas.md`, `decisions/README.md`. The clarity rules above apply here too; these add what docs need on top. These files load into agent context; bloat is a real cost. Cut hedging, restated points, and elaborations the next reader can infer. One sentence beats three when it carries the same information. Keep the why; trim the throat-clearing.
 
 **Research docs (`docs/research-*.md`)** must open with a provenance block so results stay interpretable after Variables are recalibrated:
 
