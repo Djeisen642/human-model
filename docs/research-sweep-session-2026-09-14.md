@@ -1,4 +1,4 @@
-# Research: Sweep Session — Productivity Drift, Punishment, and Two Dead Ends
+# Research: Sweep Session — Productivity Drift, and Four Things That Don't Matter
 
 **Recorded:** 2026-09-14 | **Commit:** 84c675d | **Latest ARD:** 062 | **Base config:** all Variables at defaults unless noted
 **Commands:** `npx ts-node scripts/sweep.ts --seeds 16 --ticks 800 --set KEY=VAL [--set KEY=VAL …] --workers 2` (see per-section commands below)
@@ -12,7 +12,7 @@ default baseline for comparison: **32 seeds, 800 ticks, unmodified Variables →
 STRUGGLING×2`, median peak population 703, `bound%=8%`, `stable=2/32`** (from
 `docs/research-thriving-reachability.md`'s ARD 062 validation table).
 
-## Headline finding: eliminating productivity drift unlocks sustained cycling that `classifyOutcome` can't see
+## Headline finding: removing productivity drift exposes a latent oscillatory mode — and changes the failure mode rather than fixing it
 
 `docs/research-tuning-defaults.md` scanned for the `OSCILLATING` regime (population sustaining
 repeated boom-bust cycles instead of a single terminal collapse) and "finds none" outside two narrow
@@ -29,7 +29,7 @@ partway, boom again."**
 | Default (32 seeds, documented, for reference) | 2/32 (6%) | — | 30/32 (94%) | 703 | 8% |
 | `EXTRACTION_PRODUCTIVITY_FLOOR=0.1` alone (log-symmetric band, still a random walk) | 2/16 (12.5%) | — | 13/16 (81%) | 773 | 43% |
 | Full pin (`INVENTION_DEPLETION_{FASTER,SLOWER}_WEIGHT=0`, productivity frozen at 1.0) | **10/16 (62.5%)** | **3/16** | 4/16 (25%) | 1187 | 41% |
-| `EXTRACTION_PRODUCTIVITY_FLOOR=0.1` + `BASE_INVENTION_RATE=0.03` (15×) | **15/16 (94%)** | — | **0/16 (0%)** | 1383 | 47% |
+| `EXTRACTION_PRODUCTIVITY_FLOOR=0.1` + `BASE_INVENTION_RATE=0.03` (15×) | **15/16 (94%)** | — | **0/16 (0%)** *(3/16 by 1500t)* | 1383 | 47% |
 | `BASE_INVENTION_RATE=0.03` alone (this session's control) | 3/16 (18.75%) | — | 12/16 (75%) | 1024 | 19% |
 | `EXTRACTION_PRODUCTIVITY_FLOOR=0.1` + `NATURAL_RESOURCE_REGEN_FRACTION=0.05` (8 seeds) | 6/8 (75%) | — | 2/8 (25%) | 1410 | 59% |
 | `EXTRACTION_PRODUCTIVITY_FLOOR=0.1` + `MAX_NATURAL_RESOURCE_CEILING=40000` (8 seeds) | 4/8 (50%) | — | 1/8 (12.5%) | 2180 | 61% |
@@ -57,9 +57,10 @@ resource rows at the bottom carry the *same* productivity treatment as the `FLOO
 anything about productivity. What the table actually supports is narrower: removing productivity
 *variance* is the single largest mover found here, widening the band alone is not the same
 intervention as freezing it (2/16 vs 10/16), and several other levers push `stable` up too. The
-"synergy" reading of `FLOOR=0.1` + 15× invention (15/16, zero extinctions) is the most interesting
-cell in the table and also the least verified — it is one 16-seed run whose invention-alone control
-is the row that failed to reproduce.
+"synergy" reading of `FLOOR=0.1` + 15× invention (15/16, zero extinctions) rests on one 16-seed run
+whose invention-alone control is the row that failed to reproduce — **and its zero-extinction figure
+does not survive a longer horizon: at 1500 ticks the same config is 3/16 extinct with `stable` down
+to 11/16** (second addendum below).
 
 **The more robust statistic is `cyc=0`** — the count of seeds that never establish *any* oscillation
 and simply boom once and die, which needs no judgment call about trough thresholds. It goes from
@@ -111,28 +112,29 @@ oscillatory regime can establish. The same mode dominates the default config (10
 majority outcome into a minority one (10/16 → 3/16) but does not eliminate it; roughly a fifth of
 seeds die in the first ~330 ticks regardless.
 
-> **Resolution pending:** a 1500-tick re-run of the full-pin config (same command, `--ticks 1500`) was
-> in flight when this doc was first written, specifically to check whether these seeds complete a
-> third cycle (confirming genuine sustained oscillation) or ratchet down to extinction shortly after
-> tick 800 (meaning `stable=10/16` was measuring a wider single overshoot, not real persistence). ***See
-> the addendum below for the result.***
+> **Resolved — see both addenda.** Each productivity config was re-run to 1500 ticks to check whether
+> these seeds complete further cycles or ratchet to extinction shortly after tick 800. Short answer:
+> they do keep cycling (median `cyc=5`), and they also keep dying at a steady per-cycle rate, because
+> the troughs bottom out around 10 people.
 
 ### What this means for the `OSCILLATING` label item in `docs/future-ideas.md`
 
 That item's prior claim — "a scan across seeds, long horizons, and even zero ceiling degradation
 finds **none**" — was run at default productivity dynamics. This session didn't test the *default*
 regime; it found the oscillating regime specifically *because* it removed productivity drift, which
-nobody had tried before pairing with a long-horizon `stable` measurement. The 1500-tick check (see
-addendum below) confirms this is real but incomplete: most populations that start cycling keep
-cycling well past the point the original scan would have measured them, several rebuild to most of
-their historical peak, but roughly 1-in-5 of them still roll an extinction on a later down-phase. So
-this is a materially new data point for that future-ideas item and for
-`docs/research-tuning-defaults.md`'s "no single constant fixes overshoot→extinction" conclusion —
-not a refutation (COLLAPSE still dominates the outcome-label tally, and extinction is still a live
-risk, not eliminated), but evidence that the *underlying dynamics* are already most of the way to
-escaping the one-shot pattern once one specific bug (productivity drift) is removed, well before any
-deliberate crash-recovery mechanism is built. That remaining gap looks like exactly the shape a
-crash-recovery mechanism (the still-unbuilt anti-Allee item) is meant to close.
+nobody had tried before pairing with a long-horizon `stable` measurement. The 1500-tick checks (both
+addenda) confirm the oscillation is real — populations run five-plus cycles, well past the point the
+original scan would have measured them, and some rebuild to most of their historical peak — but they
+also show it is **not** the persistent regime the `OSCILLATING` label was meant to name: 17–19% of
+surviving seeds go extinct per 700 ticks, because every trough passes within ~10 individuals of zero.
+
+So this is a materially new data point for that future-ideas item and for
+`docs/research-tuning-defaults.md`'s "no single constant fixes overshoot→extinction" conclusion,
+but it is not a refutation of either. What it establishes is narrower and more useful: the model has
+a latent oscillatory mode that productivity drift was suppressing, and exposing it converts the
+failure from *one-shot terminal overshoot* into *repeated near-miss cycling*. The crash-recovery /
+anti-Allee mechanism is still required — this study just says precisely where it has to act
+(populations of 5–20) and what to calibrate it against (trough depth).
 
 ## H5 — Jail/detection severity: works on crime, irrelevant to outcomes
 
@@ -279,3 +281,52 @@ occasionally rolling extinction on its down-phases," not "productivity drift was
 A crash-recovery mechanism (the still-unbuilt anti-Allee item) would plausibly close this remaining
 gap by rescuing exactly the low-trough seeds that currently sometimes fail to recover — that is a
 sharper, evidence-backed version of the same future-ideas item, not a new one.
+
+## Addendum 2: 1500-tick horizon check on `FLOOR=0.1` + 15× invention — and why neither config is an equilibrium
+
+The headline cell (15/16 stable, 0/16 extinct at 800 ticks) had never been horizon-checked, because
+an earlier draft mislabeled it as the pin config and checked that instead. Run directly
+(`--seeds 16 --ticks 1500 --set EXTRACTION_PRODUCTIVITY_FLOOR=0.1 --set BASE_INVENTION_RATE=0.03`):
+
+```
+outcomes (n=16)                     endPop  peakPop  peakGini  bound%  orphPk%  welf%  extinct  cyc  stable
+-----------------------------------------------------------------------------------------------------------
+COLLAPSE×12 STRUGGLING×1 EXTINCTION×3     118   1456.5      0.73     48%     100%    51%     3/16    5   11/16
+```
+
+**The zero-extinction result does not hold.** 800 ticks → 1500 ticks takes this config from 0/16 to
+3/16 extinct (seeds 6, 12, 13, at ticks 1269, 841, 1065) and `stable` from 15/16 to 11/16. Surviving
+seeds are cycling hard — median `cyc=5`, period ~260 ticks — so the oscillatory regime is
+unambiguously real. It just isn't safe.
+
+**The mechanism, and the most useful number in this study: the troughs bottom out at a median of 10
+people.** Across the 13 surviving seeds the per-run minimum population is 5, 6, 7, 10, 10, 10, 10, 11,
+12, 15, 15, 16, 18. Every ~260 ticks these populations pass within a handful of individuals of zero
+and happen to come back. That reframes the whole finding: this is not an equilibrium with a floor, it
+is **a random walk with an absorbing barrier**, and each cycle is a fresh roll against it.
+
+The attrition rate is consistent across both productivity configurations, which is what you would
+expect if that is the operative mechanism:
+
+| Config | extinct @800t | extinct @1500t | share of survivors lost over 700 ticks |
+|---|---|---|---|
+| Full pin | 4/16 | 6/16 | 2 of 12 → **17%** |
+| `FLOOR=0.1` + 15× invention | 0/16 | 3/16 | 3 of 16 → **19%** |
+
+At a ~260-tick period that is roughly a **7% extinction hazard per trough**, and nothing in the data
+suggests it decays with time — the troughs are not getting shallower. Extrapolated naively, a constant
+per-cycle hazard takes essentially every seed eventually; these configs postpone collapse rather than
+escaping it.
+
+**What this does to the session's headline.** "Removing productivity drift unlocks sustained cycling"
+survives — `cyc=0` really does go 10/16 → 3/16, and populations really do run five-plus cycles. But
+"and eliminates extinction" does not, and neither config is a stability result. The honest summary is
+that the productivity fix **changes the failure mode** from *one-shot terminal overshoot* to *repeated
+near-miss cycling with a per-cycle extinction hazard*, at 41–61% commons exhaustion throughout.
+
+This sharpens the crash-recovery / anti-Allee future-ideas item into something with a concrete target
+rather than a vague aspiration: the mechanism needs to bite at **populations of 5–20**, which is
+exactly where these cycles bottom out and exactly where the model currently has no support at all.
+The measurable success criterion is trough depth, not `stable` counts — raise the trough floor and the
+per-cycle hazard falls out of it. That is a better-specified ARD than "add crash recovery," and it is
+the single most actionable thing this session produced.
