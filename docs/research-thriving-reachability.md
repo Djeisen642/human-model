@@ -1,7 +1,7 @@
 # Research: Is THRIVING Reachable?
 
 **Recorded:** 2026-09-14 | **Commit:** 7e47605 | **Latest ARD:** 059 | **Base config:** all Variables at defaults unless noted
-**Commands:** `npx ts-node scripts/thrive-probe.ts --ticks 800 --seeds 2 --decades [--set KEY=VAL …]`; `npx ts-node scripts/gini-decomp.ts`; `npx ts-node scripts/gini-basis-probe.ts` (the 2026-09-14 re-measurement)
+**Commands:** `npm run sweep -- --seeds 32 --ticks 800` (ARD 060/061 validation); `npx ts-node scripts/thrive-probe.ts --ticks 800 --seeds 2 --decades [--set KEY=VAL …]`; `npx ts-node scripts/gini-decomp.ts`; `npx ts-node scripts/gini-basis-probe.ts` (the 2026-09-14 re-measurement)
 **Key context vars:** `EXTRACTION_PRODUCTIVITY_FLOOR=0.01`, `MAX_EXTRACTION_PRODUCTIVITY=10`, `NATURAL_RESOURCE_CEILING_INITIAL=10000`, `NATURAL_RESOURCE_REGEN_FRACTION=0.03`, `TAX_RATE=0.02`, `WELFARE_THRESHOLD=20`, `BASE_CHILDBIRTH_RATE=0.6`, `THRIVING_*` thresholds
 
 CLAUDE.md flagged ARD 051's THRIVING label as possibly "definitionally unreachable" and asked for that
@@ -203,6 +203,33 @@ In priority order, and each is ARD-level:
 
 Items 1 and 2 are the ones that would plausibly move the default config. 3 and 4 are measurement and
 mechanism defects that will distort any calibration attempted before they are fixed.
+
+## Validation of ARD 060 / ARD 061 (2026-09-14)
+
+Both landed together, so this measures them jointly. `npm run sweep -- --seeds N --ticks 800`
+run against the implementation and against its parent commit in a git worktree, same seeds:
+
+| | outcomes | extinct | median peak | bound% | `stable` |
+|---|---|---|---|---|---|
+| Before, 16 seeds | `COLLAPSE×1 STRUGGLING×1 EXTINCTION×14` | 14/16 | 599 | 23% | 2/16 |
+| After, 16 seeds | `EXTINCTION×14 COLLAPSE×2` | 14/16 | 657 | 24% | 0/16 |
+| Before, 32 seeds | `COLLAPSE×2 STRUGGLING×1 EXTINCTION×29` | 29/32 | 584 | 8% | 3/32 |
+| After, 32 seeds | `EXTINCTION×28 COLLAPSE×4` | 28/32 | 652 | 20% | 1/32 |
+
+The outcome distribution is preserved, which is what ARD 060's threshold re-derivation set out to
+achieve: extinction is unchanged (29/32 → 28/32) and the non-extinct seeds stay in the same
+COLLAPSE/STRUGGLING band. The "before" rows reproduce CLAUDE.md's recorded 2/16 and 3/32 exactly,
+so the comparison is measuring the change and not drift.
+
+**One thing to watch: `stable` fell from 3/32 to 1/32.** At these counts that is inside binomial
+noise (Fisher exact p ≈ 0.6) and is *not* established as a regression, but the default config's
+sustained-cycle property was one of only three known non-zero `stable` regimes, so it is worth
+re-measuring at more seeds before anyone relies on it. Per-seed comparison is meaningless here:
+`KillEvent`'s attempt probability changed, so the number of RNG draws per tick changed, and every
+trajectory diverges from tick one regardless of the size of the effect.
+
+The rise in `bound%` (8% → 20% at 32 seeds) tracks the higher median peak population rather than
+anything in the two changes directly — a bigger boom extracts more, so the commons binds more often.
 
 ## Caveats
 
