@@ -4,6 +4,7 @@ import KillingRecord from '../Records/KillingRecord';
 import Constants from '../Helpers/Constants';
 import Variables from '../Helpers/Variables';
 import { ageModifier } from '../Helpers/AgeModifier';
+import { resourceGini } from '../Helpers/Inequality';
 import {
   INTEGER_FIELDS,
   OverridableField,
@@ -41,7 +42,7 @@ export interface TickSnapshot {
   cumulativeDeathsBySuicide: number;
   /** Mean resources across living population. */
   averageResources: number;
-  /** Gini coefficient of resource distribution (0 = perfect equality, 1 = perfect inequality). */
+  /** Gini coefficient of resource distribution over adults (0 = perfect equality, 1 = perfect inequality). ARD 060. */
   resourceGini: number;
   /** Mean happiness across living population. */
   averageHappiness: number;
@@ -555,26 +556,48 @@ export default class Simulation {
   }
 
   /**
-   * Distributes `communityPool * (1 - COMMUNITY_POOL_RESERVE_FRACTION)` equally to eligible
-   * persons. Eligible: `resources < WELFARE_THRESHOLD` or orphaned child (`age < 18` with no
-   * living parents). If no eligible persons exist, the full pool carries over.
-   * Call once per tick after consumption events. ARD 034.
+   * Tops each recipient up toward `WELFARE_THRESHOLD`, drawing on
+   * `communityPool * (1 - COMMUNITY_POOL_RESERVE_FRACTION)`. A recipient is anyone whose
+   * resources fall short of the threshold, and nobody receives more than their own shortfall,
+   * so welfare cannot lift anyone above it. When the distributable amount covers every
+   * shortfall the surplus stays in the pool as a buffer; when it does not, the distributable
+   * amount is split in proportion to shortfall. Parentally subsidised children are skipped
+   * (ARD 062) — their need is met by topping up their parents. Call once per tick after
+   * consumption events. ARD 061, revising ARD 034's equal split.
    *
    * @param persons - living population to evaluate for eligibility
    */
   distributeWelfare(persons: Person[]): void {
-    const eligible = persons.filter(p =>
-      p.resources < Variables.WELFARE_THRESHOLD ||
-      (p.age < 18 && p.livingParents.length === 0),
-    );
-    this.tickWelfareRecipients = eligible.length;
-    if (eligible.length === 0) return;
+    const recipients = persons
+      // Skip children a parent already supports: a transfer cannot reach their consumption
+      // (ConsumptionEvent charges them a fraction of their own resources, so starvation cannot
+      // fire), their happiness (which reads their parents' resources), or the inequality signal
+      // (adults only), so it would spend rationed capacity on a number that does nothing until
+      // they turn 18. This reuses ConsumptionEvent's own subsidy boundary rather than
+      // WORKING_AGE_MIN so the two cannot disagree about who a parent supports — retuning that
+      // boundary also retunes who receives welfare. ARD 062.
+      .filter(person => !(
+        person.age < Variables.CONSUMPTION_CHILD_MAX_AGE && person.livingParents.length > 0
+      ))
+      .map(person => ({ person, shortfall: Variables.WELFARE_THRESHOLD - person.resources }))
+      .filter(r => r.shortfall > 0);
+    // Counted before the early returns: a person who qualified and got nothing because the pool
+    // was empty is still a recipient for reporting purposes.
+    this.tickWelfareRecipients = recipients.length;
+    if (recipients.length === 0) return;
+
     const distributable = this.communityPool * (1 - Variables.COMMUNITY_POOL_RESERVE_FRACTION);
-    const share = distributable / eligible.length;
-    this.communityPool -= distributable;
-    for (const person of eligible) {
-      person.resources += share;
+    if (distributable <= 0) return;
+
+    const totalShortfall = recipients.reduce((sum, r) => sum + r.shortfall, 0);
+    // Below capacity: pay every shortfall in full and retain the rest. Above capacity: share
+    // out what there is, weighted by shortfall, so the deepest need receives the most.
+    const payoutRatio = Math.min(1, distributable / totalShortfall);
+
+    for (const { person, shortfall } of recipients) {
+      person.resources += shortfall * payoutRatio;
     }
+    this.communityPool -= totalShortfall * payoutRatio;
   }
 
   /**
@@ -589,7 +612,7 @@ export default class Simulation {
 
     const resources = this.living.map(p => p.resources);
     const averageResources = mean(resources);
-    const resourceGini = gini(resources);
+    const adultResourceGini = resourceGini(this.living);
     const averageHappiness = mean(this.living.map(p => p.happiness));
     const averageIllness = mean(this.living.map(p => p.illness));
     const aggregateKillingIntent = this.living.reduce((s, p) => s + p.killingIntent, 0);
@@ -657,7 +680,7 @@ export default class Simulation {
       cumulativeDeathsByDisaster,
       cumulativeDeathsBySuicide,
       averageResources,
-      resourceGini,
+      resourceGini: adultResourceGini,
       averageHappiness,
       aggregateKillingIntent,
       aggregateStealingIntent,
@@ -791,19 +814,3 @@ function seedShuffle<T>(arr: T[], rng: RNG): void {
   }
 }
 
-/**
- * Gini coefficient using the sorted weighted-sum formula.
- * Returns 0 when all values are equal or the array is empty.
- *
- * @param values - numeric values
- * @returns Gini coefficient in [0, 1)
- */
-function gini(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const n = sorted.length;
-  const total = sorted.reduce((a, b) => a + b, 0);
-  if (total === 0) return 0;
-  const weightedSum = sorted.reduce((sum, x, i) => sum + (i + 1) * x, 0);
-  return (2 * weightedSum - (n + 1) * total) / (n * total);
-}

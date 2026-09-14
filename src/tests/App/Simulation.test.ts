@@ -303,10 +303,39 @@ describe('Simulation', () => {
       const sim = new Simulation();
       [0, 0, 100].forEach(r => {
         const p = new Person([]);
+        p.age = 30;
         p.resources = r;
         sim.add(p);
       });
       expect(sim.snapshot().resourceGini).toBeGreaterThan(0);
+    });
+
+    it('excludes dependent children from resourceGini (ARD 060)', () => {
+      const sim = new Simulation();
+      [40, 60].forEach(r => {
+        const adult = new Person([]);
+        adult.age = 30;
+        adult.resources = r;
+        sim.add(adult);
+      });
+      const adultsOnly = sim.snapshot().resourceGini;
+
+      const child = new Person([]);
+      child.age = 5;
+      child.resources = 0;
+      sim.add(child);
+      expect(sim.snapshot().resourceGini).toBeCloseTo(adultsOnly);
+    });
+
+    it('reports resourceGini 0 when no adults are alive (ARD 060)', () => {
+      const sim = new Simulation();
+      [0, 50].forEach(r => {
+        const child = new Person([]);
+        child.age = 5;
+        child.resources = r;
+        sim.add(child);
+      });
+      expect(sim.snapshot().resourceGini).toBe(0);
     });
 
     it('should report population 0 and gini 0 with no living persons', () => {
@@ -1004,8 +1033,11 @@ describe('Simulation', () => {
 
       sim.distributeWelfare(sim.getLiving());
       const snap = sim.snapshot();
-      // The payout lifts `poor` back over the threshold; the recipient still counts.
-      expect(poor.resources).toBeGreaterThan(Variables.WELFARE_THRESHOLD);
+      // The top-up lifts `poor` exactly to the threshold (ARD 061 caps each payout at the
+      // recipient's own shortfall), so a recount at snapshot time would find nobody eligible —
+      // the recipient still counts because the tally is taken at distribution time.
+      expect(poor.resources).toBeCloseTo(Variables.WELFARE_THRESHOLD);
+      expect(poor.resources).not.toBeLessThan(Variables.WELFARE_THRESHOLD);
       expect(snap.welfareRecipients).toBe(1);
     });
 
@@ -1045,8 +1077,8 @@ describe('Simulation', () => {
     });
   });
 
-  describe('distributeWelfare (ARD 034)', () => {
-    it('distributes to persons below WELFARE_THRESHOLD', () => {
+  describe('distributeWelfare (ARD 034, shortfall top-up per ARD 061)', () => {
+    it('tops a person below WELFARE_THRESHOLD up to exactly the threshold', () => {
       const sim = new Simulation();
       sim.communityPool = 100;
       const poor = new Person([]);
@@ -1059,11 +1091,52 @@ describe('Simulation', () => {
       sim.add(rich);
       const richBefore = rich.resources;
       sim.distributeWelfare([poor, rich]);
-      expect(poor.resources).toBeGreaterThan(Variables.WELFARE_THRESHOLD - 1);
+      expect(poor.resources).toBeCloseTo(Variables.WELFARE_THRESHOLD);
       expect(rich.resources).toBe(richBefore);
     });
 
-    it('distributes to orphaned children (age < 18, no living parents)', () => {
+    it('retains the unspent surplus in the pool rather than paying it out', () => {
+      const sim = new Simulation();
+      sim.communityPool = 100;
+      const poor = new Person([]);
+      poor.age = 30;
+      poor.resources = Variables.WELFARE_THRESHOLD - 4;
+      sim.add(poor);
+      sim.distributeWelfare([poor]);
+      expect(sim.communityPool).toBeCloseTo(96);
+    });
+
+    it('splits proportionally to shortfall and exhausts the distributable amount when short', () => {
+      const sim = new Simulation();
+      sim.communityPool = 10;
+      const distributable = 10 * (1 - Variables.COMMUNITY_POOL_RESERVE_FRACTION);
+      const deep = new Person([]);
+      deep.age = 30;
+      deep.resources = 0;
+      const shallow = new Person([]);
+      shallow.age = 30;
+      shallow.resources = Variables.WELFARE_THRESHOLD / 2;
+      sim.add(deep);
+      sim.add(shallow);
+      sim.distributeWelfare([deep, shallow]);
+      // deep's shortfall is twice shallow's, so it receives twice as much
+      expect(deep.resources).toBeCloseTo(2 * (shallow.resources - Variables.WELFARE_THRESHOLD / 2));
+      expect(deep.resources + (shallow.resources - Variables.WELFARE_THRESHOLD / 2)).toBeCloseTo(distributable);
+      expect(sim.communityPool).toBeCloseTo(10 - distributable);
+    });
+
+    it('never lifts a recipient above WELFARE_THRESHOLD', () => {
+      const sim = new Simulation();
+      sim.communityPool = 1_000_000;
+      const poor = new Person([]);
+      poor.age = 30;
+      poor.resources = 0;
+      sim.add(poor);
+      sim.distributeWelfare([poor]);
+      expect(poor.resources).toBeCloseTo(Variables.WELFARE_THRESHOLD);
+    });
+
+    it('pays an orphan above the threshold nothing (behaviour change from ARD 034)', () => {
       const sim = new Simulation();
       sim.communityPool = 100;
       const orphan = new Person([]);
@@ -1072,30 +1145,97 @@ describe('Simulation', () => {
       sim.add(orphan);
       const before = orphan.resources;
       sim.distributeWelfare([orphan]);
-      expect(orphan.resources).toBeGreaterThan(before);
+      expect(orphan.resources).toBe(before);
+      expect(sim.communityPool).toBe(100);
     });
 
-    it('does not distribute to a child with living parents even if above threshold', () => {
+    it('still tops up an orphan below the resource threshold', () => {
       const sim = new Simulation();
       sim.communityPool = 100;
-      const p1 = new Person([]);
-      p1.age = 30;
-      p1.resources = 200;
-      const p2 = new Person([]);
-      p2.age = 30;
-      p2.resources = 200;
-      const child = new Person([p1, p2]);
-      child.age = 10;
-      child.resources = Variables.WELFARE_THRESHOLD + 5;
-      sim.add(p1);
-      sim.add(p2);
-      sim.add(child);
-      const childBefore = child.resources;
-      sim.distributeWelfare([p1, p2, child]);
-      expect(child.resources).toBe(childBefore);
+      const orphan = new Person([]);
+      orphan.age = 10;
+      orphan.resources = 0;
+      sim.add(orphan);
+      sim.distributeWelfare([orphan]);
+      expect(orphan.resources).toBeCloseTo(Variables.WELFARE_THRESHOLD);
     });
 
-    it('distributes equal shares to each eligible recipient', () => {
+    it('pays a parentally subsidised child nothing even at zero resources (ARD 062)', () => {
+      const sim = new Simulation();
+      sim.communityPool = 100;
+      const parent = new Person([]);
+      parent.age = 30;
+      parent.resources = 200;
+      const child = new Person([parent]);
+      child.age = 10;
+      child.resources = 0;
+      sim.add(parent);
+      sim.add(child);
+      sim.distributeWelfare([parent, child]);
+      expect(child.resources).toBe(0);
+      expect(sim.communityPool).toBe(100);
+    });
+
+    it('still tops up an orphan below the subsidy boundary (ARD 062)', () => {
+      const sim = new Simulation();
+      sim.communityPool = 100;
+      const orphan = new Person([]);
+      orphan.age = 10;
+      orphan.resources = 0;
+      sim.add(orphan);
+      sim.distributeWelfare([orphan]);
+      expect(orphan.resources).toBeCloseTo(Variables.WELFARE_THRESHOLD);
+    });
+
+    it('still tops up a child past the subsidy boundary who can starve (ARD 062)', () => {
+      const sim = new Simulation();
+      sim.communityPool = 100;
+      const parent = new Person([]);
+      parent.age = 40;
+      parent.resources = 200;
+      // Past CONSUMPTION_CHILD_MAX_AGE, so ConsumptionEvent charges the flat rate and the
+      // starvation branch can fire — welfare must still reach them.
+      const teen = new Person([parent]);
+      teen.age = Variables.CONSUMPTION_CHILD_MAX_AGE;
+      teen.resources = 0;
+      sim.add(parent);
+      sim.add(teen);
+      sim.distributeWelfare([parent, teen]);
+      expect(teen.resources).toBeCloseTo(Variables.WELFARE_THRESHOLD);
+    });
+
+    it('frees rationed capacity for adults by skipping subsidised children (ARD 062)', () => {
+      /**
+       * Runs one distribution with a destitute adult, a well-off parent, and some subsidised children.
+       *
+       * @param childCount - number of subsidised children to add
+       * @returns the destitute adult's resources after distribution
+       */
+      const runWith = (childCount: number): number => {
+        const sim = new Simulation();
+        sim.communityPool = 1;
+        const adult = new Person([]);
+        adult.age = 30;
+        adult.resources = 0;
+        const parent = new Person([]);
+        parent.age = 40;
+        parent.resources = 500;
+        const everyone = [adult, parent];
+        for (let i = 0; i < childCount; i++) {
+          const child = new Person([parent]);
+          child.age = 5;
+          child.resources = 0;
+          everyone.push(child);
+        }
+        everyone.forEach(p => sim.add(p));
+        sim.distributeWelfare(everyone);
+        return adult.resources;
+      };
+      // Adding subsidised children must not dilute the destitute adult's share.
+      expect(runWith(10)).toBeCloseTo(runWith(0));
+    });
+
+    it('pays equal amounts to recipients with equal shortfalls', () => {
       const sim = new Simulation();
       sim.communityPool = 100;
       const p1 = new Person([]);
@@ -1112,18 +1252,33 @@ describe('Simulation', () => {
       expect(p1.resources - before1).toBeCloseTo(p2.resources - before2);
     });
 
-    it('retains COMMUNITY_POOL_RESERVE_FRACTION in the pool', () => {
+    it('retains COMMUNITY_POOL_RESERVE_FRACTION when shortfalls exceed the pool', () => {
       const sim = new Simulation();
-      sim.communityPool = 100;
+      // A pool smaller than the single recipient's shortfall, so the reserve cap binds.
+      sim.communityPool = Variables.WELFARE_THRESHOLD / 2;
       const p = new Person([]);
       p.age = 30;
       p.resources = 0;
       sim.add(p);
       sim.distributeWelfare([p]);
-      expect(sim.communityPool).toBeCloseTo(100 * Variables.COMMUNITY_POOL_RESERVE_FRACTION);
+      expect(sim.communityPool).toBeCloseTo(
+        (Variables.WELFARE_THRESHOLD / 2) * Variables.COMMUNITY_POOL_RESERVE_FRACTION,
+      );
     });
 
-    it('no-ops when no eligible recipients', () => {
+    it('no-ops when the pool is empty', () => {
+      const sim = new Simulation();
+      sim.communityPool = 0;
+      const poor = new Person([]);
+      poor.age = 30;
+      poor.resources = 0;
+      sim.add(poor);
+      sim.distributeWelfare([poor]);
+      expect(poor.resources).toBe(0);
+      expect(sim.communityPool).toBe(0);
+    });
+
+    it('no-ops when nobody has a shortfall', () => {
       const sim = new Simulation();
       sim.communityPool = 100;
       const rich = new Person([]);
@@ -1131,6 +1286,7 @@ describe('Simulation', () => {
       rich.resources = Variables.WELFARE_THRESHOLD + 50;
       sim.add(rich);
       sim.distributeWelfare([rich]);
+      expect(rich.resources).toBe(Variables.WELFARE_THRESHOLD + 50);
       expect(sim.communityPool).toBe(100);
     });
 

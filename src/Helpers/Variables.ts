@@ -346,13 +346,17 @@ export default class Variables {
   static ENROLLMENT_AGE_SCALE = 40;
   static ENROLLMENT_AGE_FLOOR = 0.05;
 
-  // Outcome classification thresholds (ARD 016, multi-dimensional revision ARD 051)
+  // Outcome classification thresholds (ARD 016, multi-dimensional revision ARD 051).
+  // The three Gini thresholds were re-derived for the adult-only basis (ARD 060) by moving each
+  // to the same quantile of the adult-basis distribution it held on the all-living one; COLLAPSE
+  // stands because the two distributions' upper tails coincide. See
+  // docs/research-thriving-reachability.md.
   /** Final-decade avg Gini at or above this → COLLAPSE. */
   static COLLAPSE_GINI_THRESHOLD = 0.60;
   /** Population decline from the run's peak at or above this fraction → COLLAPSE (peak-relative, ARD 051; archaeological collapses lose 75–90%, lower here for sim sensitivity). */
   static COLLAPSE_PEAK_DECLINE_FRACTION = 0.5;
   /** Final-decade avg Gini at or above this → at least STRUGGLING (unless COLLAPSE). */
-  static STRUGGLING_GINI_THRESHOLD = 0.45;
+  static STRUGGLING_GINI_THRESHOLD = 0.43;
   /** Final-decade avg happiness below this → at least STRUGGLING (immiseration signal). */
   static STRUGGLING_HAPPINESS_THRESHOLD = 3.0;
   /** Population decline from peak at or above this (but below COLLAPSE) → at least STRUGGLING (ARD 051). */
@@ -360,7 +364,7 @@ export default class Variables {
   /** Commons fill fraction (pool ÷ ceiling) below this → at least STRUGGLING (ecological strain / overexploitation, ARD 051). */
   static STRUGGLING_RESOURCE_FRACTION = 0.1;
   /** Final-decade avg Gini below this (one of four THRIVING conditions) → contributes to THRIVING. */
-  static THRIVING_GINI_THRESHOLD = 0.30;
+  static THRIVING_GINI_THRESHOLD = 0.27;
   /** Final-decade avg happiness at or above this (one of four THRIVING conditions) → contributes to THRIVING. */
   static THRIVING_HAPPINESS_THRESHOLD = 6.0;
   /** Population decline from peak must be below this for THRIVING — a thriving population is at/near its peak, not in decline (ARD 051). */

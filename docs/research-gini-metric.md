@@ -1,8 +1,10 @@
 # Research: Is `peakGini` Measuring the Society or the Death Spiral? (Hypothesis)
 
-**Recorded:** 2026-09-13 | **Commit:** faf49f8 | **Base config:** all Variables at defaults unless noted
+**Recorded:** 2026-09-13 | **Commit:** faf49f8 | **Latest ARD:** 058 | **Base config:** all Variables at defaults unless noted
 **Commands:** `npx ts-node scripts/metric-probe.ts --seeds 8 --ticks 700 [--set KEY=VAL | --sweep KEY=v1,v2,…]`
 **Key context vars:** `TAX_RATE=0.02`, `WELFARE_THRESHOLD=20`, `COMMUNITY_POOL_RESERVE_FRACTION=0.20`, `ESTATE_COMMUNITY_SHARE=0.40`, `BASE_CHILDBIRTH_RATE=0.6`
+
+> **Note added 2026-09-14 — the Gini basis changed under this study.** ARD 060 moved `resourceGini` (and `KillEvent`'s) to adults only, and ARD 061 changed how welfare circulates, so every Gini figure below is on the all-living basis and predates both. `scripts/metric-probe.ts` now uses the shared adult-basis helper, so re-running it will not reproduce these numbers. Treat the *relative* claims (peakGini is a crash-phase max-of-noise statistic) as the durable part and the absolute values as historical.
 
 **Status: hypothesis, not an established result.** Everything below rests on 8–20 seeds, largely one
 seed set, and on `matureGini` — a metric defined in this study whose cutoff is a judgment call with

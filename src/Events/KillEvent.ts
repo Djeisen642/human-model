@@ -2,6 +2,7 @@ import Person from '../App/Person';
 import Simulation from '../App/Simulation';
 import IEvent from './IEvent';
 import { ageModifier } from '../Helpers/AgeModifier';
+import { resourceGini } from '../Helpers/Inequality';
 import Variables from '../Helpers/Variables';
 import Constants from '../Helpers/Constants';
 import { RNG } from '../Helpers/Types';
@@ -30,9 +31,7 @@ export default class KillEvent implements IEvent {
    * @param simulation - current simulation state
    */
   execute(person: Person, simulation: Simulation): void {
-    const living = simulation.getLiving();
-    const resources = living.map(p => p.resources);
-    const currentGini = gini(resources);
+    const currentGini = resourceGini(simulation.getLiving());
 
     const happinessPressure = Math.max(
       0,
@@ -71,19 +70,3 @@ export default class KillEvent implements IEvent {
   }
 }
 
-/**
- * Gini coefficient using the sorted weighted-sum formula.
- * Returns 0 when all values are equal or the array is empty.
- *
- * @param values - numeric values
- * @returns Gini coefficient in [0, 1)
- */
-function gini(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const n = sorted.length;
-  const total = sorted.reduce((a, b) => a + b, 0);
-  if (total === 0) return 0;
-  const weightedSum = sorted.reduce((sum, x, i) => sum + (i + 1) * x, 0);
-  return (2 * weightedSum - (n + 1) * total) / (n * total);
-}
