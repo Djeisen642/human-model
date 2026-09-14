@@ -1,6 +1,6 @@
 # ARD 060: Gini Measured Over Adults, Not All Living
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-14
 
 ## Context

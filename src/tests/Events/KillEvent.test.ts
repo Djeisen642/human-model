@@ -251,6 +251,7 @@ describe('KillEvent', () => {
       killerH.age = 24;
       killerH.hasJob = true; // ensures happiness ≥ threshold → happinessPressure = 0
       killerH.resources = 100;
+      victimH.age = 30; // adult, so ARD-060's adult-basis Gini counts them
       victimH.resources = 0;
       victimH.constitution = 10;
       simHighGini.add(killerH);
@@ -274,6 +275,7 @@ describe('KillEvent', () => {
       killerL.age = 24;
       killerL.hasJob = true; // ensures happiness ≥ threshold → happinessPressure = 0
       killerL.resources = 50;
+      victimL.age = 30; // adult, so ARD-060's adult-basis Gini counts them
       victimL.resources = 50; // equal resources → Gini = 0
       victimL.constitution = 10;
       simLowGini.add(killerL);
@@ -293,6 +295,7 @@ describe('KillEvent', () => {
       killerH2.age = 24;
       killerH2.hasJob = true; // ensures happiness ≥ threshold → happinessPressure = 0
       killerH2.resources = 100;
+      victimH2.age = 30; // adult, so ARD-060's adult-basis Gini counts them
       victimH2.resources = 0;   // Gini ≈ 0.5
       victimH2.constitution = 10;
       simHighGini2.add(killerH2);

@@ -1,6 +1,6 @@
 # ARD 061: Welfare Pays the Shortfall, Not an Equal Split
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-14
 
 ## Context

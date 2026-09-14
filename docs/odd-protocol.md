@@ -10,7 +10,7 @@
 
 ### 1. Purpose and Patterns
 
-**Purpose.** The model studies the conditions under which a small human population collapses, struggles, stabilizes, or thrives over multi-generational time. The primary collapse signal is the Gini coefficient of individual `resources` — following the HANDY finding (Motesharrei et al., 2014) that inequality drives collapse more reliably than absolute scarcity. Secondary signals are average happiness, population size, and natural-resource pool depletion.
+**Purpose.** The model studies the conditions under which a small human population collapses, struggles, stabilizes, or thrives over multi-generational time. The primary collapse signal is the Gini coefficient of individual `resources` **over adults (age ≥ `WORKING_AGE_MIN`)** — dependent children are excluded because the model does not treat a child's own resources as their standard of living (ARD 060) — following the HANDY finding (Motesharrei et al., 2014) that inequality drives collapse more reliably than absolute scarcity. Secondary signals are average happiness, population size, and natural-resource pool depletion.
 
 **Patterns the model should reproduce:**
 
@@ -76,7 +76,7 @@ One shared environment object. No spatial structure; all agent interactions are 
 | `inventionFasterCount` | integer | Cumulative depletion-faster invention outcomes (ARD 032) |
 | `inventionSlowerCount` | integer | Cumulative depletion-slower invention outcomes (ARD 032) |
 | `inventionCeilingCount` | integer | Cumulative ceiling-growth invention outcomes (ARD 032) |
-| `communityPool` | number | Pooled resources funded by per-tick taxation and jail forfeitures; distributed to poor persons and orphaned children each tick (ARD 034) |
+| `communityPool` | number | Pooled resources funded by per-tick taxation, jail forfeitures and estate shares; spent each tick topping shortfalls up toward `WELFARE_THRESHOLD`, retaining whatever need does not consume (ARD 034, ARD 061) |
 
 #### Scale
 
@@ -120,7 +120,7 @@ Each tick executes in this order:
      15. `InventionEvent` — intelligence-scaled probability gate
      16. `StealEvent` — intent-gated with resource-pressure multiplier (ARD 036); detection + emboldening inside execute() (ARD 035, ARD 036)
      17. `StatDecayEvent` — always appended last; age-based constitution/intelligence decay (ARD 048)
-6. **`simulation.distributeWelfare(living)`** — distributes `communityPool × (1 − COMMUNITY_POOL_RESERVE_FRACTION)` equally to eligible agents (resources < WELFARE_THRESHOLD or orphaned children); 20% reserve retained (ARD 034).
+6. **`simulation.distributeWelfare(living)`** — pays each agent short of `WELFARE_THRESHOLD` their shortfall, drawn from `communityPool × (1 − COMMUNITY_POOL_RESERVE_FRACTION)`. Nobody receives more than their own shortfall, so welfare cannot lift an agent above the threshold; surplus stays in the pool. When total shortfall exceeds the distributable amount it is split in proportion to shortfall (ARD 034, ARD 061).
 7. **`simulation.snapshot()`** — records per-tick aggregate metrics.
 8. **Every 10 ticks:** `buildTenYearSummary()` appended to `decadeHistory`; one-line console summary printed.
 9. **After the final tick (if `ticks % 10 !== 0`):** partial-decade summary built over the remaining ticks and appended to `decadeHistory` (ARD 031).
@@ -153,7 +153,7 @@ Deaths during the loop are processed immediately (agent removed from `living`). 
 
 **Collectives.** There is one implicit collective: the living population. No formal groups, cliques, or institutions. Relationships are dyadic (`isInRelationshipWith` is a single reference), not group memberships.
 
-**Observation.** Per-tick `TickSnapshot` records: population, death counts by cause (murder/illness/disaster/suicide), `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`, `childPopulation`, `orphanCount` (children with no living parent — the ARD 034 welfare-eligibility test), `welfareRecipients` (persons eligible at the tick's `distributeWelfare()` call). Every 10 ticks a `TenYearSummary` averages the window. At run end: console report via `formatEndReport` and a self-contained HTML report with Chart.js charts via `writeReportHTML`.
+**Observation.** Per-tick `TickSnapshot` records: population, death counts by cause (murder/illness/disaster/suicide), `averageResources`, `resourceGini` (adult basis, ARD 060), `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`, `childPopulation`, `orphanCount` (children with no living parent — the ARD 034 welfare-eligibility test), `welfareRecipients` (persons eligible at the tick's `distributeWelfare()` call). Every 10 ticks a `TenYearSummary` averages the window. At run end: console report via `formatEndReport` and a self-contained HTML report with Chart.js charts via `writeReportHTML`.
 
 ---
 
@@ -253,7 +253,7 @@ On birth: deducts `CHILDBIRTH_BIRTH_COST` from each parent (floored at 0); creat
 #### KillEvent (ARD 027, ARD 035, ARD 036)
 Intent gate inside `execute()` (requires simulation access for Gini and happiness).
 `happinessPressure = max(0, 1 − happiness / SITUATIONAL_KILL_HAPPINESS_THRESHOLD)`
-Attempt: `prob = killingIntent × ageModifier(24, 30, 0.05) × (1 + currentGini × KILL_GINI_SCALAR) × (1 + happinessPressure × SITUATIONAL_KILL_SCALAR)`
+Attempt: `prob = killingIntent × ageModifier(24, 30, 0.05) × (1 + currentGini × KILL_GINI_SCALAR) × (1 + happinessPressure × SITUATIONAL_KILL_SCALAR)`, where `currentGini` is the adult-basis coefficient shared with the snapshot (ARD 060)
 Success: `prob = KILL_SUCCESS_BASE / max(1, victim.constitution)`
 On success: `simulation.kill(victim, MURDER, person)` — creates `DeathRecord` and `KillingRecord`.
 Detection (after successful kill): `prob = BASE_DETECT_RATE_KILL × (1 + priorCrimes × DETECTION_CRIME_COUNT_SCALAR)`. On detection: `JAIL_RESOURCE_FORFEIT_FRACTION` of killer's resources transferred to `communityPool`; `jailedTicksRemaining += JAIL_TICKS_KILL`.
