@@ -76,6 +76,10 @@ export interface TenYearSummary {
   avgChildPopulation: number;
   /** Average count of orphaned children (no living parent) across the decade's ticks. */
   avgOrphanCount: number;
+  /** Average count of welfare-eligible persons per tick across the decade. ARD 034. */
+  avgWelfareRecipients: number;
+  /** Average living population across the decade's ticks — denominator for the welfare share. */
+  avgPopulation: number;
 }
 
 /** Aggregate composition of the living population at end of simulation. ARD 031. */

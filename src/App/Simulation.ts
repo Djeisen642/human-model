@@ -85,6 +85,13 @@ export interface TickSnapshot {
   childPopulation: number;
   /** Living children with no living parents at end of tick; same cohort ARD 034 welfare treats as orphaned. */
   orphanCount: number;
+  /**
+   * Persons eligible for welfare at this tick's `distributeWelfare()` call (ARD 034).
+   * Recorded at distribution time, not recomputed at snapshot: the payout itself lifts some
+   * recipients back over `WELFARE_THRESHOLD`, so an end-of-tick recount would undercount them.
+   * An empty `communityPool` still counts its eligible persons — they qualified and got nothing.
+   */
+  welfareRecipients: number;
 }
 
 export default class Simulation {
@@ -121,6 +128,7 @@ export default class Simulation {
   private tickBirths = 0;
   private tickSteals = 0;
   private tickConsumption = 0;
+  private tickWelfareRecipients = 0;
 
   /**
    * Returns a shallow copy of the living population.
@@ -559,6 +567,7 @@ export default class Simulation {
       p.resources < Variables.WELFARE_THRESHOLD ||
       (p.age < 18 && p.livingParents.length === 0),
     );
+    this.tickWelfareRecipients = eligible.length;
     if (eligible.length === 0) return;
     const distributable = this.communityPool * (1 - Variables.COMMUNITY_POOL_RESERVE_FRACTION);
     const share = distributable / eligible.length;
@@ -622,6 +631,7 @@ export default class Simulation {
     const cumulativeBirths = (prev?.cumulativeBirths ?? 0) + births;
     const stealsCommitted = this.tickSteals;
     const totalConsumption = this.tickConsumption;
+    const welfareRecipients = this.tickWelfareRecipients;
 
     const partnered = this.living.filter(p => p.isInRelationshipWith !== null);
     const totalCoupleCount = Math.round(partnered.length / 2);
@@ -669,6 +679,7 @@ export default class Simulation {
       educationCounts,
       childPopulation,
       orphanCount,
+      welfareRecipients,
     };
 
     this.history.push(snap);
@@ -676,6 +687,7 @@ export default class Simulation {
     this.tickBirths = 0;
     this.tickSteals = 0;
     this.tickConsumption = 0;
+    this.tickWelfareRecipients = 0;
     return snap;
   }
 }

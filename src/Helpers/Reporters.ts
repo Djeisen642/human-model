@@ -47,6 +47,8 @@ export function buildTenYearSummary(
   const avgCommunityPool = avg(window.map(s => s.communityPool));
   const avgChildPopulation = avg(window.map(s => s.childPopulation));
   const avgOrphanCount = avg(window.map(s => s.orphanCount));
+  const avgWelfareRecipients = avg(window.map(s => s.welfareRecipients));
+  const avgPopulation = avg(window.map(s => s.population));
 
   return {
     endTick,
@@ -67,18 +69,22 @@ export function buildTenYearSummary(
     avgCommunityPool,
     avgChildPopulation,
     avgOrphanCount,
+    avgWelfareRecipients,
+    avgPopulation,
   };
 }
 
 /**
- * Orphan share of the child population, as a fraction in [0, 1]. 0 when no children exist.
+ * Share of a sub-population within its cohort, as a fraction in [0, 1].
+ * Used for orphans-within-children and welfare-recipients-within-population, both of which
+ * hit an empty denominator in a dying run.
  *
- * @param orphans - orphaned children
- * @param children - all children
- * @returns orphans ÷ children, or 0 when there are no children
+ * @param part - size of the sub-population
+ * @param whole - size of the cohort it is measured against
+ * @returns part ÷ whole, or 0 when the cohort is empty
  */
-export function orphanShare(orphans: number, children: number): number {
-  return children > 0 ? orphans / children : 0;
+export function share(part: number, whole: number): number {
+  return whole > 0 ? part / whole : 0;
 }
 
 /**
@@ -415,8 +421,14 @@ export function formatEndReport(
     (best, d) => (d.avgOrphanCount > best.avgOrphanCount ? d : best),
     decadeHistory[0],
   );
+  const peakWelfareDecade = decadeHistory.reduce(
+    (best, d) => (d.avgWelfareRecipients > best.avgWelfareRecipients ? d : best),
+    decadeHistory[0],
+  );
+  const welfarePct = (d: TenYearSummary): string =>
+    `${(share(d.avgWelfareRecipients, d.avgPopulation) * 100).toFixed(0)}%`;
   const orphanPct = (d: TenYearSummary): string =>
-    `${(orphanShare(d.avgOrphanCount, d.avgChildPopulation) * 100).toFixed(0)}%`;
+    `${(share(d.avgOrphanCount, d.avgChildPopulation) * 100).toFixed(0)}%`;
 
   const decadeTableRows = decadeHistory.map(d => {
     const delta = d.populationDelta >= 0 ? `+${d.populationDelta}` : String(d.populationDelta);
@@ -426,6 +438,7 @@ export function formatEndReport(
       `  ${delta.padStart(4)}` +
       `  ${String(d.births).padStart(6)}` +
       `  ${d.avgOrphanCount.toFixed(1).padStart(7)}` +
+      `  ${d.avgWelfareRecipients.toFixed(1).padStart(7)}` +
       `  ${d.avgResourceGini.toFixed(2)}` +
       `  ${d.peakResourceGini.toFixed(2).padStart(6)}` +
       `  ${d.avgResources.toFixed(1).padStart(5)}` +
@@ -462,6 +475,8 @@ export function formatEndReport(
     `  Avg resources/person: ${first.avgResources.toFixed(1)} → ${final.avgResources.toFixed(1)}`,
     `  Natural resources remaining: ${Math.round(naturalResources)} / ${Math.round(naturalResourceCeiling)} ceiling`,
     `  Community pool: ${Math.round(communityPool)}`,
+    `  On welfare: ${first.avgWelfareRecipients.toFixed(1)} (${welfarePct(first)}) → ${final.avgWelfareRecipients.toFixed(1)} (${welfarePct(final)})   ` +
+      `peak ${peakWelfareDecade.avgWelfareRecipients.toFixed(1)} (Yr ${String(peakWelfareDecade.endTick).padStart(3, '0')})   [decade averages, % of population]`,
     `  Inventions: ${inventionCounts.faster} faster  ${inventionCounts.slower} slower  ${inventionCounts.ceiling} ceiling   ` +
       `(final efficiency: ${extractionProductivity.toFixed(2)}, ceiling: ${Math.round(naturalResourceCeiling)})`,
     '',
@@ -483,7 +498,7 @@ export function formatEndReport(
   lines.push(
     '',
     'DECADE SUMMARY TABLE',
-    '  Yr   Pop  ΔPop  Births  Orphans  Gini  PkGini    Res  Happy  Deaths',
+    '  Yr   Pop  ΔPop  Births  Orphans  Welfare  Gini  PkGini    Res  Happy  Deaths',
     ...decadeTableRows,
   );
   return lines.join('\n');

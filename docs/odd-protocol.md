@@ -153,7 +153,7 @@ Deaths during the loop are processed immediately (agent removed from `living`). 
 
 **Collectives.** There is one implicit collective: the living population. No formal groups, cliques, or institutions. Relationships are dyadic (`isInRelationshipWith` is a single reference), not group memberships.
 
-**Observation.** Per-tick `TickSnapshot` records: population, death counts by cause (murder/illness/disaster/suicide), `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`, `childPopulation`, `orphanCount` (children with no living parent — the ARD 034 welfare-eligibility test). Every 10 ticks a `TenYearSummary` averages the window. At run end: console report via `formatEndReport` and a self-contained HTML report with Chart.js charts via `writeReportHTML`.
+**Observation.** Per-tick `TickSnapshot` records: population, death counts by cause (murder/illness/disaster/suicide), `averageResources`, `resourceGini`, `averageHappiness`, `aggregateKillingIntent`, `aggregateStealingIntent`, `naturalResources`, `childPopulation`, `orphanCount` (children with no living parent — the ARD 034 welfare-eligibility test), `welfareRecipients` (persons eligible at the tick's `distributeWelfare()` call). Every 10 ticks a `TenYearSummary` averages the window. At run end: console report via `formatEndReport` and a self-contained HTML report with Chart.js charts via `writeReportHTML`.
 
 ---
 

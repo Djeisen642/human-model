@@ -37,7 +37,7 @@ describe('writeReportHTML', () => {
     expect(content).toContain('<canvas');
   });
 
-  it('renders the orphan chart and embeds per-tick orphan counts', async () => {
+  it('renders the orphan and welfare charts and embeds their per-tick counts', async () => {
     const simulation = await LooperSingleton.getInstance().start(10, 10, 1, () => {});
     writeReportHTML(simulation, 10, 10, 1, tmpDir);
 
@@ -47,6 +47,9 @@ describe('writeReportHTML', () => {
     expect(content).toContain('id="orphanChart"');
     expect(content).toContain('Orphans Over Time');
     expect(content).toContain('"orphanCount"');
+    expect(content).toContain('id="welfareChart"');
+    expect(content).toContain('Welfare Coverage Over Time');
+    expect(content).toContain('"welfareRecipients"');
     expect(content).not.toContain('undefined');
   });
 

@@ -7,7 +7,7 @@ import {
   formatSimulationHeader,
   formatEndReport,
   formatSurvivorSection,
-  orphanShare,
+  share,
   summarizeSurvivors,
 } from '../../Helpers/Reporters';
 import { TenYearSummary } from '../../Helpers/Types';
@@ -69,6 +69,7 @@ function makeSnapshot(
     educationCounts: overrides.educationCounts ?? [0, 0, 0, 0, 0, 0],
     childPopulation: overrides.childPopulation ?? 0,
     orphanCount: overrides.orphanCount ?? 0,
+    welfareRecipients: overrides.welfareRecipients ?? 0,
   };
 }
 
@@ -131,6 +132,17 @@ describe('buildTenYearSummary', () => {
     const summary = buildTenYearSummary(window, 10, 100);
     expect(summary.avgOrphanCount).toBeCloseTo(6 / 10, 5);
     expect(summary.avgChildPopulation).toBeCloseTo(40 / 10, 5);
+  });
+
+  it('averages welfare recipients and population across the window', () => {
+    const window = makeWindow([
+      { welfareRecipients: 10, population: 100 },
+      { welfareRecipients: 30, population: 100 },
+      {}, {}, {}, {}, {}, {}, {}, {},
+    ]);
+    const summary = buildTenYearSummary(window, 10, 100);
+    expect(summary.avgWelfareRecipients).toBeCloseTo(40 / 10, 5);
+    expect(summary.avgPopulation).toBeCloseTo(100, 5);
   });
 
   it('sums totalDeaths as delta for the decade', () => {
@@ -255,7 +267,7 @@ describe('formatDecadeSummary', () => {
     avgNaturalResources: 7500, avgNaturalResourceCeiling: 10000,
     peakResourceGini: 0.51,
     births: 2,
-    avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+    avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
   };
 
   it('includes formatted year', () => {
@@ -311,7 +323,7 @@ describe('classifyOutcome (multi-dimensional, ARD 051)', () => {
     avgNaturalResourceCeiling: 10000,
     peakResourceGini: 0.40,
     births: 0,
-    avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+    avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
   };
 
   /**
@@ -409,7 +421,7 @@ describe('explainOutcome', () => {
     deathsByKilling: 1, deathsByDisaster: 1,
     avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
     avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 0,
-    avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+    avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
   };
 
   it('EXTINCTION cites population 0', () => {
@@ -437,13 +449,13 @@ describe('explainOutcome', () => {
   });
 });
 
-describe('orphanShare', () => {
-  it('divides orphans by children', () => {
-    expect(orphanShare(3, 12)).toBeCloseTo(0.25, 5);
+describe('share', () => {
+  it('divides the part by the whole', () => {
+    expect(share(3, 12)).toBeCloseTo(0.25, 5);
   });
 
-  it('returns 0 when there are no children', () => {
-    expect(orphanShare(0, 0)).toBe(0);
+  it('returns 0 when the cohort is empty', () => {
+    expect(share(0, 0)).toBe(0);
   });
 });
 
@@ -614,7 +626,7 @@ describe('formatEndReport', () => {
       avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000,
       peakResourceGini: 0.40,
       births: 0,
-      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
     };
     const report = formatEndReport([decade], 10, 42, 100, 9000, 10000);
     expect(report).toContain('OUTCOME:');
@@ -632,7 +644,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 1, deathsByDisaster: 1,
       avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 0,
-      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
     };
     const report = formatEndReport([decade], 10, 42, 100, 9000, 10000);
     expect(report).not.toContain('COHORT SURVIVAL');
@@ -645,7 +657,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 1, deathsByDisaster: 1,
       avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 5,
-      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
     };
     const report = formatEndReport([decade], 100, 42, 100, 9000, 10000);
     expect(report).toMatch(/Reason: /);
@@ -658,7 +670,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 15, deathsByDisaster: 10,
       avgResourceGini: 0.40, avgResources: 5, avgHappiness: 1.0,
       avgNaturalResources: 8000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.55, births: 0,
-      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
     };
     const report = formatEndReport(
       [decade], 50, 42, 100, 9000, 10000, {}, {}, [], 42,
@@ -674,7 +686,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 15, deathsByDisaster: 10,
       avgResourceGini: 0.40, avgResources: 5, avgHappiness: 1.0,
       avgNaturalResources: 8000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.55, births: 0,
-      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
     };
     const report = formatEndReport([decade], 50, 42, 100, 9000, 10000, {}, {}, []);
     expect(report).not.toContain('SURVIVORS');
@@ -687,7 +699,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 19, deathsByDisaster: 10,
       avgResourceGini: 0.30, avgResources: 30, avgHappiness: 5.0,
       avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 0,
-      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
     };
     const p = new Person([]);
     p.age = 30;
@@ -705,7 +717,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 2, deathsByDisaster: 1,
       avgResourceGini: 0.30, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 7000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 5,
-      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
     };
     const report = formatEndReport(
       [decade], 100, 42, 100, 7000, 10500, {}, {}, [], undefined, 0.85,
@@ -722,7 +734,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 3, deathsByDisaster: 2,
       avgResourceGini: 0.30, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 20,
-      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
     };
     const report = formatEndReport([decade], 100, 42, 100, 9000, 10000);
     expect(report).toContain('Births: 20');
@@ -737,7 +749,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 1, deathsByDisaster: 0,
       avgResourceGini: 0.30, avgResources: 50, avgHappiness: 5.0,
       avgNaturalResources: 8000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.35, births: 3,
-      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
     };
     const report = formatEndReport([decade], 10, 42, 100, 9000, 10000);
     expect(report).toContain('Births');
@@ -751,12 +763,30 @@ describe('formatEndReport', () => {
       avgResourceGini: 0.30, avgResources: 50, avgHappiness: 5.0,
       avgNaturalResources: 8000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.35, births: 3,
       avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 1,
+      avgWelfareRecipients: 10, avgPopulation: 100,
     };
     const last: TenYearSummary = { ...first, endTick: 20, avgChildPopulation: 20, avgOrphanCount: 5 };
     const report = formatEndReport([first, last], 20, 42, 100, 9000, 10000);
     expect(report).toContain('Orphans: 1.0 (5%) → 5.0 (25%)');
     expect(report).toContain('peak 5.0 (Yr 020)');
     expect(report).toMatch(/Yr\s+Pop\s+ΔPop\s+Births\s+Orphans/);
+  });
+
+  it('includes an On welfare trend line in RESOURCES and a column in the decade table', () => {
+    const first: TenYearSummary = {
+      endTick: 10, endPopulation: 100, populationDelta: 0, totalDeaths: 3,
+      deathsByIllness: 2, deathsBySuicide: 0,
+      deathsByKilling: 1, deathsByDisaster: 0,
+      avgResourceGini: 0.30, avgResources: 50, avgHappiness: 5.0,
+      avgNaturalResources: 8000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.35, births: 3,
+      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 1,
+      avgWelfareRecipients: 12, avgPopulation: 100,
+    };
+    const last: TenYearSummary = { ...first, endTick: 20, avgWelfareRecipients: 45, avgPopulation: 90 };
+    const report = formatEndReport([first, last], 20, 42, 100, 9000, 10000);
+    expect(report).toContain('On welfare: 12.0 (12%) → 45.0 (50%)');
+    expect(report).toContain('peak 45.0 (Yr 020)');
+    expect(report).toMatch(/Orphans\s+Welfare\s+Gini/);
   });
 
   it('reports a 0% orphan share rather than NaN when no children exist', () => {
@@ -767,6 +797,7 @@ describe('formatEndReport', () => {
       avgResourceGini: 0.30, avgResources: 50, avgHappiness: 5.0,
       avgNaturalResources: 8000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.35, births: 0,
       avgCommunityPool: 0, avgChildPopulation: 0, avgOrphanCount: 0,
+      avgWelfareRecipients: 0, avgPopulation: 0,
     };
     const report = formatEndReport([decade], 10, 42, 100, 9000, 10000);
     expect(report).toContain('Orphans: 0.0 (0%)');
@@ -780,7 +811,7 @@ describe('formatEndReport', () => {
       deathsByKilling: 1, deathsByDisaster: 1,
       avgResourceGini: 0.35, avgResources: 40, avgHappiness: 5.0,
       avgNaturalResources: 5000, avgNaturalResourceCeiling: 10000, peakResourceGini: 0.40, births: 0,
-      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2,
+      avgCommunityPool: 0, avgChildPopulation: 20, avgOrphanCount: 2, avgWelfareRecipients: 10, avgPopulation: 100,
     };
     // 5 engineers seeded (intelligence in [7,11)), 3 alive at end
     /**
