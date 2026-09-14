@@ -344,6 +344,65 @@ the gate's zero point is an uncalibrated constant — the honest summary is that
 unreachable for reasons that are substantially measurement artifacts rather than statements about the
 simulated society.** Both are logged in `docs/future-ideas.md`.
 
+## Part 3c — THRIVING asks for a steady state, and the model has no mechanism that can hold one
+
+Part 3b found happiness blocks every run. Two of the other three conditions have a separate, structural
+problem worth stating on its own, because it explains why THRIVING has only ever been observed as a
+transient.
+
+**THRIVING does not require growth.** A perfectly flat population satisfies the peak-decline condition:
+peak equals current, decline is 0%. So the gate is not asking for an exponential. It is asking for a
+*steady state* — and that turns out to be the harder ask.
+
+**The peak is a ratchet.** `Reporters.ts:156` takes `peakPop` as the maximum over the entire run
+history, and THRIVING needs the final population within 15% of it. The reference point only ever moves
+up. A population that overshoots once and then settles into a genuinely sustainable steady state at
+60% of its historical high reads as COLLAPSE forever after, no matter how well it is doing.
+
+**And the model must overshoot,** because `GatherResourcesEvent` extracts `min(output, naturalResources)`
+with no dependence on how full the pool is. There is no negative feedback in the interior — the only
+signal is starvation *after* exhaustion. So the population has no way to level off on approach.
+
+Those two facts put the peak-decline and commons conditions in direct opposition: being at your
+population peak means the most mouths drawing on the pool, which is exactly when it is stripped. Per
+live tick across 8 seeds:
+
+| Config | near peak (within 15%) | commons ≥ 40% full | **both at once** | both *after* the commons is first emptied | correlation |
+|---|---|---|---|---|---|
+| Default, 2000t | 30.8% | 42.4% | 10.3% | **2.6%** | **−0.324** |
+| Pin + fertility 1.0, 5000t | 7.9% | 35.2% | 1.1% | **0.2%** | **−0.428** |
+
+The two conditions are anti-correlated, and the joint rate collapses by a further 4–5× once the commons
+has been emptied even once — the ratchet closing behind the first overshoot.
+
+**The model cannot even occupy the state the gate describes.** Commons fill is bimodal, not continuous:
+
+```
+Default, share of live ticks by fill band:
+  0-10%: 53%   10-20%: 4%   20-30%: 4%   30-40%: 4%   40-50%: 5%
+ 50-60%:  6%   60-70%: 7%   70-80%: 6%   80-90%: 5%  90-100%: 6%
+Pin + fertility 1.0:
+  0-10%: 46%   10-20%: 5%   20-30%: 3%   30-40%: 3%   40-50%: 4%
+ 50-60%:  3%   60-70%: 3%   70-80%: 4%   80-90%: 4%  90-100%: 25%
+```
+
+Roughly half of all ticks sit below 10% full and a quarter sit above 90%, with only 3–7% in each
+intermediate band. The pool is either untouched or stripped. "Living within carrying capacity" — a
+partly-drawn commons held steady — is not a state this model spends time in, so a gate that asks for
+it is asking for a regime the mechanics cannot produce.
+
+**The shape THRIVING wants is logistic: rise, level off at the ceiling, stay.** The model only does
+overshoot-and-crash. This is the same defect as `docs/future-ideas.md`'s "commons has no feedback
+before exhaustion (soft brake)" item, and this section is the quantitative case that it is specifically
+what makes THRIVING unreachable rather than merely rare. It also explains
+`docs/research-thriving-reachability.md`'s transient THRIVING at tick 60: that is the approach phase,
+before the first overshoot sets the ratchet.
+
+Worth noting the two are separable fixes. A soft brake would let the population approach without
+overshooting. Alternatively, measuring decline against a trailing window rather than an all-time
+maximum would stop one early spike from disqualifying every later steady state. The first is a model
+fix and the second a measurement fix, and they are worth deciding on independently.
+
 ## Part 4 — Gathering has an age profile that is wired to nothing
 
 `GATHERING_PEAK_AGE = 28`, `GATHERING_AGE_SCALE = 35` and `GATHERING_AGE_FLOOR = 0.1` exist in
