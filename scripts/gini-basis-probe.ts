@@ -49,8 +49,11 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--label') label = args[++i];
 }
 for (const pair of sets) {
-  const [k, v] = pair.split('=');
-  (Variables as unknown as Record<string, unknown>)[k] = Number(v);
+  const [key, raw] = pair.split('=');
+  if (!(key in Variables)) throw new Error(`Unknown Variables constant: ${key}`);
+  const value = Number(raw);
+  if (Number.isNaN(value)) throw new Error(`Non-numeric override: ${pair}`);
+  (Variables as unknown as Record<string, unknown>)[key] = value;
 }
 
 (async () => {

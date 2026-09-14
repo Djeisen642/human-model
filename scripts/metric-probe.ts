@@ -34,22 +34,12 @@
 import LooperSingleton from '../src/App/LooperSingleton';
 import Simulation from '../src/App/Simulation';
 import Variables from '../src/Helpers/Variables';
+import { resourceGini } from '../src/Helpers/Inequality';
 
 /** Default population floor, as a fraction of a run's own peak, defining the "mature" phase. */
 const DEFAULT_MATURE_POP_FRACTION = 0.5;
 
 interface Row { pop: number; gini: number }
-
-/** Gini coefficient via sorted weighted-sum; matches Simulation.snapshot and KillEvent. */
-function gini(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const n = sorted.length;
-  const total = sorted.reduce((a, b) => a + b, 0);
-  if (total === 0) return 0;
-  const weightedSum = sorted.reduce((sum, x, i) => sum + (i + 1) * x, 0);
-  return (2 * weightedSum - (n + 1) * total) / (n * total);
-}
 
 /** Median of a numeric array; 0 for an empty array. */
 function median(xs: number[]): number {
@@ -65,7 +55,9 @@ const originalSnapshot = Simulation.prototype.snapshot;
 Simulation.prototype.snapshot = function (this: Simulation) {
   const snap = originalSnapshot.call(this);
   const living = this.getLiving();
-  rows.push({ pop: living.length, gini: gini(living.map(p => p.resources)) });
+  // Same adult-only basis the snapshot and KillEvent use (ARD 060), so this probe's
+  // baseline column stays comparable with `npm run sweep`'s.
+  rows.push({ pop: living.length, gini: resourceGini(living) });
   return snap;
 };
 
