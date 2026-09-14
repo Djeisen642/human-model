@@ -5,8 +5,124 @@ import Constants from '../../Helpers/Constants';
 import Variables from '../../Helpers/Variables';
 import KillingRecord from '../../Records/KillingRecord';
 import StealingRecord from '../../Records/StealingRecord';
+import { ageModifier } from '../../Helpers/AgeModifier';
+import { resourceGini } from '../../Helpers/Inequality';
 
 describe('KillEvent', () => {
+  // The attempt roll is bracketed against the probability evaluated at gini=0 and gini=1 so the
+  // population-wide Gini is only computed for rolls that land inside the bracket. These pin that
+  // the bracket decides exactly as computing the Gini up front would: the threshold must still
+  // sit at the true probability, not at either bound.
+  describe('inequality bracket', () => {
+    /**
+     * Builds an unequal adult population containing a peak-age killer.
+     *
+     * @returns the simulation and the killer added to it
+     */
+    function unequalPopulation(): { sim: Simulation; killer: Person } {
+      const sim = new Simulation();
+      const killer = new Person([]);
+      killer.age = Variables.KILLING_PEAK_AGE;
+      killer.killingIntent = 0.5;
+      killer.constitution = 5;
+      killer.resources = 500;
+      sim.add(killer);
+      for (const resources of [0, 10, 40, 200, 900]) {
+        const other = new Person([]);
+        other.age = 30;
+        other.constitution = 5;
+        other.resources = resources;
+        sim.add(other);
+      }
+      return { sim, killer };
+    }
+
+    /**
+     * Recomputes the attempt probability the event should be thresholding against.
+     *
+     * @param sim - simulation supplying the population the Gini is measured over
+     * @param killer - the potential killer whose intent, age and happiness set the probability
+     * @returns the attempt probability including the inequality term
+     */
+    function expectedAttemptProb(sim: Simulation, killer: Person): number {
+      const currentGini = resourceGini(sim.getLiving());
+      const pressure = Math.max(
+        0,
+        1 - killer.happiness / Variables.SITUATIONAL_KILL_HAPPINESS_THRESHOLD,
+      );
+      return killer.killingIntent
+        * ageModifier(killer.age, Variables.KILLING_PEAK_AGE, Variables.KILLING_AGE_SCALE, Variables.KILLING_AGE_FLOOR)
+        * (1 + currentGini * Variables.KILL_GINI_SCALAR)
+        * (1 + pressure * Variables.SITUATIONAL_KILL_SCALAR);
+    }
+
+    /**
+     * Runs the event with a constant roll and reports how many random draws it consumed.
+     * One draw means the event returned on the attempt roll; more means the attempt fired.
+     *
+     * @param sim - simulation to execute against
+     * @param killer - the potential killer
+     * @param roll - constant value returned by every random draw
+     * @returns number of random draws the event consumed
+     */
+    function drawsConsumed(sim: Simulation, killer: Person, roll: number): number {
+      let calls = 0;
+      new KillEvent(() => {
+        calls++;
+        return roll;
+      }).execute(killer, sim);
+      return calls;
+    }
+
+    it('attempts for a roll just below the true probability', () => {
+      const { sim, killer } = unequalPopulation();
+      const attemptProb = expectedAttemptProb(sim, killer);
+      expect(resourceGini(sim.getLiving())).toBeGreaterThan(0);
+
+      // More than one draw means the attempt roll passed and the event went on to pick a victim.
+      expect(drawsConsumed(sim, killer, attemptProb * 0.99)).toBeGreaterThan(1);
+    });
+
+    it('does not attempt for a roll just above the true probability', () => {
+      const { sim, killer } = unequalPopulation();
+      const attemptProb = expectedAttemptProb(sim, killer);
+
+      // A single draw means the event returned on the attempt roll.
+      expect(drawsConsumed(sim, killer, attemptProb * 1.01)).toBe(1);
+    });
+
+    it('does not attempt for a roll between the true probability and the upper bound', () => {
+      const { sim, killer } = unequalPopulation();
+      const attemptProb = expectedAttemptProb(sim, killer);
+      const pressure = Math.max(
+        0,
+        1 - killer.happiness / Variables.SITUATIONAL_KILL_HAPPINESS_THRESHOLD,
+      );
+      const upperBound = killer.killingIntent
+        * ageModifier(killer.age, Variables.KILLING_PEAK_AGE, Variables.KILLING_AGE_SCALE, Variables.KILLING_AGE_FLOOR)
+        * (1 + Variables.KILL_GINI_SCALAR)
+        * (1 + pressure * Variables.SITUATIONAL_KILL_SCALAR);
+
+      // This roll is inside the bracket, so the Gini decides it — treating the bound as the
+      // threshold would wrongly attempt here.
+      expect(upperBound).toBeGreaterThan(attemptProb);
+      expect(drawsConsumed(sim, killer, (attemptProb + upperBound) / 2)).toBe(1);
+    });
+
+    it('attempts for a roll below the lower bound regardless of inequality', () => {
+      const { sim, killer } = unequalPopulation();
+      const pressure = Math.max(
+        0,
+        1 - killer.happiness / Variables.SITUATIONAL_KILL_HAPPINESS_THRESHOLD,
+      );
+      const lowerBound = killer.killingIntent
+        * ageModifier(killer.age, Variables.KILLING_PEAK_AGE, Variables.KILLING_AGE_SCALE, Variables.KILLING_AGE_FLOOR)
+        * (1 + pressure * Variables.SITUATIONAL_KILL_SCALAR);
+
+      expect(drawsConsumed(sim, killer, lowerBound * 0.99)).toBeGreaterThan(1);
+    });
+  });
+
   describe('no-op cases', () => {
     it('does not throw and does nothing when no other person exists (sole person)', () => {
       const sim = new Simulation();

@@ -97,6 +97,12 @@ export interface TickSnapshot {
 
 export default class Simulation {
   private living: Person[] = [];
+  /**
+   * Position of each living person in `living`. Maintained by `add` and `kill` so
+   * `indexOfLiving` and `getRandomOther` don't scan or copy the population; entries are
+   * removed on death, so a lookup miss means "not living" exactly as `indexOf` returning -1 did.
+   */
+  private livingIndex = new Map<Person, number>();
   private deceased: Person[] = [];
   /** Accumulated snapshot history — one entry per completed tick. */
   readonly history: TickSnapshot[] = [];
@@ -152,14 +158,15 @@ export default class Simulation {
 
   /**
    * Index of `person` in the living array, or -1 if not living.
-   * Reads the internal array directly so callers that only need ordering don't
-   * pay for getLiving's shallow-copy allocation.
+   * Served from `livingIndex`, so callers that only need ordering pay neither
+   * getLiving's shallow-copy allocation nor a linear scan.
    *
    * @param person - person to locate
    * @returns index in the living array, or -1 if not present
    */
   indexOfLiving(person: Person): number {
-    return this.living.indexOf(person);
+    const index = this.livingIndex.get(person);
+    return index === undefined ? -1 : index;
   }
 
   /**
@@ -170,10 +177,17 @@ export default class Simulation {
    * @returns a random other living person, or null
    */
   getRandomOther(exclude: Person, rng: RNG): Person | null {
-    const candidates = this.living.filter(p => p !== exclude);
-    if (candidates.length === 0) return null;
-    const index = Math.min(Math.floor(rng() * candidates.length), candidates.length - 1);
-    return candidates[index];
+    // Index arithmetic over `living` rather than a filtered copy: the candidate list is
+    // `living` minus `exclude` with order preserved, so candidate i is living[i] below the
+    // excluded slot and living[i + 1] at or above it. `exclude` is normally living, but a
+    // caller holding a dead reference still gets the whole population, as the filter gave.
+    // The draw stays behind the emptiness check so an exhausted population consumes no RNG.
+    const excludedAt = this.indexOfLiving(exclude);
+    const count = this.living.length - (excludedAt >= 0 ? 1 : 0);
+    if (count === 0) return null;
+    let index = Math.min(Math.floor(rng() * count), count - 1);
+    if (excludedAt >= 0 && index >= excludedAt) index++;
+    return this.living[index];
   }
 
   /**
@@ -197,7 +211,17 @@ export default class Simulation {
     if (cause === Constants.CAUSE_OF_DEATH.MURDER && killer) {
       killer.killed.set(person, new KillingRecord(person, killer.age));
     }
-    this.living = this.living.filter(p => p !== person);
+    // Order-preserving removal, matching the filter this replaces: splice out the slot and
+    // slide the index entries behind it down by one. Only the tail is reindexed, so a death
+    // costs no allocation and no full-population scan.
+    const at = this.indexOfLiving(person);
+    if (at >= 0) {
+      this.living.splice(at, 1);
+      this.livingIndex.delete(person);
+      for (let i = at; i < this.living.length; i++) {
+        this.livingIndex.set(this.living[i], i);
+      }
+    }
     this.deceased.push(person);
     this.tickDeathCauses.push(cause);
   }
@@ -254,6 +278,7 @@ export default class Simulation {
    * @param person - person to add
    */
   add(person: Person): void {
+    this.livingIndex.set(person, this.living.length);
     this.living.push(person);
   }
 
