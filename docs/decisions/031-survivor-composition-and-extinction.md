@@ -78,6 +78,6 @@ After the main tick loop in `LooperSingleton.start()`, if `ticks % 10 !== 0`, bu
 - `formatEndReport` adds `Extinct as of Yr NNN` line under OUTCOME when label is EXTINCTION
 - `src/Helpers/ReportWriter.ts` adds EXTINCTION to `outcomeColors` map (darker red)
 - `src/App/LooperSingleton.ts` builds a partial-decade summary after the loop when `ticks % 10 !== 0`
-- `CLAUDE.md` updated under "Key design decisions" and "What's implemented"
+- `docs/model-reference.md` updated under design decisions and the implementation surface
 - Tests cover: every survivor bucket; EXTINCTION boundary (population 0 vs 1); partial-decade summary correctness (window length, startPopulation, deltas); report rendering with and without survivors; report with EXTINCTION
 - Known weakness: SURVIVORS is a snapshot at the final tick, not averaged over a window — a single-tick fluke can land in the section. Acceptable; the decade summary in the same report carries the averaged context

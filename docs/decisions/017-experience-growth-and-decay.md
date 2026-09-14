@@ -88,12 +88,12 @@ The chosen additive form keeps each lever (time, intelligence, activity, idlenes
 - `EventFactory.getEventsFor()` adds `ExperienceEvent` between `AgeEvent` and `GatherResourcesEvent`.
 - `Simulation.seed()` clamps seeded experience to `[0, min(age, EXPERIENCE_CAP)]`.
 - `GatherResourcesEvent` formula unchanged but behaviour shifts (experience is now moving).
-- CLAUDE.md updates ("What's implemented", "Key design decisions") in the implementation commit.
+- Documentation updates in the implementation commit: the `ExperienceEvent` submodel in `docs/odd-protocol.md` §7, and the experience bullet in `docs/model-reference.md`.
 - Tests must cover: typical adult growth; childhood attenuation; intelligence fade past learning peak; education bonus; idleness decay (adult + elderly); cap and floor enforcement; seed clamp.
 
 ### Job dependency
 
-`Job` is unimplemented (see CLAUDE.md "What's not implemented yet"), so `person.hasJob` doesn't exist yet and every working-age post-graduate falls through to `ADULT_IDLENESS_DECAY`. All post-graduation working-age adults lose experience every tick until Job lands — relevant for calibration. The `hasJob` branch is written ahead so structure survives the Job ARD; the constant may need re-tuning then.
+`Job` is unimplemented at the time of writing (it landed later, in ARD 020), so `person.hasJob` doesn't exist yet and every working-age post-graduate falls through to `ADULT_IDLENESS_DECAY`. All post-graduation working-age adults lose experience every tick until Job lands — relevant for calibration. The `hasJob` branch is written ahead so structure survives the Job ARD; the constant may need re-tuning then.
 
 ### Open follow-ups
 

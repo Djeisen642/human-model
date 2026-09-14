@@ -91,4 +91,4 @@ return Math.max(0, happiness);
 - `src/tests/Events/KillEvent.test.ts` — tests must cover: confirmed kill increments `killHappinessBoost` up to cap; failed attempt does not touch `killHappinessBoost`; boost clamps at `KILL_HAPPINESS_MAX` when stacked
 - `src/tests/App/LooperSingleton.test.ts` — tests must cover: both fields decay by their respective rates each tick; neither field goes below 0
 - `docs/future-ideas.md` — move "Killer happiness boost on successful kill" from Very useful to Discarded, noting it is implemented here
-- `CLAUDE.md` — update `happiness` getter description in Key design decisions to include both boost fields; update "What's implemented" when code lands
+- `docs/model-reference.md` — update the `happiness` getter description under design decisions to include both boost fields, and the implementation surface when code lands

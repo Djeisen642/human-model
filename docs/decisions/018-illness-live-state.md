@@ -72,7 +72,7 @@ Discrete onset/recovery rolls match MisfortuneEvent and DisasterEvent's idiom an
 - Existing tests that assert illness stays 0 will break; update to expect drift.
 - Happiness becomes more volatile (the `illness * 5` penalty is now active); suicide rates rise as a side effect — calibration concern.
 - No mortality change until ARD 019 — sicker people are unhappier, not more likely to die of illness.
-- CLAUDE.md updates ("What's implemented", "Key design decisions") in the implementation commit.
+- Documentation updates in the implementation commit: the `IllnessEvent` submodel in `docs/odd-protocol.md` §7, and the illness bullet in `docs/model-reference.md`.
 - Tests must cover: typical adult onset/recovery; age scaling; constitution scaling; clamp at 0 and 1; multi-tick trajectory; happiness reflects updated illness.
 
 ### Known weakness: divide-by-zero at constitution=0
