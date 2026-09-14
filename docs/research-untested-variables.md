@@ -11,15 +11,26 @@ efficiency drifting downward over a long run (a defect documented in
 `docs/research-thriving-reachability.md`); pinning it makes the economy roughly 3× richer, so the
 pool stops being the bottleneck. *Extinct* means a run ended with nobody alive.
 
-**Headline: a setting that raises the birth rate changes nothing at all while the pool is empty, and
-becomes one of the strongest levers in the model once it isn't.** `HAPPINESS_BASELINE` adds a flat
-amount to everyone's happiness, and happier couples have more children. At default settings, raising
-it produces **34% more births and a population exactly the same size**, with all 48 runs extinct
-either way: the extra children are born and starve, because the pool is the limit and the birth rate
-is not. With the productivity pin applied, the identical setting takes extinction **from 23 of 48
-runs to 7 of 48** (Fisher exact, p = 0.0008) and cuts the long-run death rate among survivors from
-about 24% to about 9% per 1000 ticks. `EXPERIENCE_CAP`, which limits how much any one person can ever
-extract, does the same thing: flat at defaults, 23 of 48 down to 11 of 48 under the pin (p = 0.018).
+**Headline: settings that raise the birth rate change nothing at all while the pool is empty, and
+become the strongest levers in the model once it isn't.** The cleanest case is the birth rate itself.
+Raising `BASE_CHILDBIRTH_RATE` from 0.6 to 1.0 at default settings moves the peak population by
+**−0.8%** (685.5 → 680) and leaves all 48 runs extinct. The same change with the productivity pin
+applied takes extinction **from 23 of 48 runs to 1 of 48**, and at 8000 ticks from 43 of 48 to 6 of
+48 (Fisher exact, p = 7×10⁻¹⁵). The extinction rate among survivors falls from about 24% to about 2%
+per 1000 ticks, a 12× reduction and much the largest effect any lever in this project has produced.
+
+Two other settings show the same flat-then-decisive shape. `HAPPINESS_BASELINE` (happier couples have
+more children) produces **34% more births and a population exactly the same size** at defaults, all 48
+runs extinct either way, and takes extinction from 23 of 48 to 7 of 48 under the pin (p = 0.0008).
+`EXPERIENCE_CAP`, which limits how much any one person can ever extract, is flat at defaults and goes
+23 of 48 to 11 of 48 under the pin (p = 0.018).
+
+**None of this escapes the model's fate**, and the strongest lever makes that clearest: run to 16,000
+ticks, the fertility config's hazard is a flat 1.5–2.9% per 1000 ticks with no downward trend, so it
+delays extinction by roughly 12× rather than preventing it. `BASE_CHILDBIRTH_RATE=1.0` is also
+biologically indefensible (the constant's own comment puts natural fertility at 40–55%, and the
+default 0.6 already exceeds it). Read these as probes of the model's dynamics, not as calibration
+proposals.
 
 **What that means for the project's conclusions.** `docs/research-tuning-defaults.md` holds that no
 single constant fixes overshoot→extinction. That is still true, but nearly every constant was tested
@@ -157,32 +168,98 @@ converge to 48/48 (`BASE_INVENTION_RATE=0.03` does exactly this). Here the absol
 constant hazards, the pin control's last seed dies near tick 16,000 and the happiness arm's near tick
 42,000. Those two numbers are extrapolations and should be read as such.
 
-### Mechanism: the baseline floors the fertility multiplier in distress, which lifts the trough
+### Mechanism: it is fertility volume, not targeting
 
-`happiness` is floored at zero (`Math.max(0, happiness)`). At `HAPPINESS_BASELINE=0`, a person in
-distress — unemployed, ill, broke, all penalties firing — clamps to 0, giving `happinessFactor = 1.0`.
-At baseline 10, that same person still carries ≥10, giving ≥1.5. **The constant does almost nothing
-to the comfortable and a great deal to the desperate**, so its effect concentrates exactly at the
-bottom of a cycle. That predicts deeper troughs, which is directly measurable:
+> **Correction.** The first version of this document (and of PR #109) claimed the happiness constant
+> worked by *targeting* the distressed: happiness is floored at zero, so the baseline lifts the
+> fertility multiplier mostly for people at the bottom of a cycle, making it a crude anti-Allee
+> mechanism. **Two follow-up experiments killed that explanation.** The channel claim survives; the
+> targeting claim does not. The original reasoning and the trough table are kept below because the
+> trough effect is real — only its interpretation was wrong.
+
+**The channel is fertility, and nothing else.** `CHILDBIRTH_HAPPINESS_SCALAR=0` severs the only link
+from happiness to births. With it cut, raising the baseline does nothing at all:
+
+| Pin, 48 seeds, 2000 ticks | Extinct |
+|---|---|
+| `CHILDBIRTH_HAPPINESS_SCALAR=0`, `HAPPINESS_BASELINE=0` | 25/48 |
+| `CHILDBIRTH_HAPPINESS_SCALAR=0`, `HAPPINESS_BASELINE=10` | 30/48 (Fisher p = 0.41) |
+
+So happiness reaches the population only through births. The suicide and violence channels contribute
+nothing measurable, consistent with `docs/research-sweep-session-2026-09-14.md` H5/H8.
+
+**But targeting is not what does the work.** `HAPPINESS_BASELINE=10` is worth roughly a 38% uniform
+fertility rise on average (mean happiness 4.7 → 14.2 moves `happinessFactor` 1.24 → 1.71). Applying
+that rise *uniformly* instead, via `BASE_CHILDBIRTH_RATE`, does at least as well and probably better:
+
+| Pin, 48 seeds, 2000 ticks | Extinct | `stable` | Median peak pop |
+|---|---|---|---|
+| Control | 23/48 | 18/48 | 1220 |
+| `HAPPINESS_BASELINE=10` (targeted at the distressed) | 7/48 | 30/48 | 1119 |
+| `BASE_CHILDBIRTH_RATE=0.83` (uniform, matched +38%) | **2/48** | 41/48 | 1112 |
+| `BASE_CHILDBIRTH_RATE=1.0` (uniform, larger) | **1/48** | 41/48 | 1033 |
+
+2/48 versus 7/48 is not a significant difference on its own (p = 0.16), but the direction is wrong for
+the targeting hypothesis, which predicted the targeted version should win. **The honest reading is
+that fertility volume is the lever and where the extra births land is not the point.**
+
+The trough effect is still real, it just is not evidence for targeting — any fertility increase
+raises troughs:
 
 | Pin, 5000 ticks, surviving seeds only | Survivors | Trough p25 | Trough median | Trough mean | Trough max |
 |---|---|---|---|---|---|
 | Control | 11/48 | 5 | 7 | 7.5 | 12 |
 | `HAPPINESS_BASELINE=10` | 30/48 | 7 | **9** | 9.5 | 19 |
 
-**Survivorship bias runs against this result**, which is what makes it convincing: the control's 11
-survivors are the lucky tail of 48 (selected for shallow troughs), while the happiness arm's 30
-include many marginal runs. Despite that selection favouring the control, its troughs are still
-shallower.
+Survivorship bias runs against that comparison (the control's 11 survivors are the lucky tail of 48,
+selected for shallow troughs), so the gap is a lower bound.
 
-`docs/research-sweep-session-2026-09-14.md` concluded that the unbuilt crash-recovery / anti-Allee
-mechanism "needs to bite at populations of 5–20" and that "trough depth is the metric to calibrate
-against." `HAPPINESS_BASELINE` turns out to be a crude, accidental anti-Allee mechanism already
-present in the model — it raises birth probability specifically in the distressed state. That is a
-useful existence proof for that future-ideas item: a mechanism acting only on the trough moves
-long-horizon survival by 2.6× in hazard terms without touching the commons. It is not a *proposal* —
-tuning a happiness constant to get a demographic effect is the wrong place to encode this, and the
-THRIVING-gate problem below is a reason not to touch that constant at all.
+### Fertility under the pin is the strongest lever found in this project, and still does not escape
+
+`BASE_CHILDBIRTH_RATE=1.0` under the pin, run out to 16,000 ticks — eight times the horizon this
+project normally uses:
+
+| Ticks | Extinct | Survivors | `stable` | Hazard per 1000 ticks |
+|---|---|---|---|---|
+| 2000 | 1/48 | 47 | 41/48 | — |
+| 3500 | 3/48 | 45 | 39/48 | 2.9% |
+| 5000 | 4/48 | 44 | 38/48 | 1.5% |
+| 8000 | 6/48 | 42 | 35/48 | 1.5% |
+| 12000 | 9/48 | 39 | 35/48 | 1.8% |
+| 16000 | **13/48** | **35** | 28/48 | 2.7% |
+
+Against the pin control's 43/48 extinct at 8000 ticks, this is 6/48 (Fisher p = 7×10⁻¹⁵). The
+extinction hazard falls from ~24% to **~2% per 1000 ticks, a 12× reduction** — much the largest effect
+any lever in this project has produced.
+
+**It still does not flatten.** The 3500–8000 window looked like flattening (2.9% → 1.5% → 1.5%) and an
+earlier read of this table called it the first genuinely non-terminal config. Extending to 12,000 and
+16,000 removes that: the hazard sits at 1.5–2.9% throughout with no downward trend, which is a
+*constant* hazard, not a decaying one. By `docs/calibration-guide.md`'s own test — a real config's
+curve flattens, a delaying one keeps climbing — this is still a delaying config. Extrapolated at
+~2%/1000 ticks, the last of the 35 survivors is gone near tick 190,000. Every population in this
+model still dies; this one takes about twelve times longer.
+
+**Two reasons not to read this as a calibration proposal.** `BASE_CHILDBIRTH_RATE=1.0` means every
+healthy, partnered, peak-age couple has a child every single year; the constant's own comment puts
+Hutterite natural fertility at 40–55%, and the default of 0.6 is already above the empirical ceiling.
+And the outcomes are bad even where they are not extinct: at 16,000 ticks the split is 23 COLLAPSE,
+10 STRUGGLING, 2 STABLE, with `bound%` at 49% — the commons is exhausted half of all ticks. This is a
+probe of the model's dynamics, not a configuration anyone should adopt.
+
+### The regime claim, tested with the strongest lever available
+
+If the commons is what makes per-capita levers inert at defaults, then the single most powerful lever
+found above should also be inert at defaults. It is:
+
+| 48 seeds, 2000 ticks, no pin | Extinct | Median peak pop |
+|---|---|---|
+| `BASE_CHILDBIRTH_RATE=0.6` (default) | 48/48 | 685.5 |
+| `BASE_CHILDBIRTH_RATE=1.0` | 48/48 | **680** |
+
+A 67% fertility increase changes the peak population by −0.8% and the outcome not at all. The same
+change under the pin takes extinction from 23/48 to 1/48. That is the cleanest statement of this
+study's headline available in one table.
 
 ## Part 3 — The THRIVING happiness gate is satisfiable by an unchosen constant
 
@@ -302,7 +379,14 @@ tables. **Nothing about scale rescues the model**; it only changes how many peop
   it is not a clean unconditional comparison.
 - The two extrapolated extinction ticks (≈16,000 and ≈42,000) are extrapolations from a measured
   constant hazard over 6000 ticks, not measurements. Nothing was run past 8000 ticks.
-- Part 2 tested `HAPPINESS_BASELINE` and `EXPERIENCE_CAP` under the pin. The other Part 1 nulls
-  (comfort thresholds, misery penalties, `ELDERLY_IDLENESS_DECAY`, `CONSUMPTION_ELDER_MULTIPLIER`)
-  were not re-run there and should not be assumed inert in that regime.
+- Part 2 tested `HAPPINESS_BASELINE`, `EXPERIENCE_CAP` and `BASE_CHILDBIRTH_RATE` under the pin. The
+  other Part 1 nulls (comfort thresholds, misery penalties, `ELDERLY_IDLENESS_DECAY`,
+  `CONSUMPTION_ELDER_MULTIPLIER`) were not re-run there and should not be assumed inert in that
+  regime.
+- The targeted-vs-uniform comparison (7/48 vs 2/48, p = 0.16) is underpowered to call a winner. It is
+  sufficient to reject the *targeting* hypothesis, which predicted the opposite ordering, but it does
+  not establish that uniform fertility is genuinely better than the happiness route.
+- Everything under the pin sits at 38–53% `bound%`: the commons is exhausted for roughly half of all
+  ticks, and the surviving populations are cycling hard against it. None of these are abundance
+  regimes, and nothing here speaks to what produces abundance.
 - `peakGini` is unreliable throughout (see the boxed note in Part 1); no claim here rests on it.
