@@ -1033,8 +1033,11 @@ describe('Simulation', () => {
 
       sim.distributeWelfare(sim.getLiving());
       const snap = sim.snapshot();
-      // The payout lifts `poor` back over the threshold; the recipient still counts.
-      expect(poor.resources).toBeGreaterThan(Variables.WELFARE_THRESHOLD);
+      // The top-up lifts `poor` exactly to the threshold (ARD 061 caps each payout at the
+      // recipient's own shortfall), so a recount at snapshot time would find nobody eligible —
+      // the recipient still counts because the tally is taken at distribution time.
+      expect(poor.resources).toBeCloseTo(Variables.WELFARE_THRESHOLD);
+      expect(poor.resources).not.toBeLessThan(Variables.WELFARE_THRESHOLD);
       expect(snap.welfareRecipients).toBe(1);
     });
 
