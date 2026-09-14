@@ -10,7 +10,8 @@
  * bounded, non-degenerate population instead of eyeballing single-seed trajectories. The table
  * also reports cycle metrics from `CycleDetector` — `cyc` (median boom-bust oscillations) and
  * `stable` (count of seeds showing a sustained, non-collapsing cycle) — to find regimes that
- * oscillate persistently rather than booming once and going extinct.
+ * oscillate persistently rather than booming once and going extinct, plus `orphPk%` (worst
+ * single-tick share of children who are orphaned) as a family-structure stress signal.
  *
  * Usage:
  *   npx ts-node scripts/sweep.ts [options]   (or: npm run sweep -- [options])
@@ -50,6 +51,8 @@ interface RunMetrics {
   suicide: number;
   births: number;
   boundFraction: number; // share of ticks the commons pool sits below 5% of its ceiling
+  orphanShare: number; // orphaned children ÷ all children, pooled over every tick of the run
+  peakOrphanShare: number; // worst single-tick orphan share (ticks with at least one child)
   outcome: OutcomeLabel;
   numCycles: number; // complete boom-bust oscillations detected in the population series
   period: number; // avg ticks between successive peaks
@@ -93,7 +96,16 @@ async function runOne(seed: number, ticks: number, persons: number): Promise<Run
   let peakGini = 0;
   let boundTicks = 0;
   let extinctTick: number | null = null;
+  let orphanTotal = 0;
+  let childTotal = 0;
+  let peakOrphanShare = 0;
   for (const s of h) {
+    orphanTotal += s.orphanCount;
+    childTotal += s.childPopulation;
+    if (s.childPopulation > 0) {
+      const share = s.orphanCount / s.childPopulation;
+      if (share > peakOrphanShare) peakOrphanShare = share;
+    }
     if (s.population > peakPop) peakPop = s.population;
     if (s.population < minPop) minPop = s.population;
     if (s.resourceGini > peakGini) peakGini = s.resourceGini;
@@ -116,6 +128,8 @@ async function runOne(seed: number, ticks: number, persons: number): Promise<Run
     suicide: last.cumulativeDeathsBySuicide,
     births: last.cumulativeBirths,
     boundFraction: boundTicks / h.length,
+    orphanShare: childTotal > 0 ? orphanTotal / childTotal : 0,
+    peakOrphanShare,
     outcome: classifyOutcome(sim.decadeHistory, persons),
     numCycles: cycles.numCycles,
     period: cycles.period,
@@ -262,7 +276,7 @@ async function main(): Promise<void> {
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
 
   const header = (sweepKey ? `${sweepKey.padEnd(28)}  ` : '') +
-    `outcomes (n=${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  extinct  cyc  stable`;
+    `outcomes (n=${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  orphPk%  extinct  cyc  stable`;
   console.log(header);
   console.log('-'.repeat(header.length));
 
@@ -278,6 +292,7 @@ async function main(): Promise<void> {
       String(median(rows.map((r) => r.peakPop))).padStart(7) + '  ' +
       median(rows.map((r) => r.peakGini)).toFixed(2).padStart(8) + '  ' +
       (100 * median(rows.map((r) => r.boundFraction))).toFixed(0).padStart(5) + '%  ' +
+      (100 * median(rows.map((r) => r.peakOrphanShare))).toFixed(0).padStart(6) + '%  ' +
       `${extinctCount}/${seeds.length}`.padStart(7) + '  ' +
       String(median(rows.map((r) => r.numCycles))).padStart(3) + '  ' +
       `${stableCount}/${seeds.length}`.padStart(6),
@@ -288,6 +303,7 @@ async function main(): Promise<void> {
           `    seed ${String(r.seed).padStart(3)}  ${r.outcome.padEnd(11)} ` +
           `end=${String(r.endPop).padStart(4)} peak=${String(r.peakPop).padStart(4)} min=${String(r.minPop).padStart(4)} ` +
           `gini=${r.peakGini.toFixed(2)} bound=${(100 * r.boundFraction).toFixed(0)}% ` +
+          `orph=${(100 * r.orphanShare).toFixed(1)}%/pk${(100 * r.peakOrphanShare).toFixed(0)}% ` +
           `cyc=${r.numCycles} per=${r.period.toFixed(0)} trTrend=${r.troughTrend.toFixed(2)}${r.stableCycle ? ' STABLE-CYCLE' : ''} ` +
           `deaths(ill/mur/dis/sui)=${r.illness}/${r.murder}/${r.disaster}/${r.suicide} births=${r.births} ` +
           `${r.extinctTick !== null ? `extinct@${r.extinctTick}` : ''}`,

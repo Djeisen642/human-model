@@ -3,6 +3,7 @@ import Person from '../../App/Person';
 import Constants from '../../Helpers/Constants';
 import Variables from '../../Helpers/Variables';
 import SeededRandom from '../../Helpers/SeededRandom';
+import DeathRecord from '../../Records/DeathRecord';
 
 const alwaysFirst: () => number = () => 0;
 
@@ -962,6 +963,41 @@ describe('Simulation', () => {
       const snap = sim.snapshot();
       expect(snap.totalCoupleCount).toBe(0);
       expect(snap.fertileCoupleCount).toBe(0);
+    });
+
+    it('snapshot counts orphans as children with no living parent', () => {
+      const sim = new Simulation();
+      const parent = new Person([]);
+      parent.age = 40;
+      const deadParent = new Person([]);
+      deadParent.age = 40;
+      deadParent.causeOfDeath = new DeathRecord(Constants.CAUSE_OF_DEATH.ILLNESS);
+
+      const parented = new Person([parent]);
+      parented.age = 8;
+      const bereaved = new Person([deadParent]);
+      bereaved.age = 8;
+      const neverParented = new Person([]);
+      neverParented.age = 8;
+
+      sim.add(parent);
+      sim.add(parented);
+      sim.add(bereaved);
+      sim.add(neverParented);
+
+      const snap = sim.snapshot();
+      expect(snap.childPopulation).toBe(3);
+      expect(snap.orphanCount).toBe(2);
+    });
+
+    it('snapshot does not count parentless adults as orphans', () => {
+      const sim = new Simulation();
+      const adult = new Person([]);
+      adult.age = Variables.WORKING_AGE_MIN;
+      sim.add(adult);
+      const snap = sim.snapshot();
+      expect(snap.childPopulation).toBe(0);
+      expect(snap.orphanCount).toBe(0);
     });
   });
 

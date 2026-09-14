@@ -81,6 +81,10 @@ export interface TickSnapshot {
   totalConsumption: number;
   /** Count of living persons by education tier, indexed by Constants.EDUCATION value (length 6). */
   educationCounts: number[];
+  /** Living children (age < WORKING_AGE_MIN) at end of tick — denominator for the orphan share. */
+  childPopulation: number;
+  /** Living children with no living parents at end of tick; same cohort ARD 034 welfare treats as orphaned. */
+  orphanCount: number;
 }
 
 export default class Simulation {
@@ -595,6 +599,11 @@ export default class Simulation {
         educationCounts[p.education] += 1;
       }
     }
+    // Orphans use the same test as ARD 034 welfare eligibility: a child with no living parent.
+    // Children seeded without a parent assignment (ARD 052) count as orphaned from tick 0.
+    const children = this.living.filter(p => p.age < Variables.WORKING_AGE_MIN);
+    const childPopulation = children.length;
+    const orphanCount = children.filter(p => p.livingParents.length === 0).length;
 
     const deaths = this.tickDeathCauses.length;
     const deathsByMurder = this.tickDeathCauses.filter(c => c === Constants.CAUSE_OF_DEATH.MURDER).length;
@@ -658,6 +667,8 @@ export default class Simulation {
       medianAge,
       totalConsumption,
       educationCounts,
+      childPopulation,
+      orphanCount,
     };
 
     this.history.push(snap);

@@ -72,6 +72,10 @@ export interface TenYearSummary {
   births: number;
   /** Average community pool balance across the decade's ticks. ARD 034. */
   avgCommunityPool: number;
+  /** Average count of living children (age < WORKING_AGE_MIN) across the decade's ticks. */
+  avgChildPopulation: number;
+  /** Average count of orphaned children (no living parent) across the decade's ticks. */
+  avgOrphanCount: number;
 }
 
 /** Aggregate composition of the living population at end of simulation. ARD 031. */
@@ -102,4 +106,6 @@ export interface SurvivorSummary {
   partnered: number;
   /** Persons whose `hasChildren.length > 0`. */
   withChildren: number;
+  /** Children (age < 18) with no living parent. */
+  orphans: number;
 }

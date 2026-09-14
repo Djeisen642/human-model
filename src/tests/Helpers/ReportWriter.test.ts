@@ -37,6 +37,19 @@ describe('writeReportHTML', () => {
     expect(content).toContain('<canvas');
   });
 
+  it('renders the orphan chart and embeds per-tick orphan counts', async () => {
+    const simulation = await LooperSingleton.getInstance().start(10, 10, 1, () => {});
+    writeReportHTML(simulation, 10, 10, 1, tmpDir);
+
+    const filename = fs.readdirSync(tmpDir)[0];
+    const content = fs.readFileSync(path.join(tmpDir, filename), 'utf8');
+
+    expect(content).toContain('id="orphanChart"');
+    expect(content).toContain('Orphans Over Time');
+    expect(content).toContain('"orphanCount"');
+    expect(content).not.toContain('undefined');
+  });
+
   it('creates the output directory if it does not exist', async () => {
     const nestedDir = path.join(tmpDir, 'nested', 'output');
     const simulation = await LooperSingleton.getInstance().start(10, 10, 2, () => {});
