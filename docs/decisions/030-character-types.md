@@ -112,6 +112,6 @@ None — calibration is fully in the user-supplied config.
 - `src/tests/App/Simulation.test.ts` — declared types appear at exactly `floor(n*p)` count; remainder is default-seeded; per-field overrides apply only to typed cohort; same seed → same assignment (shuffle reproducibility); sum > 1.0 throws; unknown field names warned and skipped; a type with empty `ranges` is just a quota allocation that matches default-range persons
 - `src/tests/Helpers/Classifier.test.ts` (new) — predicate matches when all ranges satisfied; partial range definition only checks declared fields; multi-type membership reports correctly; empty `ranges` matches everyone
 - `src/tests/Helpers/Reporters.test.ts` — per-type section appears when types supplied; section omitted when not; delta column reports growth/shrinkage
-- `CLAUDE.md` — add to "Key design decisions" and "What's implemented"
+- `docs/model-reference.md` — add a character-types bullet under design decisions and to the implementation surface
 - `docs/future-ideas.md` — move "Population archetypes / composed mixes" (line 110) to Discarded, noting this ARD subsumes it
 - `docs/research-character-types.md` (created with this ARD) — catalogs the proposed Producer/Extractor/Warrior/Inventor/Cooperator/Fragile archetypes with citations and range rationale; canonical experiment scenarios live there, not in the ARD

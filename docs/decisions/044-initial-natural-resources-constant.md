@@ -31,6 +31,6 @@ The CLI `--config` mechanism (ARD 030 pattern) picks up the new constant for fre
 - `src/Helpers/Variables.ts` — add `NATURAL_RESOURCES_INITIAL`. Default equal to `NATURAL_RESOURCE_CEILING_INITIAL`.
 - `src/App/Simulation.ts` — change `naturalResources` field initializer to use the new constant.
 - `src/tests/App/Simulation.test.ts` — add a test confirming `naturalResources` starts at `NATURAL_RESOURCES_INITIAL` when overridden separately from the ceiling.
-- `CLAUDE.md` — note the split under the resource pool key-design bullet.
+- `docs/model-reference.md` — note the split under the resource pool design bullet.
 - `docs/odd-protocol.md` — update Environment initialization.
 - Cross-references: orthogonal to [ARD 043](./043-regen-coupled-to-ceiling.md), but the two together enable the full scarcity-scenario design (low ceiling = low regen = low carrying capacity; separate initial pool = how much stockpile exists at t=0).

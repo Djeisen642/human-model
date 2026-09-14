@@ -70,7 +70,7 @@ Applies to all ages; children not excluded (per ARD 014, well-cared-for children
 - Aggregate illness mortality drops at the same numeric value, then is re-tuned. Distribution shifts toward sicker individuals — the intended qualitative change.
 - Suicide side effects from ARD 018 still apply; not compounded here.
 - ARD 013 marked Superseded by ARD 019 in the index.
-- CLAUDE.md updates ("Key design decisions" MisfortuneEvent bullet, "What's implemented", Variables.ts listing) in the implementation commit.
+- Documentation updates in the implementation commit: the MisfortuneEvent bullet and `Variables.ts` listing in `docs/model-reference.md`, and the `MisfortuneEvent` submodel in `docs/odd-protocol.md` §7.
 - Tests must cover: `illness = 0` → never dies of illness; severity scaling; suicide still fires when illness check is skipped; suicide at `happiness = 0`; rename doesn't break existing tests.
 
 ### Known weakness inherited from ARD 013

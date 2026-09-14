@@ -41,6 +41,6 @@ When `communityPool === 0`, the prisoner gets nothing and immediately falls into
 
 - `src/Events/JailEvent.ts` — replace flat gather with pool-clamped grant per Decision.
 - `src/tests/Events/JailEvent.test.ts` — add cases: prisoner receives full grant when pool sufficient; receives partial grant when pool nearly empty; receives nothing when pool is zero (and triggers starvation); community pool decreases by exactly the granted amount.
-- `CLAUDE.md` — update JailEvent line under "What's implemented" and the Key design decisions bullet for ARD 035 to note community-pool sourcing.
+- `docs/odd-protocol.md` §7 — update the `JailEvent` submodel; `docs/model-reference.md` — update the ARD 035 jail bullet, both to note community-pool sourcing.
 - Empirically: in runs where `communityPool` is healthy (high TAX_RATE, low welfare demand), jail acts as designed — incarcerated persons stay alive. In runs where the community pool is exhausted, jail becomes a death sentence. This is a meaningful new collapse dynamic — institutional failure cascades into prisoner mortality.
 - Cross-references: modifies the jail mechanics established in [ARD 035](./035-jail-and-retribution.md); depends on `communityPool` introduced by [ARD 034](./034-community-pool-tax-welfare.md); paired with [ARD 039](./039-gather-productivity-model.md) and [ARD 040](./040-windfall-from-pool.md) as the resource-conservation triad.
