@@ -81,4 +81,4 @@ Target is drawn by `getRandomOther` (existing method). If the drawn target holds
 - `src/Helpers/Variables.ts` — add `HELP_CHARISMA_SCALAR`, `HELP_FRACTION`, `HELP_MAX_AMOUNT`, `HELP_PEAK_AGE`, `HELP_AGE_SCALE`, `HELP_AGE_FLOOR`
 - `src/tests/Events/HelpEvent.test.ts` — tests must cover: helper with zero resources (no-op); target with equal or greater resources than helper (no-op); sole living person (no target, no-op); amount capped by `HELP_MAX_AMOUNT`; amount equals fraction when below cap; resources transferred correctly (helper loses, target gains by same amount); `helpingIntent = 0` never fires in `EventFactory`
 - `docs/future-ideas.md` — move "Voluntary cooperation / helping event" from Required to Discarded, noting it is implemented here
-- `CLAUDE.md` — add to "What's implemented" and "Key design decisions"; add `HELP_PEAK_AGE / HELP_AGE_SCALE / HELP_AGE_FLOOR` to the age profile reference table
+- `docs/odd-protocol.md` §7 — add the `HelpEvent` submodel; `docs/model-reference.md` — add the design bullet; `CLAUDE.md` — add `HELP_PEAK_AGE / HELP_AGE_SCALE / HELP_AGE_FLOOR` to the age profile reference table

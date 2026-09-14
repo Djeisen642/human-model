@@ -46,7 +46,7 @@ regenerate(): void {
 - `src/App/Simulation.ts` — `regenerate()` uses the new formula.
 - `src/tests/App/Simulation.test.ts` — update regen tests: regen scales with ceiling; clamps at ceiling; produces zero at ceiling=0.
 - `src/tests/Events/InventionEvent.test.ts` — outcome distribution at default weights changes; existing branch-specific tests pin one of three outcomes via mocked `rng()` and should remain valid, but any test that asserts the *frequency* of branches needs updating.
-- `CLAUDE.md` — update the "Global natural resource pool" key-design bullet and the `LooperSingleton` / `Simulation` lines under "What's implemented" to reflect the new regen formula and invention weighting.
+- `docs/model-reference.md` — update the "Global natural resource pool" design bullet and the `LooperSingleton` / `Simulation` lines on the implementation surface; `docs/odd-protocol.md` §3 — update the regeneration step, both to reflect the new regen formula and invention weighting.
 - `docs/odd-protocol.md` — update the "Natural resource regeneration" section and the `extractionProductivity` / state-variables area.
 - `docs/future-ideas.md` — remove the "Long-term environmental drift" item's overlap with ceiling-coupled regen if any; the "InventionEvent: unbounded ceiling growth (thrive-lock)" item should remain (this ARD makes ceiling matter, but doesn't cap it).
 - Calibration cascade: existing default `NATURAL_RESOURCE_CEILING_INITIAL = 10_000` combined with a fraction around 0.03 yields ~300/tick regen — a comfortable surplus at 100 persons. The fraction is a single calibration handle; tune it once and any ceiling value scales naturally.

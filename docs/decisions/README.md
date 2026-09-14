@@ -31,6 +31,8 @@ An ARD is a historical record. Editing it after the fact would falsify the decis
 
 This way the full decision history is preserved, including decisions that turned out to be wrong.
 
+**One carve-out: cross-references may be repointed.** When a doc is renamed or a section moves, the pointers in an ARD's Consequences section may be updated to name the new location — a reference that leads nowhere serves no one. This changes where a reader is sent, never what was decided or why. Everything else stays immutable: context, options, the decision, the reasoning, the numbers. Authorized by the project owner 2026-09-14, when "Key design decisions" and "What's implemented" moved out of `CLAUDE.md`.
+
 ## Scope
 
 **Each ARD should cover one decision, narrowly enough that supersession is a clean replacement.**
@@ -105,8 +107,6 @@ When in doubt:
 3. Reference in `docs/model-reference.md` under the relevant subsystem, and in `docs/odd-protocol.md` when the code lands and changes a mechanism, agent field, or the tick order.
 4. Update `docs/future-ideas.md` — move subsumed items to Discarded; delete obsolete ones with a note in the ARD.
 5. Same commit as implementation when possible; otherwise cross-reference in commit messages.
-
-**Note on older ARDs.** Consequences sections written before 2026-09 tell you to update CLAUDE.md sections called "Key design decisions" and "What's implemented". Those moved to `docs/model-reference.md`; the mechanism detail moved to `docs/odd-protocol.md`. ARDs are immutable, so the stale instructions stay — follow the table in CLAUDE.md's "Keeping the handoff docs current" instead.
 
 ## Statuses
 

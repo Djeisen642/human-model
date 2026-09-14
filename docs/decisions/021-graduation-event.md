@@ -75,4 +75,4 @@ No re-enrollment after graduation. The person stops being a student.
 - `src/tests/Events/GraduationEvent.test.ts` — tests must cover: enrolled person graduates when `rng()` is below threshold; `education` is set to the prior `isWorkingOnEd` value; `isWorkingOnEd` is reset to NONE; `intelligence` increments by 1; non-enrolled person never triggers graduation in `EventFactory`; age modifier suppresses graduation probability at extreme ages
 - `src/tests/App/Simulation.test.ts` — extend seeding tests: persons aged ≤17 receive `isWorkingOnEd = HIGH_SCHOOL` at the expected rate; persons aged 18–24 receive `isWorkingOnEd = BACHELORS` at the expected rate; persons aged ≥25 have `isWorkingOnEd = NONE`
 - `docs/future-ideas.md` — move "Education payoff on stats" from Required to Discarded (resolved by this ARD and ARD 022)
-- `CLAUDE.md` — update "What's implemented" and remove graduation from "What's not implemented yet" when code lands
+- Documentation — add the `GraduationEvent` submodel to `docs/odd-protocol.md` §7 when code lands (at the time of writing, graduation was still listed as unimplemented)

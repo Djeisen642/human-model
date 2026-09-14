@@ -54,7 +54,7 @@ Constants in `Variables.ts` are renamed for clarity but values unchanged at cali
 - `src/Helpers/Variables.ts` — rename `*EFFICIENCY*` constants; values unchanged.
 - `src/Helpers/Reporters.ts`, `src/Helpers/ReportWriter.ts` — rename field references; chart series and labels updated to "Productivity."
 - All test files referencing `extractionEfficiency` — rename.
-- `CLAUDE.md` — update Key design decisions, What's implemented, and architecture summary.
+- `docs/model-reference.md` — update the design-decision and implementation-surface bullets; `docs/odd-protocol.md` §7 — update the `GatherResourcesEvent` submodel; `CLAUDE.md` — architecture summary.
 - Pool depletion is now empirically meaningful: a run with pool at 0 will see personal `resources` decline at consumption rate within ~consumption-many ticks. Collapse signaling re-attached to the commons.
 - Calibration: existing `BASE_GATHER_AMOUNT` and `INTELLIGENCE_GATHER_SCALAR` will likely need re-tuning since drain rates differ from the old formula. Pre-fix runs over-extracted personal output relative to pool drain by a factor of `1/productivity`; post-fix the two are equal. Expect pool to exhaust faster at the start.
 - Tests must cover: (1) `naturalResources` drops by exactly `extracted` (no factor); (2) `person.resources` rises by exactly `extracted`; (3) productivity above 1 increases output; (4) productivity below 1 decreases output; (5) pool-limited case (`output > pool`) extracts only what remains.

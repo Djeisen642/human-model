@@ -38,6 +38,6 @@ No new constants. No new field on `Simulation`.
 - `src/Helpers/Variables.ts` — no changes (constants retained).
 - `src/tests/Events/WindfallEvent.test.ts` — update assertions: pool decreases by the granted amount; pool clamps at zero (windfall draws partial or nothing); person.resources increases by the granted amount.
 - The model now has a single non-conservative inflow: `JailEvent`'s flat gather (addressed in ARD 041) and exogenous taxation flows. With ARDs 039, 040, 041 in place, the closed-system accounting will hold.
-- `CLAUDE.md` — update WindfallEvent line under "What's implemented" to note pool-sourcing.
+- `docs/odd-protocol.md` §7 — update the `WindfallEvent` submodel to note pool-sourcing.
 - Calibration: in a pool-exhausted world, windfall fires zero output. This is the intended dynamic — pool exhaustion ends the "lucky finds" pathway and the personal economy must rely on welfare + stockpiles alone. Expect the post-pool-exhaustion phase to look meaningfully grimmer than current runs.
 - Cross-references: supersedes [ARD 028](./028-windfall-event.md); paired with [ARD 039](./039-gather-productivity-model.md) and [ARD 041](./041-jail-from-community-pool.md) as the resource-conservation triad.
