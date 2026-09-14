@@ -23,23 +23,56 @@ mechanism nobody had isolated before: **`extractionProductivity`'s downward drif
 changes the model's *qualitative* dynamics from "boom once, crash to extinction" to "boom, crash
 partway, boom again."**
 
-| Config (16 seeds, 800 ticks unless noted) | `stable` | Extinction | Median peak pop | `bound%` |
-|---|---|---|---|---|
-| Default (32 seeds, documented) | 2/32 (6%) | 30/32 (94%) | 703 | 8% |
-| `EXTRACTION_PRODUCTIVITY_FLOOR=0.1` alone (log-symmetric band, still a random walk) | 2/16 (12.5%) | 13/16 (81%) | 773 | 43% |
-| Full pin (`INVENTION_DEPLETION_{FASTER,SLOWER}_WEIGHT=0`, productivity frozen at 1.0) | **10/16 (62.5%)** | 4/16 (25%) | 1187 | 41% |
-| Pin + `BASE_INVENTION_RATE=0.03` (15×) | **15/16 (94%)** | **0/16 (0%)** | 1383 | 47% |
-| `BASE_INVENTION_RATE=0.03` alone (this session's control) | 3/16 (18.75%) | 12/16 (75%) | 1024 | 19% |
-| `EXTRACTION_PRODUCTIVITY_FLOOR=0.1` + `NATURAL_RESOURCE_REGEN_FRACTION=0.05` (8 seeds) | 6/8 (75%) | 2/8 (25%) | 1410 | 59% |
-| `EXTRACTION_PRODUCTIVITY_FLOOR=0.1` + `MAX_NATURAL_RESOURCE_CEILING=40000` (8 seeds) | 4/8 (50%) | 1/8 (12.5%) | 2180 | 61% |
+| Config (16 seeds, 800 ticks unless noted) | `stable` | never cycles (`cyc=0`) | Extinction | Median peak pop | `bound%` |
+|---|---|---|---|---|---|
+| **Default, measured here (16 seeds)** | 1/16 (6%) | **10/16** | 15/16 (94%) | 703 | 8% |
+| Default (32 seeds, documented, for reference) | 2/32 (6%) | — | 30/32 (94%) | 703 | 8% |
+| `EXTRACTION_PRODUCTIVITY_FLOOR=0.1` alone (log-symmetric band, still a random walk) | 2/16 (12.5%) | — | 13/16 (81%) | 773 | 43% |
+| Full pin (`INVENTION_DEPLETION_{FASTER,SLOWER}_WEIGHT=0`, productivity frozen at 1.0) | **10/16 (62.5%)** | **3/16** | 4/16 (25%) | 1187 | 41% |
+| `EXTRACTION_PRODUCTIVITY_FLOOR=0.1` + `BASE_INVENTION_RATE=0.03` (15×) | **15/16 (94%)** | — | **0/16 (0%)** | 1383 | 47% |
+| `BASE_INVENTION_RATE=0.03` alone (this session's control) | 3/16 (18.75%) | — | 12/16 (75%) | 1024 | 19% |
+| `EXTRACTION_PRODUCTIVITY_FLOOR=0.1` + `NATURAL_RESOURCE_REGEN_FRACTION=0.05` (8 seeds) | 6/8 (75%) | — | 2/8 (25%) | 1410 | 59% |
+| `EXTRACTION_PRODUCTIVITY_FLOOR=0.1` + `MAX_NATURAL_RESOURCE_CEILING=40000` (8 seeds) | 4/8 (50%) | — | 1/8 (12.5%) | 2180 | 61% |
 
-The gradient is clean and monotonic with "how thoroughly the config removes productivity's downward
-drift and/or keeps carrying capacity rising": widening the band (still a walk) barely moves `stable`;
-freezing it outright (no walk at all) is the big jump; adding continual ceiling growth on top
-(15× invention) pushes `stable` to 15/16 and **eliminates extinction entirely** in this sample. This
-is a substantially larger effect than either lever produced alone in prior studies, and the two
-appear synergistic rather than redundant: invention keeps `K` rising, the productivity fix stops the
-economy's supply side from randomly cratering independent of `K`.
+**Baseline reproduces.** The default control was re-measured here rather than taken on faith
+(`npx ts-node scripts/sweep.ts --seeds 16 --ticks 800 --workers 2 --verbose`) and lands on the
+documented 32-seed figures almost exactly: 94% extinction either way, identical median peak (703) and
+`bound%` (8%), `stable` 1/16 vs 2/32. So the denominator these comparisons rest on is sound.
+
+**One number did not reproduce, and it is instructive.** `BASE_INVENTION_RATE=0.03` alone gave
+`stable=3/16` and 12/16 extinct here, against `stable=6/16` and 9/16 extinct recorded in
+`docs/research-tuning-defaults.md` at 800 ticks for the same nominal config. That study is from
+2026-06-05 at commit `fcfe1bd` — i.e. **before ARDs 052–062 landed** (seed structure, pairing,
+employment seeding, the fertile-window correction, the adult-basis Gini, and the two welfare
+revisions). None of those variables appear in that study's `Key context vars` line, because nobody
+could have known to list them. This is precisely the drift the provenance convention in CLAUDE.md was
+added to catch, and it is a live example: an invention-lever result that everyone has been citing as
+`6/16` reads `3/16` on current `master`. Treat the invention-alone figure — and the "synergy"
+inference that rests on comparing against it — as the least trustworthy claim in this table, and
+consider re-measuring `docs/research-tuning-defaults.md`'s invention ladder outright.
+
+**The gradient is not a single clean axis — an earlier draft of this doc overstated that.** The two
+resource rows at the bottom carry the *same* productivity treatment as the `FLOOR=0.1`-alone row
+(2/16) yet score 6/8 and 4/8, so resource abundance is doing substantial work independently of
+anything about productivity. What the table actually supports is narrower: removing productivity
+*variance* is the single largest mover found here, widening the band alone is not the same
+intervention as freezing it (2/16 vs 10/16), and several other levers push `stable` up too. The
+"synergy" reading of `FLOOR=0.1` + 15× invention (15/16, zero extinctions) is the most interesting
+cell in the table and also the least verified — it is one 16-seed run whose invention-alone control
+is the row that failed to reproduce.
+
+**The more robust statistic is `cyc=0`** — the count of seeds that never establish *any* oscillation
+and simply boom once and die, which needs no judgment call about trough thresholds. It goes from
+**10/16 at default to 3/16 under the pin**. That is the cleanest statement of the effect in this
+doc, and it does not depend on `stableCycle`'s calibration at all.
+
+**These are not abundance regimes — read `bound%` before reading `stable`.** Every config that scores
+well on cycling sits at 41–61% `bound%` against the default's 8%: the commons is fully exhausted for
+roughly half of all ticks. What the productivity fix buys is a population that oscillates *against a
+depleted resource floor* rather than dying at it — sustained Malthusian cycling, not prosperity.
+Given the project's stated goal is abundance rather than merely non-extinction, that distinction
+matters more than the `stable` column does, and none of these configs is a candidate for a "good"
+default on this evidence.
 
 **Why `classifyOutcome` still reads COLLAPSE almost everywhere in this table**, despite `stable`
 climbing to 94%: `detectCycles`'s `stableCycle` flag only requires ≥2 complete oscillations whose
@@ -62,6 +95,21 @@ scattered both above and below 1.0 (0.37 to 2.79) — some cycles are rebuilding
 declining cycle-to-cycle. This is genuinely a different regime from the default's one-shot overshoot,
 **but** several seeds (e.g. seed 13: end=2) hit the tick-800 cutoff right at the bottom of what could
 be a third crash, which `detectCycles` can't yet see because it only requires 2 confirmed cycles.
+
+**Caveat on the `stable` metric itself.** `stableCycle` passes at `troughTrend ≥ 0.5`, i.e. a
+population whose troughs have *halved* over the run still counts as "non-collapsing." Seed 1 at 1500
+ticks passes with `trTrend=0.55` — troughs down 45% across 5 cycles. That is a generous bar, and
+every `stable` figure in this doc inherits it. It is closer to "hasn't died yet and is still
+oscillating" than to "holds a floor." This is a pre-existing property of the harness, not something
+this session introduced, but it means `stable` counts should not be read as evidence of equilibrium.
+The `cyc=0` column above is the threshold-free alternative.
+
+**An early-failure mode the fix doesn't touch.** Under the pin, seeds 10, 14 and 16 never cycle at
+all (`cyc=0`) and are extinct by ticks 258/329/268 with peaks of only ~760–790 — they fail before the
+oscillatory regime can establish. The same mode dominates the default config (10 of 16 seeds have
+`cyc=0` there, most dead before tick 200). So the productivity fix converts early failure from the
+majority outcome into a minority one (10/16 → 3/16) but does not eliminate it; roughly a fifth of
+seeds die in the first ~330 ticks regardless.
 
 > **Resolution pending:** a 1500-tick re-run of the full-pin config (same command, `--ticks 1500`) was
 > in flight when this doc was first written, specifically to check whether these seeds complete a
@@ -86,28 +134,33 @@ escaping the one-shot pattern once one specific bug (productivity drift) is remo
 deliberate crash-recovery mechanism is built. That remaining gap looks like exactly the shape a
 crash-recovery mechanism (the still-unbuilt anti-Allee item) is meant to close.
 
-## H5 — Jail/detection severity: a real lever, direction is suspicious, needs more seeds
+## H5 — Jail/detection severity: works on crime, irrelevant to outcomes
 
 Nobody had swept punishment severity before. Two extremes at 16 seeds / 800 ticks:
 
-| Config | Extinction | `stable` | Median peak pop | `bound%` |
-|---|---|---|---|---|
-| Punitive (`JAIL_TICKS_KILL=40`, `JAIL_TICKS_STEAL=15`, `BASE_DETECT_RATE_KILL=0.4`, `BASE_DETECT_RATE_STEAL=0.2`) | 16/16 (100%) | 0/16 | 664.5 | 19% |
-| Near-lawless (`JAIL_TICKS_KILL=1`, `JAIL_TICKS_STEAL=1`, `BASE_DETECT_RATE_KILL=0.02`, `BASE_DETECT_RATE_STEAL=0.01`) | 14/16 (87.5%) | 1/16 | 727.5 | 17% |
-| Default (documented, 32 seeds) | 30/32 (93.75%) | 2/32 | 703 | 8% |
+| Config | Extinction | `stable` | Median peak pop | `bound%` | murder deaths/birth | illness deaths/birth |
+|---|---|---|---|---|---|---|
+| Punitive (`JAIL_TICKS_KILL=40`, `JAIL_TICKS_STEAL=15`, `BASE_DETECT_RATE_KILL=0.4`, `BASE_DETECT_RATE_STEAL=0.2`) | 16/16 (100%) | 0/16 | 664.5 | 19% | 0.081 | 0.985 |
+| Near-lawless (`JAIL_TICKS_KILL=1`, `JAIL_TICKS_STEAL=1`, `BASE_DETECT_RATE_KILL=0.02`, `BASE_DETECT_RATE_STEAL=0.01`) | 14/16 (87.5%) | 1/16 | 727.5 | 17% | 0.091 | 0.937 |
+| Default, measured here (16 seeds) | 15/16 (93.75%) | 1/16 | 703 | 8% | — | — |
 
-The punitive extreme is worse on every axis than the lawless extreme: full extinction vs. 87.5%,
-zero stable cycles vs. one, lower peak population. The plausible mechanism: `JailEvent` replaces a
-jailed person's full event suite with a reduced one that still consumes from `communityPool` but
-doesn't gather — a long sentence pulls productive adults out of the economy for longer while they
-keep drawing down the pool, and `JAIL_TICKS_KILL=40` combined with a 0.4 detection rate keeps a much
-larger fraction of the population incapacitated at any given time than the 1-tick/0.02-detection
-regime does. That's a real, sensible causal story, not a mysterious inversion — but it rests on one
-extinction-count difference (16/16 vs 14/16) and one stable-cycle difference (0/16 vs 1/16), both of
-which are inside binomial noise at n=16. **Treat "harsher punishment is worse" as a plausible
-hypothesis with a documented mechanism, not an established result** — it would need 32+ seeds and a
-death-cause breakdown (is illness/starvation mortality actually higher in the punitive arm, consistent
-with fewer active gatherers?) before being cited as a finding.
+> **An earlier draft of this doc read the extinction column as "harsher punishment is worse" and
+> attached a causal mechanism to it (`JailEvent` incapacitating gatherers who still draw from the
+> community pool). The death-cause data, run afterwards, does not support that story.**
+
+Deterrence does work on the thing it targets: murder deaths per birth fall ~12% in the punitive arm
+(0.081 vs 0.091), in the expected direction. But murder is only **7.6–8.9% of all deaths** in both
+arms — illness and starvation carry the other ~91% — so even a large relative change in the homicide
+rate cannot move the population trajectory. And the mechanism the earlier draft proposed predicts
+higher illness/starvation mortality under incapacitation: the actual difference is 0.985 vs 0.937
+illness-deaths-per-birth, ~5%, in the right direction but far too small to carry a 16/16-vs-14/16
+extinction gap, and confounded by the lawless arm's runs lasting longer.
+
+**Corrected reading:** the punishment subsystem is internally well-behaved and does what it says, but
+it is not load-bearing for collapse/thrive outcomes. The extinction difference between the two arms
+(one seed either side of the measured default's 15/16) is noise. This converges with H8 below on the
+same conclusion from the other direction — two independent probes of the violence subsystem, both
+landing on "too small a share of mortality to matter."
 
 ## Clean null results
 
@@ -116,11 +169,12 @@ narrows where the model's real leverage is:
 
 **H8 — `KillEvent`'s inequality→violence feedback (`KILL_GINI_SCALAR`).** Turning it off entirely
 (`=0`) versus cranking it to 3× default (`=5`) produced **identical** peak population (703 vs 709.5)
-and peak Gini (0.86 vs 0.86), with extinction/stable within noise of the 1.5-default baseline.
-Killing is too small a share of total mortality (illness and starvation dominate by roughly an order
-of magnitude — see the death-cause columns in any `--verbose` run) for the model's one explicit
-HANDY/Turchin-style feedback loop to have any visible leverage on outcomes. The mechanism exists in
-the code; it just isn't load-bearing.
+and peak Gini (0.86 vs 0.86), with extinction/stable within noise of the measured default baseline.
+Killing is too small a share of total mortality for the model's one explicit HANDY/Turchin-style
+feedback loop to have any visible leverage on outcomes — H5's death-cause breakdown puts the number
+at **7.6–8.9% of deaths**, against ~91% for illness and starvation. The mechanism exists in the code;
+it just isn't load-bearing. Taken with H5, the whole violence subsystem (intent, inequality feedback,
+detection, punishment) is a closed loop that barely touches the population trajectory.
 
 **H6 — Informal peer-to-peer help (`HELP_FRACTION`/`HELP_MAX_AMOUNT`).** A 3× boost
 (`0.3`/`30`) changed nothing (`EXTINCTION×16`, identical peakGini 0.85, `stable=0/16`). Only a 5×
@@ -154,14 +208,22 @@ resources just relocate where the wall is, they don't add a brake.
 ## Caveats
 
 - 16 seeds per arm (8 for the two H4 configs that stalled under CPU contention and were rerun
-  smaller). Good enough to see large, consistent effects (the productivity-drift gradient, the two
-  clean nulls); not enough to trust small differences (H5's punishment-direction finding, or single
-  extra COLLAPSE-vs-EXTINCTION seeds anywhere in this doc).
-- All runs used `--workers 2` to share 4 CPUs across 8 concurrently-running sweep agents; wall-clock
-  times in agent transcripts reflect that contention and don't indicate anything about the model
-  itself.
-- The productivity-drift finding is the one worth following up with real seed counts (32+) and the
-  1500-tick horizon check below, before it goes anywhere near an ARD.
+  smaller). Good enough to see large, consistent effects (the `cyc=0` shift, the three nulls); not
+  enough to trust small differences — any single extra COLLAPSE-vs-EXTINCTION seed in this doc is
+  noise, including every difference in the H5 table's outcome columns.
+- The `FLOOR=0.1` + 15× invention cell (15/16 stable, 0 extinctions) is a single 16-seed run and the
+  most consequential number here. Its own invention-alone control is the one figure in this study that
+  failed to reproduce against prior work (3/16 vs a recorded 6/16). It needs 32+ seeds before anyone
+  builds on it.
+- `stable` rests on a `troughTrend ≥ 0.5` threshold that permits troughs to halve over a run; prefer
+  `cyc=0` counts when a threshold-free statistic will do.
+- Everything here is measured on configs that sit at 41–61% `bound%`. These are cycling-under-scarcity
+  regimes, not abundance, and nothing in this study speaks to what produces abundance.
+- All runs used `--workers 2` to share 4 CPUs across concurrently-running sweep agents; wall-clock
+  times in agent transcripts reflect that contention and say nothing about the model itself.
+- Two of the eight agents stalled polling their own background jobs and had to be re-driven; their
+  configs were rerun directly. No result in this doc is taken solely from an agent's summary — every
+  headline number was either re-run here or is quoted from a raw table reproduced in this doc.
 
 ## Addendum: 1500-tick horizon check on the full-pin config
 
