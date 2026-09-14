@@ -1,22 +1,34 @@
-# Research: The Commons Is a Switch — Per-Capita Levers Are Inert Until It Stops Binding
+# Research: Settings That Do Nothing Until the Resource Shortage Is Fixed
 
 **Recorded:** 2026-09-14 | **Commit:** b23e106 | **Latest ARD:** 062 | **Base config:** all Variables at defaults unless noted
 **Commands:** `npx ts-node scripts/sweep.ts --seeds 48 --ticks 2000 --workers 4 [--sweep KEY=… | --set KEY=VAL]`; `npx ts-node scripts/throughput-probe.ts --sweep KEY=… --seeds 24`; `npx ts-node scripts/thrive-probe.ts --seeds 8 --ticks 300 --set KEY=VAL`
 **Key context vars:** `HAPPINESS_BASELINE=0`, `EXPERIENCE_CAP=50`, `CONSUMPTION_ELDER_MULTIPLIER=1.5`, `INVENTION_DEPLETION_{FASTER,SLOWER}_WEIGHT=1`, `THRIVING_HAPPINESS_THRESHOLD=6.0`
 
-**Headline: the same lever does nothing and then does more than anything else, depending on whether
-the commons binds.** At default settings, raising `HAPPINESS_BASELINE` increases total births 34% and
-changes peak population by 0% — the commons eats the entire gain, and extinction stays 48/48. Under
-the productivity pin, where the commons stops binding, the identical lever takes extinction from
-**23/48 to 7/48** at 2000 ticks (Fisher p = 8×10⁻⁴) and cuts the long-run extinction hazard from
-~24% to ~9% per 1000 ticks. `EXPERIENCE_CAP` behaves the same way: flat at default, 23/48 → 11/48
-under the pin (p = 0.018).
+**Terms used throughout.** *The commons* is the single shared resource pool everyone gathers from;
+it *binds* when it has been stripped to near zero, which is the model's normal state. *The
+productivity pin* is `INVENTION_DEPLETION_{FASTER,SLOWER}_WEIGHT=0`, which stops extraction
+efficiency drifting downward over a long run (a defect documented in
+`docs/research-thriving-reachability.md`); pinning it makes the economy roughly 3× richer, so the
+pool stops being the bottleneck. *Extinct* means a run ended with nobody alive.
 
-This reframes `docs/research-tuning-defaults.md`'s "no single constant fixes overshoot→extinction."
-That remains true, but the reason it looks true is partly an artifact of testing every constant in
-the one regime where per-capita constants *cannot* matter. **Fix the commons first and the
-people-levers become the strongest thing in the model.** None of them produces an equilibrium — the
-hazard stays constant and positive — but the ordering matters for where the next ARD should go.
+**Headline: a setting that raises the birth rate changes nothing at all while the pool is empty, and
+becomes one of the strongest levers in the model once it isn't.** `HAPPINESS_BASELINE` adds a flat
+amount to everyone's happiness, and happier couples have more children. At default settings, raising
+it produces **34% more births and a population exactly the same size**, with all 48 runs extinct
+either way: the extra children are born and starve, because the pool is the limit and the birth rate
+is not. With the productivity pin applied, the identical setting takes extinction **from 23 of 48
+runs to 7 of 48** (Fisher exact, p = 0.0008) and cuts the long-run death rate among survivors from
+about 24% to about 9% per 1000 ticks. `EXPERIENCE_CAP`, which limits how much any one person can ever
+extract, does the same thing: flat at defaults, 23 of 48 down to 11 of 48 under the pin (p = 0.018).
+
+**What that means for the project's conclusions.** `docs/research-tuning-defaults.md` holds that no
+single constant fixes overshoot→extinction. That is still true, but nearly every constant was tested
+in the one regime where constants about *individual people* cannot matter: the pool caps the
+population regardless of how many are born or how much each can extract. A "this does nothing" result
+measured at defaults is evidence about the test conditions as much as about the setting. Nothing here
+makes the model survive — populations still die off at a steady rate in every arm, and none reaches
+equilibrium — but it argues for fixing the resource economy before any further individual-level
+calibration, and for re-running the archived nulls afterwards.
 
 All figures are 48 seeds unless stated. Two re-measured controls, not quoted:
 
