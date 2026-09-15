@@ -8,6 +8,11 @@ Zero production dependencies — devDependencies only.
 
 ## Where things are documented
 
+A project skill, `.claude/skills/sweep-results/`, covers the one process that has gone wrong here most
+often: deciding whether a sweep difference is real. It fires when you are about to compare configs or
+write up a result. It carries the procedure and the traps only — every definition stays in
+`docs/calibration-guide.md`, so the two cannot drift apart.
+
 This file is the handoff: orientation, process, and conventions. The detail lives in four places, and you are expected to open them.
 
 | Need | Read |
@@ -56,6 +61,20 @@ npm run generate-config  # writes config.default.json from Variables.ts (gitigno
 npm run sweep -- [opts]  # run many sims across seeds, print a metrics/outcome table
 ```
 
+**Never decide whether two configs differ by eye — use `scripts/compare.ts`.** The sweep table is for
+exploring; deciding takes a test. Eyeballing is how several claims in `docs/research-*.md` were
+published and later failed to reproduce.
+
+```bash
+npx ts-node scripts/compare.ts --seeds 48 --ticks 2000 --b BASE_CHILDBIRTH_RATE=1.0
+```
+
+It runs both arms over the same seeds (so each run is compared against its own twin, which cancels
+seed luck) and reports each measure as REAL DIFFERENCE / PROBABLY REAL / TOO CLOSE TO CALL, with the
+size of the change and a plausible range. When a result is inconclusive it says how many seeds you
+would have needed, so a null reads as "too small to tell" rather than "no effect". Details and the
+validation record are in `docs/calibration-guide.md`.
+
 ```bash
 npm run sweep -- --ticks 300 --sweep BASE_CHILDBIRTH_RATE=0.2,0.3,0.4   # sweep one Variables constant
 npm run sweep -- --seeds 20 --set MAX_NATURAL_RESOURCE_CEILING=12000 --verbose  # fixed overrides + per-seed detail
@@ -63,7 +82,7 @@ npm run sweep -- --seeds 20 --set MAX_NATURAL_RESOURCE_CEILING=12000 --verbose  
 
 Sweep options: `--seeds 42,7,1` (or a single `N` → seeds 1..N; default 1..8), `--ticks`, `--persons`, `--set KEY=VAL` (repeatable Variables override), `--sweep KEY=v1,v2,…` (one sweep dimension), `--verbose` (per-seed rows with cause-of-death split).
 
-**Read `docs/calibration-guide.md` before sweeping.** It defines every output column, flags which ones are unreliable (`peakGini` is a max-of-noise statistic), and explains why short-horizon results mislead — judge configs at 500–800 ticks, never at 100.
+**Read `docs/calibration-guide.md` before sweeping.** It defines every output column, flags which ones are unreliable (`peakGini` is a max-of-noise statistic), and explains why short-horizon results mislead. **Judge configs at 2000 ticks, not 800** — a config whose only benefit is delay reads as a rescue at any horizon shorter than the delay it buys, and 800 ticks has produced that error repeatedly. Prefer the extinction-vs-horizon curve to any single-horizon count: a genuinely different config flattens, a delaying one keeps climbing.
 
 ### Parity harness (`scripts/parity-check.ts`)
 
