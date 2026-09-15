@@ -364,16 +364,21 @@ with no dependence on how full the pool is. There is no negative feedback in the
 signal is starvation *after* exhaustion. So the population has no way to level off on approach.
 
 Those two facts put the peak-decline and commons conditions in direct opposition: being at your
-population peak means the most mouths drawing on the pool, which is exactly when it is stripped. Per
-live tick across 8 seeds:
+population peak means the most mouths drawing on the pool, which is exactly when it is stripped.
+Measured per run (48 runs each; an earlier draft pooled every tick across runs, which treats
+autocorrelated ticks as independent samples and understated the effect):
 
-| Config | near peak (within 15%) | commons ≥ 40% full | **both at once** | both *after* the commons is first emptied | correlation |
-|---|---|---|---|---|---|
-| Default, 2000t | 30.8% | 42.4% | 10.3% | **2.6%** | **−0.324** |
-| Pin + fertility 1.0, 5000t | 7.9% | 35.2% | 1.1% | **0.2%** | **−0.428** |
+| Config | runs where the two move in opposite directions | per-run correlation, median (range) | ticks passing **both** conditions, before the pool is first emptied | after |
+|---|---|---|---|---|
+| Default, 2000t | 45/48 | −0.54 (−0.82 to 0.52) | **81.3%** | **0.0%** |
+| Pin + fertility 1.0, 5000t | **48/48** | −0.43 (−0.47 to −0.36) | **83.9%** | **0.2%** |
 
-The two conditions are anti-correlated, and the joint rate collapses by a further 4–5× once the commons
-has been emptied even once — the ratchet closing behind the first overshoot.
+**This is the ratchet, and it is close to absolute.** Before the commons has ever been emptied, the two
+conditions hold together about 82% of the time — THRIVING's structural half is not rare during the
+approach, it is the normal state. After the first exhaustion it is 0.0% and 0.2%. The direction is
+consistent in 48 of 48 runs for the stronger config and 45 of 48 at default, so no significance test is
+needed to call it real; the three exceptions at default are short runs that die before establishing a
+cycle.
 
 **The model cannot even occupy the state the gate describes.** Commons fill is bimodal, not continuous:
 
