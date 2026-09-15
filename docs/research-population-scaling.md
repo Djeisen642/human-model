@@ -13,6 +13,12 @@ fixed absolute numbers that take no account of how many people are drawing on th
 Every cell below still goes 16/16 extinct by 2000 ticks. Scaling the commons buys a bigger and
 somewhat longer-lived civilization, not a surviving one.
 
+> **Re-verified 2026-09-15 (commit `a805635`) — reproduces on a paired test.** With 300 founders at
+> 3000 ticks, tripling all four commons constants alongside the population takes median peak from 708
+> to 2556 (a plausible range of +1347 to +2220 people per seed) while extinction stays 24 of 24 in
+> both arms and the share of ticks at an exhausted pool is unchanged. See
+> `docs/research-scale-robustness.md`.
+
 ## Peak population against founding population
 
 16 seeds, 2000 ticks. "Scaled" multiplies all four commons constants by `persons ÷ 100`.

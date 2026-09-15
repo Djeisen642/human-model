@@ -511,14 +511,31 @@ were overclaimed and are corrected in place above.
 | Claim | Arms | Result |
 |---|---|---|
 | Fertility is decisive once the pool is not binding | pin vs pin + `BASE_CHILDBIRTH_RATE=1.0` | **Holds.** 23 → 1 of 48 extinct, chance about 1 in 335,000 |
-| Happiness helps once the pool is not binding | pin vs pin + `HAPPINESS_BASELINE=10` | **Holds.** 23 → 7 of 48, chance about 1 in 2,500 |
-| Production capacity helps once the pool is not binding | pin vs pin + `EXPERIENCE_CAP=200` | **Holds.** 23 → 11 of 48, chance about 1 in 133 |
+| Happiness helps once the pool is not binding | pin vs pin + `HAPPINESS_BASELINE=10` | **Holds at 100 founders.** 23 → 7 of 48, chance about 1 in 2,500. *Re-verified 2026-09-15 — gone at 300 founders, see note below.* |
+| Production capacity helps once the pool is not binding | pin vs pin + `EXPERIENCE_CAP=200` | **Does not survive a longer horizon.** 23 → 11 of 48 here, chance about 1 in 133, but see note below. |
 | Uniform vs targeted fertility is *not* established | pin + happiness vs pin + `BASE_CHILDBIRTH_RATE=0.83` | **Caveat confirmed.** Still inconclusive; would need 119 seeds per arm |
 | Fertility does nothing at default | default vs `BASE_CHILDBIRTH_RATE=1.0` | **Corrected.** No detectable change, but the plausible range is −43 to +88, so the stated "−0.8%" was false precision |
 | Happiness does nothing at default | default vs `HAPPINESS_BASELINE=10` | **Consistent**, range −47 to +158; a null, not a measured zero |
 | Elder idleness decay is a null | default vs `ELDERLY_IDLENESS_DECAY=3.0` | **Consistent**, range −26 to +78 |
 | Elder consumption moves peak population 23% | default vs `CONSUMPTION_ELDER_MULTIPLIER=3.0` | **Corrected.** Range −107 to +12 spans zero; unmeasured, not a 23% effect |
 | Happiness acts only through births | births link cut, baseline 0 vs 10 | **Corrected.** The cited `p = 0.41` is an underpowered null needing 351 seeds; the support is the effect reversing, not the null |
+
+> **Re-verified 2026-09-15 (commit `a805635`) — two of these four hold at larger scale and two do
+> not.** `docs/research-scale-robustness.md` re-ran all four in two further conditions: 100 founders
+> at 4000 ticks, and 300 founders at 4000 ticks. Both rows above reproduced exactly at the original
+> settings first, so what follows is about the conditions, not drift.
+>
+> - **The pin and fertility hold everywhere.** Default versus pin is 48 → 31 of 48 extinct at 4000
+>   ticks and 48 → 21 at 300 founders; with the commons scaled to match a 300-founder population it
+>   is 24 → 0 of 24. Fertility under the pin is 31 → 4 and 21 → 6.
+> - **`EXPERIENCE_CAP=200` was a delay.** At 4000 ticks it is 31 → 21 of 48, which 48 seeds cannot
+>   distinguish from chance (86 needed), and at 300 founders it is 21 → 21 with the disagreeing seeds
+>   split 14 against 14. Treat the 23 → 11 figure above as a 2000-tick result only.
+> - **Happiness is conditional on the people-to-resources ratio.** It survives the longer horizon
+>   intact (31 → 14 of 48) but is 21 → 18 at 300 founders on the same commons — a gap needing 966
+>   seeds per arm. The extra births happen; with three times the competition they do not survive.
+>
+> The four default-regime claims below were re-run in both conditions and all hold.
 
 **What this pass changes about how to read this document.** The three big "helps once the commons is
 fixed" findings are the sturdiest thing here — each is an extinction gap of 12 to 22 runs out of 48,
