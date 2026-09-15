@@ -13,8 +13,8 @@ pool stops being the bottleneck. *Extinct* means a run ended with nobody alive.
 
 **Headline: settings that raise the birth rate change nothing at all while the pool is empty, and
 become the strongest levers in the model once it isn't.** The cleanest case is the birth rate itself.
-Raising `BASE_CHILDBIRTH_RATE` from 0.6 to 1.0 at default settings moves the peak population by
-**−0.8%** (685.5 → 680) and leaves all 48 runs extinct. The same change with the productivity pin
+Raising `BASE_CHILDBIRTH_RATE` from 0.6 to 1.0 at default settings produces **no detectable change
+in peak population** and leaves all 48 runs extinct. The same change with the productivity pin
 applied takes extinction **from 23 of 48 runs to 1 of 48**, and at 8000 ticks from 43 of 48 to 6 of
 48 (Fisher exact, p = 7×10⁻¹⁵). The extinction rate among survivors falls from about 24% to about 2%
 per 1000 ticks, a 12× reduction and much the largest effect any lever in this project has produced.
@@ -117,9 +117,17 @@ Note the horizon trap: at 300 ticks `EXPERIENCE_CAP=100` looks like a clear impr
 | **1.5 (default)** | 685.5 | 48/48 |
 | 3.0 | **633** | 48/48 |
 
-Monotone: a 6× swing moves peak population 23%. It is the only lever in this section that acts by
+Monotone across the medians: a 6× swing moves peak population 23%. It is the only lever in this section that acts by
 *reducing draw on the commons* rather than adding capacity to a person, which is the headline in
 miniature. Extinction is 48/48 throughout — it sets scale, not fate.
+
+> **Re-verified 2026-09-15 with `scripts/compare.ts` (added in PR #111) — the monotone reading does
+> not survive a paired test.** Comparing the default against `CONSUMPTION_ELDER_MULTIPLIER=3.0` over
+> the same 48 seeds gives a typical per-seed change of −43 in peak population with a plausible range
+> of **−107 to +12** — TOO CLOSE TO CALL, and the range spans zero, so even the *direction* is
+> unsettled. The tidy 778 → 719 → 686 → 633 ladder is a median-of-medians read across independent
+> sweeps, which is exactly the eyeballing that has misled this project before. Treat elder consumption
+> as **unmeasured**, not as a 23% effect. It may well be real; it has not been shown.
 
 > **The `peakGini` column in this sweep (0.73 → 0.89, monotone) is an artifact.** It moves inversely
 > with peak population, exactly as `docs/research-gini-metric.md` predicts if `peakGini` is attained
@@ -187,6 +195,14 @@ from happiness to births. With it cut, raising the baseline does nothing at all:
 
 So happiness reaches the population only through births. The suicide and violence channels contribute
 nothing measurable, consistent with `docs/research-sweep-session-2026-09-14.md` H5/H8.
+
+> **Re-verified 2026-09-15 with `scripts/compare.ts` (added in PR #111) — the conclusion stands but
+> the evidence cited above does not.** Paired over the same 48 seeds, 25 vs 30 extinct is TOO CLOSE
+> TO CALL and would need **351 seeds per arm** to resolve. A null that underpowered cannot establish
+> "nothing else". What actually supports the mechanism is the *reversal*: with the births link intact
+> the happiness constant is worth 16 fewer extinct runs (23 → 7), and with it cut the same constant is
+> worth 5 more (25 → 30). That swing is the evidence; `p = 0.41` never was. Testing it properly needs
+> an interaction test, which `compare.ts` does not do.
 
 **But targeting is not what does the work.** `HAPPINESS_BASELINE=10` is worth roughly a 38% uniform
 fertility rise on average (mean happiness 4.7 → 14.2 moves `happinessFactor` 1.24 → 1.71). Applying
@@ -484,6 +500,37 @@ the largest cell:
 All three reproduce the prior study within noise, including the largest, which reaches a median peak
 of **11,016 people and still goes 12/12 extinct**. Extinction is universal in every cell of both
 tables. **Nothing about scale rescues the model**; it only changes how many people die.
+
+## Verification pass, 2026-09-15 (`scripts/compare.ts`, added in PR #111)
+
+Every headline claim above was re-run as a paired two-arm comparison over the same 48 seeds at 2000
+ticks, with the measure that tests each claim **named before running** rather than picked from the
+six the tool reports. Four claims hold, one caveat is confirmed as a caveat, and three statements
+were overclaimed and are corrected in place above.
+
+| Claim | Arms | Result |
+|---|---|---|
+| Fertility is decisive once the pool is not binding | pin vs pin + `BASE_CHILDBIRTH_RATE=1.0` | **Holds.** 23 → 1 of 48 extinct, chance about 1 in 335,000 |
+| Happiness helps once the pool is not binding | pin vs pin + `HAPPINESS_BASELINE=10` | **Holds.** 23 → 7 of 48, chance about 1 in 2,500 |
+| Production capacity helps once the pool is not binding | pin vs pin + `EXPERIENCE_CAP=200` | **Holds.** 23 → 11 of 48, chance about 1 in 133 |
+| Uniform vs targeted fertility is *not* established | pin + happiness vs pin + `BASE_CHILDBIRTH_RATE=0.83` | **Caveat confirmed.** Still inconclusive; would need 119 seeds per arm |
+| Fertility does nothing at default | default vs `BASE_CHILDBIRTH_RATE=1.0` | **Corrected.** No detectable change, but the plausible range is −43 to +88, so the stated "−0.8%" was false precision |
+| Happiness does nothing at default | default vs `HAPPINESS_BASELINE=10` | **Consistent**, range −47 to +158; a null, not a measured zero |
+| Elder idleness decay is a null | default vs `ELDERLY_IDLENESS_DECAY=3.0` | **Consistent**, range −26 to +78 |
+| Elder consumption moves peak population 23% | default vs `CONSUMPTION_ELDER_MULTIPLIER=3.0` | **Corrected.** Range −107 to +12 spans zero; unmeasured, not a 23% effect |
+| Happiness acts only through births | births link cut, baseline 0 vs 10 | **Corrected.** The cited `p = 0.41` is an underpowered null needing 351 seeds; the support is the effect reversing, not the null |
+
+**What this pass changes about how to read this document.** The three big "helps once the commons is
+fixed" findings are the sturdiest thing here — each is an extinction gap of 12 to 22 runs out of 48,
+far outside what seed luck produces. The weak points were all of the same kind: a tidy ladder of
+medians read across independent sweeps, and a null quoted as though non-detection were proof. Both are
+what the sweep table invites you to do, and both are why `compare.ts` exists.
+
+**Two limits of the pass itself.** The four default-regime claims are compared on peak population,
+because extinction is saturated there — every run dies in both arms, so that measure cannot separate
+anything and the tool correctly reports needing infinitely many seeds. And `compare.ts` tests one
+configuration against another, not an interaction, so the mechanism claim above (an effect present in
+one regime and absent in another) still lacks a direct test.
 
 ## Caveats
 
