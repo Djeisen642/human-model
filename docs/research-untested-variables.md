@@ -11,15 +11,26 @@ efficiency drifting downward over a long run (a defect documented in
 `docs/research-thriving-reachability.md`); pinning it makes the economy roughly 3× richer, so the
 pool stops being the bottleneck. *Extinct* means a run ended with nobody alive.
 
-**Headline: a setting that raises the birth rate changes nothing at all while the pool is empty, and
-becomes one of the strongest levers in the model once it isn't.** `HAPPINESS_BASELINE` adds a flat
-amount to everyone's happiness, and happier couples have more children. At default settings, raising
-it produces **34% more births and a population exactly the same size**, with all 48 runs extinct
-either way: the extra children are born and starve, because the pool is the limit and the birth rate
-is not. With the productivity pin applied, the identical setting takes extinction **from 23 of 48
-runs to 7 of 48** (Fisher exact, p = 0.0008) and cuts the long-run death rate among survivors from
-about 24% to about 9% per 1000 ticks. `EXPERIENCE_CAP`, which limits how much any one person can ever
-extract, does the same thing: flat at defaults, 23 of 48 down to 11 of 48 under the pin (p = 0.018).
+**Headline: settings that raise the birth rate change nothing at all while the pool is empty, and
+become the strongest levers in the model once it isn't.** The cleanest case is the birth rate itself.
+Raising `BASE_CHILDBIRTH_RATE` from 0.6 to 1.0 at default settings produces **no detectable change
+in peak population** and leaves all 48 runs extinct. The same change with the productivity pin
+applied takes extinction **from 23 of 48 runs to 1 of 48**, and at 8000 ticks from 43 of 48 to 6 of
+48 (Fisher exact, p = 7×10⁻¹⁵). The extinction rate among survivors falls from about 24% to about 2%
+per 1000 ticks, a 12× reduction and much the largest effect any lever in this project has produced.
+
+Two other settings show the same flat-then-decisive shape. `HAPPINESS_BASELINE` (happier couples have
+more children) produces **34% more births and a population exactly the same size** at defaults, all 48
+runs extinct either way, and takes extinction from 23 of 48 to 7 of 48 under the pin (p = 0.0008).
+`EXPERIENCE_CAP`, which limits how much any one person can ever extract, is flat at defaults and goes
+23 of 48 to 11 of 48 under the pin (p = 0.018).
+
+**None of this escapes the model's fate**, and the strongest lever makes that clearest: run to 16,000
+ticks, the fertility config's hazard is a flat 1.5–2.9% per 1000 ticks with no downward trend, so it
+delays extinction by roughly 12× rather than preventing it. `BASE_CHILDBIRTH_RATE=1.0` is also
+biologically indefensible (the constant's own comment puts natural fertility at 40–55%, and the
+default 0.6 already exceeds it). Read these as probes of the model's dynamics, not as calibration
+proposals.
 
 **What that means for the project's conclusions.** `docs/research-tuning-defaults.md` holds that no
 single constant fixes overshoot→extinction. That is still true, but nearly every constant was tested
@@ -106,9 +117,17 @@ Note the horizon trap: at 300 ticks `EXPERIENCE_CAP=100` looks like a clear impr
 | **1.5 (default)** | 685.5 | 48/48 |
 | 3.0 | **633** | 48/48 |
 
-Monotone: a 6× swing moves peak population 23%. It is the only lever in this section that acts by
+Monotone across the medians: a 6× swing moves peak population 23%. It is the only lever in this section that acts by
 *reducing draw on the commons* rather than adding capacity to a person, which is the headline in
 miniature. Extinction is 48/48 throughout — it sets scale, not fate.
+
+> **Re-verified 2026-09-15 with `scripts/compare.ts` (added in PR #111) — the monotone reading does
+> not survive a paired test.** Comparing the default against `CONSUMPTION_ELDER_MULTIPLIER=3.0` over
+> the same 48 seeds gives a typical per-seed change of −43 in peak population with a plausible range
+> of **−107 to +12** — TOO CLOSE TO CALL, and the range spans zero, so even the *direction* is
+> unsettled. The tidy 778 → 719 → 686 → 633 ladder is a median-of-medians read across independent
+> sweeps, which is exactly the eyeballing that has misled this project before. Treat elder consumption
+> as **unmeasured**, not as a 23% effect. It may well be real; it has not been shown.
 
 > **The `peakGini` column in this sweep (0.73 → 0.89, monotone) is an artifact.** It moves inversely
 > with peak population, exactly as `docs/research-gini-metric.md` predicts if `peakGini` is attained
@@ -157,32 +176,106 @@ converge to 48/48 (`BASE_INVENTION_RATE=0.03` does exactly this). Here the absol
 constant hazards, the pin control's last seed dies near tick 16,000 and the happiness arm's near tick
 42,000. Those two numbers are extrapolations and should be read as such.
 
-### Mechanism: the baseline floors the fertility multiplier in distress, which lifts the trough
+### Mechanism: it is fertility volume, not targeting
 
-`happiness` is floored at zero (`Math.max(0, happiness)`). At `HAPPINESS_BASELINE=0`, a person in
-distress — unemployed, ill, broke, all penalties firing — clamps to 0, giving `happinessFactor = 1.0`.
-At baseline 10, that same person still carries ≥10, giving ≥1.5. **The constant does almost nothing
-to the comfortable and a great deal to the desperate**, so its effect concentrates exactly at the
-bottom of a cycle. That predicts deeper troughs, which is directly measurable:
+> **Correction.** The first version of this document (and of PR #109) claimed the happiness constant
+> worked by *targeting* the distressed: happiness is floored at zero, so the baseline lifts the
+> fertility multiplier mostly for people at the bottom of a cycle, making it a crude anti-Allee
+> mechanism. **Two follow-up experiments killed that explanation.** The channel claim survives; the
+> targeting claim does not. The original reasoning and the trough table are kept below because the
+> trough effect is real — only its interpretation was wrong.
+
+**The channel is fertility, and nothing else.** `CHILDBIRTH_HAPPINESS_SCALAR=0` severs the only link
+from happiness to births. With it cut, raising the baseline does nothing at all:
+
+| Pin, 48 seeds, 2000 ticks | Extinct |
+|---|---|
+| `CHILDBIRTH_HAPPINESS_SCALAR=0`, `HAPPINESS_BASELINE=0` | 25/48 |
+| `CHILDBIRTH_HAPPINESS_SCALAR=0`, `HAPPINESS_BASELINE=10` | 30/48 (Fisher p = 0.41) |
+
+So happiness reaches the population only through births. The suicide and violence channels contribute
+nothing measurable, consistent with `docs/research-sweep-session-2026-09-14.md` H5/H8.
+
+> **Re-verified 2026-09-15 with `scripts/compare.ts` (added in PR #111) — the conclusion stands but
+> the evidence cited above does not.** Paired over the same 48 seeds, 25 vs 30 extinct is TOO CLOSE
+> TO CALL and would need **351 seeds per arm** to resolve. A null that underpowered cannot establish
+> "nothing else". What actually supports the mechanism is the *reversal*: with the births link intact
+> the happiness constant is worth 16 fewer extinct runs (23 → 7), and with it cut the same constant is
+> worth 5 more (25 → 30). That swing is the evidence; `p = 0.41` never was. Testing it properly needs
+> an interaction test, which `compare.ts` does not do.
+
+**But targeting is not what does the work.** `HAPPINESS_BASELINE=10` is worth roughly a 38% uniform
+fertility rise on average (mean happiness 4.7 → 14.2 moves `happinessFactor` 1.24 → 1.71). Applying
+that rise *uniformly* instead, via `BASE_CHILDBIRTH_RATE`, does at least as well and probably better:
+
+| Pin, 48 seeds, 2000 ticks | Extinct | `stable` | Median peak pop |
+|---|---|---|---|
+| Control | 23/48 | 18/48 | 1220 |
+| `HAPPINESS_BASELINE=10` (targeted at the distressed) | 7/48 | 30/48 | 1119 |
+| `BASE_CHILDBIRTH_RATE=0.83` (uniform, matched +38%) | **2/48** | 41/48 | 1112 |
+| `BASE_CHILDBIRTH_RATE=1.0` (uniform, larger) | **1/48** | 41/48 | 1033 |
+
+2/48 versus 7/48 is not a significant difference on its own (p = 0.16), but the direction is wrong for
+the targeting hypothesis, which predicted the targeted version should win. **The honest reading is
+that fertility volume is the lever and where the extra births land is not the point.**
+
+The trough effect is still real, it just is not evidence for targeting — any fertility increase
+raises troughs:
 
 | Pin, 5000 ticks, surviving seeds only | Survivors | Trough p25 | Trough median | Trough mean | Trough max |
 |---|---|---|---|---|---|
 | Control | 11/48 | 5 | 7 | 7.5 | 12 |
 | `HAPPINESS_BASELINE=10` | 30/48 | 7 | **9** | 9.5 | 19 |
 
-**Survivorship bias runs against this result**, which is what makes it convincing: the control's 11
-survivors are the lucky tail of 48 (selected for shallow troughs), while the happiness arm's 30
-include many marginal runs. Despite that selection favouring the control, its troughs are still
-shallower.
+Survivorship bias runs against that comparison (the control's 11 survivors are the lucky tail of 48,
+selected for shallow troughs), so the gap is a lower bound.
 
-`docs/research-sweep-session-2026-09-14.md` concluded that the unbuilt crash-recovery / anti-Allee
-mechanism "needs to bite at populations of 5–20" and that "trough depth is the metric to calibrate
-against." `HAPPINESS_BASELINE` turns out to be a crude, accidental anti-Allee mechanism already
-present in the model — it raises birth probability specifically in the distressed state. That is a
-useful existence proof for that future-ideas item: a mechanism acting only on the trough moves
-long-horizon survival by 2.6× in hazard terms without touching the commons. It is not a *proposal* —
-tuning a happiness constant to get a demographic effect is the wrong place to encode this, and the
-THRIVING-gate problem below is a reason not to touch that constant at all.
+### Fertility under the pin is the strongest lever found in this project, and still does not escape
+
+`BASE_CHILDBIRTH_RATE=1.0` under the pin, run out to 16,000 ticks — eight times the horizon this
+project normally uses:
+
+| Ticks | Extinct | Survivors | `stable` | Hazard per 1000 ticks |
+|---|---|---|---|---|
+| 2000 | 1/48 | 47 | 41/48 | — |
+| 3500 | 3/48 | 45 | 39/48 | 2.9% |
+| 5000 | 4/48 | 44 | 38/48 | 1.5% |
+| 8000 | 6/48 | 42 | 35/48 | 1.5% |
+| 12000 | 9/48 | 39 | 35/48 | 1.8% |
+| 16000 | **13/48** | **35** | 28/48 | 2.7% |
+
+Against the pin control's 43/48 extinct at 8000 ticks, this is 6/48 (Fisher p = 7×10⁻¹⁵). The
+extinction hazard falls from ~24% to **~2% per 1000 ticks, a 12× reduction** — much the largest effect
+any lever in this project has produced.
+
+**It still does not flatten.** The 3500–8000 window looked like flattening (2.9% → 1.5% → 1.5%) and an
+earlier read of this table called it the first genuinely non-terminal config. Extending to 12,000 and
+16,000 removes that: the hazard sits at 1.5–2.9% throughout with no downward trend, which is a
+*constant* hazard, not a decaying one. By `docs/calibration-guide.md`'s own test — a real config's
+curve flattens, a delaying one keeps climbing — this is still a delaying config. Extrapolated at
+~2%/1000 ticks, the last of the 35 survivors is gone near tick 190,000. Every population in this
+model still dies; this one takes about twelve times longer.
+
+**Two reasons not to read this as a calibration proposal.** `BASE_CHILDBIRTH_RATE=1.0` means every
+healthy, partnered, peak-age couple has a child every single year; the constant's own comment puts
+Hutterite natural fertility at 40–55%, and the default of 0.6 is already above the empirical ceiling.
+And the outcomes are bad even where they are not extinct: at 16,000 ticks the split is 23 COLLAPSE,
+10 STRUGGLING, 2 STABLE, with `bound%` at 49% — the commons is exhausted half of all ticks. This is a
+probe of the model's dynamics, not a configuration anyone should adopt.
+
+### The regime claim, tested with the strongest lever available
+
+If the commons is what makes per-capita levers inert at defaults, then the single most powerful lever
+found above should also be inert at defaults. It is:
+
+| 48 seeds, 2000 ticks, no pin | Extinct | Median peak pop |
+|---|---|---|
+| `BASE_CHILDBIRTH_RATE=0.6` (default) | 48/48 | 685.5 |
+| `BASE_CHILDBIRTH_RATE=1.0` | 48/48 | **680** |
+
+A 67% fertility increase changes the peak population by −0.8% and the outcome not at all. The same
+change under the pin takes extinction from 23/48 to 1/48. That is the cleanest statement of this
+study's headline available in one table.
 
 ## Part 3 — The THRIVING happiness gate is satisfiable by an unchosen constant
 
@@ -211,6 +304,125 @@ be relative (a quantile, or a fraction of the maximum attainable given the bonus
 baseline and threshold should be derived together. **Raising `HAPPINESS_BASELINE` is not the
 recommendation** — it would manufacture THRIVING labels without preventing a single death in the
 default regime. Logged in `docs/future-ideas.md`.
+
+## Part 3b — What actually blocks THRIVING: happiness, and mostly because children read as destitute
+
+THRIVING requires all four ARD-051 conditions at once. Running `scripts/thrive-probe.ts` at 16 seeds
+and 5000 ticks and counting which gate fails:
+
+| Config | GINI | HAP | DECL | POOL | THRIVING runs |
+|---|---|---|---|---|---|
+| Default | 0/16 | **16/16** | 16/16 | 0/16 | 0 |
+| Pin only | 3/16 | **16/16** | 16/16 | 1/16 | 0 |
+| Pin + `BASE_CHILDBIRTH_RATE=1.0` | 12/16 | **16/16** | 15/16 | 11/16 | 0 |
+
+(GINI and POOL read as *passing* at default only because the runs are extinct — no people means no
+inequality and an untouched pool. Ignore those two cells.)
+
+**Happiness is the universal blocker: it fails in every run of every configuration.** This study's
+first guess was the commons gate, on the reasoning that `bound%` sits near 49%. That is wrong —
+the commons gate fails in 11 of 16, happiness in 16 of 16.
+
+Decomposing the happiness getter over the final population of the strongest config (8 seeds, 5000
+ticks) shows why. Mean happiness is **2.96** against a threshold of 6.0:
+
+| Cohort | Share | Happiness | job | resources | partner | illness | mean resources | below critical |
+|---|---|---|---|---|---|---|---|---|
+| child <18 | 24% | 2.32 | +5.00 | **−4.72** | +0.55 | −0.05 | **3.2** | **91%** |
+| adult 18–64 | 61% | 3.55 | +4.83 | −3.00 | +1.87 | −0.39 | 16.6 | 44% |
+| elder 65+ | 15% | 1.63 | +5.00 | −2.74 | +0.90 | −0.90 | 33.9 | 47% |
+
+**The resource term is negative for every cohort, and it is the only large negative.** Employment is
+94%, so the job bonus is nearly maxed; the term that could add +3
+(`HAPPINESS_RESOURCE_COMFORTABLE_BONUS`) requires 70 resources against an adult mean of 16.6, so it
+almost never fires while the low and critical penalties fire constantly.
+
+**The child row is a defect, not a finding.** Children hold a mean of 3.2 resources and 91% sit below
+the critical threshold, so they take the full −5 poverty penalty. But children with living parents
+are *consumption-subsidised* by design: ARD 024 has them pay `resources × CONSUMPTION_CHILD_RESOURCE_RATE`
+rather than a flat cost, so they cannot starve, and ARD 062 makes welfare **skip** them for exactly
+that reason. Two subsystems treat a subsidised child as not in need; the happiness getter scores the
+same child on their own near-zero balance and calls them destitute. A child in a prosperous household
+reads as maximally poor. At 24–31% of the population this costs roughly 1.1–1.5 points of the
+population mean, against a gate the model currently misses by 3.
+
+**Lowering the comfort thresholds does not rescue it**, which rules out the simplest explanation.
+Moving `HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD` 70 → 30 and `LOW` 30 → 15 lifts adults from 3.55 to
+5.22 and the overall mean from 2.96 to 4.34, still short of 6.0, and the gate still fails 16/16.
+Children barely move (−4.62) because their balances sit below even a lowered critical threshold.
+
+**What this means for the project's goal.** THRIVING's happiness condition is not an independent
+measure of wellbeing. It is dominated by a resource term that only turns positive in a genuinely
+resource-abundant society, so it functions as a second commons gate. That is consistent with
+`docs/research-thriving-reachability.md`'s transient THRIVING at tick 60 (happiness 6.94, commons at
+62%), and it explains why no long-horizon configuration has ever passed it. Combined with Part 3 —
+the gate's zero point is an uncalibrated constant — the honest summary is that **THRIVING is currently
+unreachable for reasons that are substantially measurement artifacts rather than statements about the
+simulated society.** Both are logged in `docs/future-ideas.md`.
+
+## Part 3c — THRIVING asks for a steady state, and the model has no mechanism that can hold one
+
+Part 3b found happiness blocks every run. Two of the other three conditions have a separate, structural
+problem worth stating on its own, because it explains why THRIVING has only ever been observed as a
+transient.
+
+**THRIVING does not require growth.** A perfectly flat population satisfies the peak-decline condition:
+peak equals current, decline is 0%. So the gate is not asking for an exponential. It is asking for a
+*steady state* — and that turns out to be the harder ask.
+
+**The peak is a ratchet.** `Reporters.ts:156` takes `peakPop` as the maximum over the entire run
+history, and THRIVING needs the final population within 15% of it. The reference point only ever moves
+up. A population that overshoots once and then settles into a genuinely sustainable steady state at
+60% of its historical high reads as COLLAPSE forever after, no matter how well it is doing.
+
+**And the model must overshoot,** because `GatherResourcesEvent` extracts `min(output, naturalResources)`
+with no dependence on how full the pool is. There is no negative feedback in the interior — the only
+signal is starvation *after* exhaustion. So the population has no way to level off on approach.
+
+Those two facts put the peak-decline and commons conditions in direct opposition: being at your
+population peak means the most mouths drawing on the pool, which is exactly when it is stripped.
+Measured per run (48 runs each; an earlier draft pooled every tick across runs, which treats
+autocorrelated ticks as independent samples and understated the effect):
+
+| Config | runs where the two move in opposite directions | per-run correlation, median (range) | ticks passing **both** conditions, before the pool is first emptied | after |
+|---|---|---|---|---|
+| Default, 2000t | 45/48 | −0.54 (−0.82 to 0.52) | **81.3%** | **0.0%** |
+| Pin + fertility 1.0, 5000t | **48/48** | −0.43 (−0.47 to −0.36) | **83.9%** | **0.2%** |
+
+**This is the ratchet, and it is close to absolute.** Before the commons has ever been emptied, the two
+conditions hold together about 82% of the time — THRIVING's structural half is not rare during the
+approach, it is the normal state. After the first exhaustion it is 0.0% and 0.2%. The direction is
+consistent in 48 of 48 runs for the stronger config and 45 of 48 at default, so no significance test is
+needed to call it real; the three exceptions at default are short runs that die before establishing a
+cycle.
+
+**The model cannot even occupy the state the gate describes.** Commons fill is bimodal, not continuous:
+
+```
+Default, share of live ticks by fill band:
+  0-10%: 53%   10-20%: 4%   20-30%: 4%   30-40%: 4%   40-50%: 5%
+ 50-60%:  6%   60-70%: 7%   70-80%: 6%   80-90%: 5%  90-100%: 6%
+Pin + fertility 1.0:
+  0-10%: 46%   10-20%: 5%   20-30%: 3%   30-40%: 3%   40-50%: 4%
+ 50-60%:  3%   60-70%: 3%   70-80%: 4%   80-90%: 4%  90-100%: 25%
+```
+
+Roughly half of all ticks sit below 10% full and a quarter sit above 90%, with only 3–7% in each
+intermediate band. The pool is either untouched or stripped. "Living within carrying capacity" — a
+partly-drawn commons held steady — is not a state this model spends time in, so a gate that asks for
+it is asking for a regime the mechanics cannot produce.
+
+**The shape THRIVING wants is logistic: rise, level off at the ceiling, stay.** The model only does
+overshoot-and-crash. This is the same defect as `docs/future-ideas.md`'s "commons has no feedback
+before exhaustion (soft brake)" item, and this section is the quantitative case that it is specifically
+what makes THRIVING unreachable rather than merely rare. It also explains
+`docs/research-thriving-reachability.md`'s transient THRIVING at tick 60: that is the approach phase,
+before the first overshoot sets the ratchet.
+
+Worth noting the two are separable fixes. A soft brake would let the population approach without
+overshooting. Alternatively, measuring decline against a trailing window rather than an all-time
+maximum would stop one early spike from disqualifying every later steady state. The first is a model
+fix and the second a measurement fix, and they are worth deciding on independently.
 
 ## Part 4 — Gathering has an age profile that is wired to nothing
 
@@ -289,6 +501,37 @@ All three reproduce the prior study within noise, including the largest, which r
 of **11,016 people and still goes 12/12 extinct**. Extinction is universal in every cell of both
 tables. **Nothing about scale rescues the model**; it only changes how many people die.
 
+## Verification pass, 2026-09-15 (`scripts/compare.ts`, added in PR #111)
+
+Every headline claim above was re-run as a paired two-arm comparison over the same 48 seeds at 2000
+ticks, with the measure that tests each claim **named before running** rather than picked from the
+six the tool reports. Four claims hold, one caveat is confirmed as a caveat, and three statements
+were overclaimed and are corrected in place above.
+
+| Claim | Arms | Result |
+|---|---|---|
+| Fertility is decisive once the pool is not binding | pin vs pin + `BASE_CHILDBIRTH_RATE=1.0` | **Holds.** 23 → 1 of 48 extinct, chance about 1 in 335,000 |
+| Happiness helps once the pool is not binding | pin vs pin + `HAPPINESS_BASELINE=10` | **Holds.** 23 → 7 of 48, chance about 1 in 2,500 |
+| Production capacity helps once the pool is not binding | pin vs pin + `EXPERIENCE_CAP=200` | **Holds.** 23 → 11 of 48, chance about 1 in 133 |
+| Uniform vs targeted fertility is *not* established | pin + happiness vs pin + `BASE_CHILDBIRTH_RATE=0.83` | **Caveat confirmed.** Still inconclusive; would need 119 seeds per arm |
+| Fertility does nothing at default | default vs `BASE_CHILDBIRTH_RATE=1.0` | **Corrected.** No detectable change, but the plausible range is −43 to +88, so the stated "−0.8%" was false precision |
+| Happiness does nothing at default | default vs `HAPPINESS_BASELINE=10` | **Consistent**, range −47 to +158; a null, not a measured zero |
+| Elder idleness decay is a null | default vs `ELDERLY_IDLENESS_DECAY=3.0` | **Consistent**, range −26 to +78 |
+| Elder consumption moves peak population 23% | default vs `CONSUMPTION_ELDER_MULTIPLIER=3.0` | **Corrected.** Range −107 to +12 spans zero; unmeasured, not a 23% effect |
+| Happiness acts only through births | births link cut, baseline 0 vs 10 | **Corrected.** The cited `p = 0.41` is an underpowered null needing 351 seeds; the support is the effect reversing, not the null |
+
+**What this pass changes about how to read this document.** The three big "helps once the commons is
+fixed" findings are the sturdiest thing here — each is an extinction gap of 12 to 22 runs out of 48,
+far outside what seed luck produces. The weak points were all of the same kind: a tidy ladder of
+medians read across independent sweeps, and a null quoted as though non-detection were proof. Both are
+what the sweep table invites you to do, and both are why `compare.ts` exists.
+
+**Two limits of the pass itself.** The four default-regime claims are compared on peak population,
+because extinction is saturated there — every run dies in both arms, so that measure cannot separate
+anything and the tool correctly reports needing infinitely many seeds. And `compare.ts` tests one
+configuration against another, not an interaction, so the mechanism claim above (an effect present in
+one regime and absent in another) still lacks a direct test.
+
 ## Caveats
 
 - 48 seeds at 2000 ticks for the sweep tables; 24 seeds (12 at 1000 founders) for the scaled-commons
@@ -302,7 +545,14 @@ tables. **Nothing about scale rescues the model**; it only changes how many peop
   it is not a clean unconditional comparison.
 - The two extrapolated extinction ticks (≈16,000 and ≈42,000) are extrapolations from a measured
   constant hazard over 6000 ticks, not measurements. Nothing was run past 8000 ticks.
-- Part 2 tested `HAPPINESS_BASELINE` and `EXPERIENCE_CAP` under the pin. The other Part 1 nulls
-  (comfort thresholds, misery penalties, `ELDERLY_IDLENESS_DECAY`, `CONSUMPTION_ELDER_MULTIPLIER`)
-  were not re-run there and should not be assumed inert in that regime.
+- Part 2 tested `HAPPINESS_BASELINE`, `EXPERIENCE_CAP` and `BASE_CHILDBIRTH_RATE` under the pin. The
+  other Part 1 nulls (comfort thresholds, misery penalties, `ELDERLY_IDLENESS_DECAY`,
+  `CONSUMPTION_ELDER_MULTIPLIER`) were not re-run there and should not be assumed inert in that
+  regime.
+- The targeted-vs-uniform comparison (7/48 vs 2/48, p = 0.16) is underpowered to call a winner. It is
+  sufficient to reject the *targeting* hypothesis, which predicted the opposite ordering, but it does
+  not establish that uniform fertility is genuinely better than the happiness route.
+- Everything under the pin sits at 38–53% `bound%`: the commons is exhausted for roughly half of all
+  ticks, and the surviving populations are cycling hard against it. None of these are abundance
+  regimes, and nothing here speaks to what produces abundance.
 - `peakGini` is unreliable throughout (see the boxed note in Part 1); no claim here rests on it.
