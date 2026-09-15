@@ -132,6 +132,39 @@ touches a tick where all living children are orphaned. A society that swings bet
 scale. The honest summary is that the model now has a configuration that does not die, and none that
 does well.
 
+## Why those seeds read COLLAPSE, and what it says about the classifier
+
+The COLLAPSE×21 label above is mostly an artifact of when the clock stops, and the part that is not
+an artifact is a real statement about the model rather than about `classifyOutcome`. Probed by
+running seeds 12 and 16 to 8000 ticks and re-classifying the same run at every decade boundary across
+one full cycle (~270 ticks, 27 stopping points):
+
+| Seed | Label at tick 8000 | Why | Across 27 stopping points |
+|---|---|---|---|
+| 12 | COLLAPSE | population 98% below peak | COLLAPSE×20, STRUGGLING×7 |
+| 16 | STRUGGLING | final-decade happiness 2.85, below the 3.0 gate | COLLAPSE×19, STRUGGLING×8 |
+
+**Problem one: peak-relative decline is phase-dependent.** `COLLAPSE_PEAK_DECLINE_FRACTION=0.5` fires
+whenever the final decade sits more than halfway below the all-time peak, and a population cycling
+between 3800 and 32 is below that line for roughly three-quarters of every cycle. The same run is
+COLLAPSE or STRUGGLING depending on which decade you stop in. The peak it is measured against is an
+overshoot peak the society never sustained, so the comparison is to a state that was never viable.
+This is the `classifyOutcome` weakness `docs/research-sweep-session-2026-09-14.md` predicted, now
+measured: it is a defect for any oscillating regime, and worth an ARD.
+
+**Problem two is not the classifier's fault.** THRIVING requires population within 15% of peak *and*
+a commons at 40% of ceiling or better, simultaneously. In this model the population peak is precisely
+what empties the commons — seed 12's trough decade has the pool at **98% full** with 79 people alive,
+while seed 16's peak decade has it at **0.0%** with 3180 alive. Those two gates are close to mutually
+exclusive in any overshoot regime, so no cycling population can trip THRIVING however the decline term
+is fixed. That is the model saying something true about itself.
+
+**Inequality is not what blocks it.** Final-decade adult Gini across those 27 stopping points runs
+0.156 to 0.540 with a median of **0.35** — below the 0.43 STRUGGLING gate about half the time and
+never near the 0.60 COLLAPSE gate. The 0.57–0.59 in the sweep table is `peakGini`, the max-of-noise
+statistic `docs/research-gini-metric.md` flagged; the number the classifier actually uses is far
+lower. Any reading of this cell as "a brutally unequal society" rests on the wrong column.
+
 ## The commons is still what sets the size of a civilization
 
 Holding the founding population at 300 and tripling only the four commons constants takes median peak

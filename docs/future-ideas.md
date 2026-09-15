@@ -141,12 +141,17 @@ the model now has a configuration that does not collapse. It is *not* an abundan
 `classifyOutcome` reads COLLAPSE on 21 of 24 seeds and STRUGGLING on 3, the commons is stripped 39%
 of ticks, 48% of person-ticks draw welfare, and adult Gini sits at 0.58. The open question moves on
 accordingly — **what separates "does not die" from THRIVING here**, which is now answerable against a
-surviving population instead of a hypothetical one. Start with `thrive-probe.ts` on this cell to see
-which of the four ARD-051 gates fail and by how much; the commons-fill and wellbeing gates are the
-likely blockers, and the peak-relative decline term in COLLAPSE may simply be mislabelling a
-population that is mid-cycle by design (a known `classifyOutcome` weakness — see
-`docs/research-sweep-session-2026-09-14.md`). That last point is ARD-level if it holds: a cycling
-population reads as collapsed at whatever tick you stop the clock.
+surviving population instead of a hypothetical one. **Measured 2026-09-15 (`docs/research-scale-robustness.md`), and it splits in two.** Re-classifying one
+run at every decade across a full cycle gives COLLAPSE at ~20 of 27 stopping points and STRUGGLING at
+the rest, so the label is largely a function of where the clock stops — the peak-relative decline term
+compares against an overshoot peak the society never sustained. **That is the ARD-level fix** (measure
+decline against a sustainable level or over a window, or exempt runs `detectCycles` flags as cycling).
+The deeper blocker is not fixable by relabelling: THRIVING needs population near peak *and* a commons
+at ≥40% at the same time, and the population peak is what empties the commons — the trough decade runs
+the pool at 98% full with 79 people, the peak decade at 0.0% with 3180. Those gates are near mutually
+exclusive in any overshoot regime, which is a statement about the dynamics, not the thresholds.
+Inequality is *not* the blocker: final-decade Gini medians 0.35 against a 0.43 gate. So abundance here
+needs a mechanism that decouples population size from commons depletion, not a threshold change.
 
 **Multi-tier execution modes**
 Three execution tiers behind a common `SimulationEngine` interface: (1) current OOP loop — easy to step through and inspect; (2) CPU performance mode using `Float32Array` stride layout — same logic, flat data, faster iteration, still debuggable via index arithmetic; (3) WebGPU compute mode — agents packed into GPU storage buffers, logic ported to WGSL shaders, orders-of-magnitude throughput for population sizes the CPU loop can't sustain. The interface contract is same-seed → same outcomes; a parity check against the reference engine validates each new tier. Requires an ARD to fix the memory layout (stride, field alignment), the PRNG strategy (per-agent seeding on GPU vs. shared state on CPU), and how relation fields (`killed[]`, `hasChildren[]`) that can't fit in a flat buffer are handled. Value is unlocking population scales where emergence and tipping-point dynamics become statistically observable. **Prerequisite (`docs/research-population-scaling.md`, 2026-09-14): the commons constants are fixed absolute numbers, so raising the population without raising them measures scarcity, not scale** — 10× the founding population on the default pool yields only 1.9× the peak, against 15.6× when the pool scales with it. Run at 10,000 agents against a 10,000-unit pool this work would observe starvation at one resource unit per person. Decide how the commons scales with population before building the engine that needs it.
