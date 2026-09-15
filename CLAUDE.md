@@ -103,6 +103,7 @@ src/
     SeededRandom.ts        # LCG seeded RNG; asRNG() returns an RNG-typed function
     AgeModifier.ts         # ageModifier(age, peakAge, scale, floor) — bell curve helper
     Inequality.ts          # Pure: gini(values), resourceGini(persons) — adult-only signal (ARD 060)
+    Statistics.ts          # Pure: paired significance tests + power sizing for sweep comparisons
     Types.ts               # RNG, TenYearSummary, PersonTypeDefinition/PersonTypes, INTEGER_FIELDS
     Classifier.ts          # Pure: classifyPerson, countPerType, parsePersonTypes (ARD 030)
     CycleDetector.ts       # Pure: detectCycles — boom-bust oscillation detection over a population

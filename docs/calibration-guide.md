@@ -15,6 +15,50 @@ npm run sweep -- --seeds 20 --set MAX_NATURAL_RESOURCE_CEILING=12000 --verbose  
 
 Options: `--seeds 42,7,1` (or a single `N` → seeds 1..N; default 1..8), `--ticks`, `--persons`, `--set KEY=VAL` (repeatable Variables override), `--sweep KEY=v1,v2,…` (one sweep dimension), `--verbose` (per-seed rows with cause-of-death split). Always calibrate in a regime where the bounding feedbacks fire — see `docs/research-fertility.md`.
 
+## Deciding whether a difference is real (`scripts/compare.ts`)
+
+`sweep.ts` prints medians and counts; deciding whether two of them differ has, until now, been done
+by eye. That is how several claims in this project's history were published and later failed to
+reproduce. Use this instead of eyeballing:
+
+```bash
+npx ts-node scripts/compare.ts --seeds 48 --ticks 2000 --b BASE_CHILDBIRTH_RATE=1.0
+npx ts-node scripts/compare.ts --seeds 48 --ticks 2000 --both TAX_RATE=0.1 --a X=1 --b X=2
+```
+
+`--a` sets the baseline arm, `--b` the treatment, `--both` a background config shared by each
+(repeat any of them). It reports six measures — runs ending extinct, peak population, final
+population, lowest population reached, cycles completed, and share of ticks with the pool stripped —
+each with a verdict of REAL DIFFERENCE, PROBABLY REAL, or TOO CLOSE TO CALL, the size of the typical
+per-seed change, and a plausible range for that size.
+
+**Both arms run the same seeds, and the comparison exploits that.** Run 7 of the baseline and run 7
+of the treatment share a starting population and random stream, so they are twins and are compared
+against each other rather than against the other arm's median. This cancels seed-level luck and is
+much more sensitive than comparing two medians — it is why the tool can resolve effects that a
+sweep table cannot. Yes/no measures use an exact McNemar test on the runs where the arms disagree;
+measured quantities use a sign-flip permutation test with a bootstrap range. The machinery is in
+`src/Helpers/Statistics.ts`, unit-tested against textbook values, and calibrated: fed pure noise
+2,000 times it raises a false alarm 5.8% of the time against a 5% target.
+
+**Read the three things it tells you, in this order.** The *range* first — if it spans zero, the
+direction is unsettled no matter what the verdict says. Then the *size* — a real difference can still
+be too small to care about. The verdict last. A verdict without a size is how you end up chasing an
+effect that is real and useless.
+
+**TOO CLOSE TO CALL is not "no effect."** The tool says how many seeds would have been needed to pin
+down a gap of the size observed, so an inconclusive result can be reported honestly as "too small to
+tell with 48 runs" rather than as a null. Use that number to size the next sweep before running it.
+
+**Six measures are compared at once, so about one run of this tool in four will throw up a false
+alarm when nothing truly differs.** A measure you predicted in advance is much stronger evidence than
+the one surprising row in an otherwise flat table. The tool prints this reminder itself.
+
+Validated three ways before being trusted: identical configs on both arms find nothing; a variable
+independently measured as inert (`ELDERLY_IDLENESS_DECAY`) finds nothing and correctly reports the
+direction as unsettled; and a known-large effect (fertility with the productivity band pinned, 23 of
+48 runs extinct against 1 of 48) is called decisively.
+
 ## Trust the columns unevenly
 
 **Treat the `peakGini` column with suspicion (see `docs/research-gini-metric.md`).** Open hypothesis, not settled: per-tick instrumentation suggests `peakGini` is attained during the terminal crash at populations of ~10–30, making it a max-of-noise statistic that reads 0.79–0.89 almost regardless of configuration — missing a monotone `TAX_RATE` effect and manufacturing an apparent `CONSUMPTION_ELDER_MULTIPLIER` one. The same study puts the resolution limit at ~±0.05 mature-phase Gini at 10 seeds, which most single-lever effects fall inside. `npx ts-node scripts/metric-probe.ts` re-measures a sweep under alternative Gini statistics; its metric is itself unvalidated, so use it to cross-check a Gini claim, not to replace the harness.
