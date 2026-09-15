@@ -134,9 +134,19 @@ commons constants tripled, productivity pinned, **0 of 24 seeds extinct at 3000 
 is the first candidate for a non-collapsing regime rather than a slower collapse. It is not yet
 evidence of one — 3000 ticks is short (the previous best cell went 0 extinct at 800 to 3 of 16 by
 1500), the pool is still stripped for 39% of ticks, and no outcome classification was run on it.
-Cheap to settle: the same cell at 8000 ticks with `classifyOutcome` and trough depth reported. If it
-holds, it is the closest thing to an abundance regime the model has produced and the natural place to
-ask what the remaining THRIVING gates are doing.
+**Settled 2026-09-15: it holds.** The same cell at 8000 ticks is still 0 of 24 extinct, across 687
+completed cycles, with troughs at a median of 32 people against the 10 that made the 100-founder
+pinned regime lethal — a per-trough extinction hazard below 0.44% where that regime ran about 7%. So
+the model now has a configuration that does not collapse. It is *not* an abundance regime:
+`classifyOutcome` reads COLLAPSE on 21 of 24 seeds and STRUGGLING on 3, the commons is stripped 39%
+of ticks, 48% of person-ticks draw welfare, and adult Gini sits at 0.58. The open question moves on
+accordingly — **what separates "does not die" from THRIVING here**, which is now answerable against a
+surviving population instead of a hypothetical one. Start with `thrive-probe.ts` on this cell to see
+which of the four ARD-051 gates fail and by how much; the commons-fill and wellbeing gates are the
+likely blockers, and the peak-relative decline term in COLLAPSE may simply be mislabelling a
+population that is mid-cycle by design (a known `classifyOutcome` weakness — see
+`docs/research-sweep-session-2026-09-14.md`). That last point is ARD-level if it holds: a cycling
+population reads as collapsed at whatever tick you stop the clock.
 
 **Multi-tier execution modes**
 Three execution tiers behind a common `SimulationEngine` interface: (1) current OOP loop — easy to step through and inspect; (2) CPU performance mode using `Float32Array` stride layout — same logic, flat data, faster iteration, still debuggable via index arithmetic; (3) WebGPU compute mode — agents packed into GPU storage buffers, logic ported to WGSL shaders, orders-of-magnitude throughput for population sizes the CPU loop can't sustain. The interface contract is same-seed → same outcomes; a parity check against the reference engine validates each new tier. Requires an ARD to fix the memory layout (stride, field alignment), the PRNG strategy (per-agent seeding on GPU vs. shared state on CPU), and how relation fields (`killed[]`, `hasChildren[]`) that can't fit in a flat buffer are handled. Value is unlocking population scales where emergence and tipping-point dynamics become statistically observable. **Prerequisite (`docs/research-population-scaling.md`, 2026-09-14): the commons constants are fixed absolute numbers, so raising the population without raising them measures scarcity, not scale** — 10× the founding population on the default pool yields only 1.9× the peak, against 15.6× when the pool scales with it. Run at 10,000 agents against a 10,000-unit pool this work would observe starvation at one resource unit per person. Decide how the commons scales with population before building the engine that needs it.

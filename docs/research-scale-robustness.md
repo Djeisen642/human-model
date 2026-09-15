@@ -11,6 +11,12 @@ baseline holds at a longer horizon but vanishes when the founding population tri
 `EXPERIENCE_CAP` — the cap on how much any one person can ever extract — fades at 4000 ticks and is
 exactly zero at 300 founders: it bought delay, and the 2000-tick horizon read that delay as a rescue.
 
+**Separately, the first configuration that does not go extinct.** Scaling the commons with the
+population and pinning productivity together gives 0 of 24 seeds extinct at 3000 ticks *and* at 8000,
+across 687 completed boom-bust cycles. Every prior candidate's extinction count climbed with the
+horizon; this one's does not. It is still not thriving — `classifyOutcome` reads COLLAPSE on 21 of
+those 24 seeds — but "does not die" is new.
+
 Both corrected results were re-run at the original settings first, and both reproduce the earlier pass
 to the run (23 → 11 and 23 → 7 of 48 extinct). So what moved is the test conditions, not the code.
 
@@ -96,20 +102,35 @@ like. Note that in both conditions it *lowers* peak population — by 170 and 16
 both well outside noise. More births against the same pool means more, smaller lives, not a bigger
 civilization.
 
-## The one cell where nothing died
+## The one cell where nothing died — and it holds at 8000 ticks
 
 Scaling the commons to the population *and* pinning productivity is the first configuration this
-project has run that loses nobody: **0 of 24 seeds extinct at 3000 ticks**, against 24 of 24 for the
-same world at default productivity. It is also where fertility stops being measurable — with no
-deaths in the baseline arm there is nothing for `BASE_CHILDBIRTH_RATE=1.0` to improve, and the
-comparison returns 0 versus 0. What the extra births do there is what they do everywhere else: they
-lower peak population, by 454 people per seed (range −506 to −389).
+project has run that loses nobody, and the first whose extinction-vs-horizon curve is flat rather
+than climbing: **0 of 24 seeds extinct at 3000 ticks and still 0 of 24 at 8000**, against 24 of 24
+for the same world at default productivity. Every previous candidate failed exactly this test — the
+best-looking cell before this went from zero extinctions at 800 ticks to 3 of 16 by 1500.
 
-Two reasons not to read this as the model finally thriving. The pool is stripped for 39% of ticks, so
-this is the same cycle-against-an-empty-commons regime under a bigger pool. And 3000 ticks is short
-for a survival claim when the previous strongest cell went from 0 extinct at 800 ticks to 3 of 16 by
-1500; the horizon rule applies to good news too. It is worth a proper run at 8000 ticks with an
-outcome classification, which this session did not do.
+The 8000-tick run (`npx ts-node scripts/sweep.ts --seeds 24 --ticks 8000 --persons 300 --verbose`
+with the scaled commons and the pin) makes the mechanism legible. The 24 seeds complete **687
+boom-bust cycles between them and lose nobody**, with 23 of 24 carrying the `stableCycle` flag. What
+changed is trough depth: these cycles bottom out at a median of **32 people** (range 16–48) against
+the median of **10** in the 100-founder pinned regime, where roughly 7% of troughs took the
+population to zero. Zero deaths in 687 troughs puts the per-trough hazard below 0.44%, so this is at
+least a 16× reduction — a different regime, not a slower one. That also confirms the prediction
+`docs/future-ideas.md` recorded for crash recovery: what matters is whether the mechanism holds the
+trough above roughly 5–20 people.
+
+No control arm was run at 8000 ticks because it cannot change anything: the control is already 24 of
+24 extinct by 3000, and a run that has ended cannot un-end at a longer horizon. The paired test at
+3000 ticks (24 → 0, odds below 1 in a million) is the comparison; this run extends the treatment arm.
+
+**It is still not abundance, and the outcome label says so.** `classifyOutcome` reads COLLAPSE on 21
+of 24 seeds and STRUGGLING on the other 3. The commons is stripped for 39% of ticks, 48% of
+person-ticks are below the welfare threshold, adult `resourceGini` sits at 0.57–0.59, and every seed
+touches a tick where all living children are orphaned. A society that swings between 3800 people and
+32, thirty times over, is not thriving — it is surviving a permanent Malthusian cycle at larger
+scale. The honest summary is that the model now has a configuration that does not die, and none that
+does well.
 
 ## The commons is still what sets the size of a civilization
 
@@ -135,8 +156,9 @@ the pin should now state the founding population it was measured at.
 - 48 seeds for conditions A and B, 24 for C. The `EXPERIENCE_CAP` and happiness corrections rest on
   non-detections; both are reported with the seed count that would have been needed, and neither is
   claimed as a measured zero.
-- Condition C ran to 3000 ticks, not 4000, because the surviving populations are large enough to make
-  it expensive. Its pin result is therefore at a shorter horizon than A and B.
+- Condition C's paired comparisons ran to 3000 ticks, not 4000, because the surviving populations are
+  large enough to make it expensive. The zero-extinction cell was separately re-run to 8000 ticks as a
+  single arm; that run reports outcome labels and trough depths but is not a paired comparison.
 - `compare.ts` compares configurations, not interactions. "The lever works here and not there" is
   still an inference across two comparisons rather than a tested interaction, the same limit the
   previous pass recorded.
