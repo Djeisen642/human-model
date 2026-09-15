@@ -14,6 +14,25 @@ Sharpens the collapse/thrive signal or experimental setup, but does not cause de
 
 ### Mechanics
 
+**Frontier expansion — a resource ceiling that isn't structurally fixed**
+Every non-extinct configuration found so far (`docs/research-scale-robustness.md`) works within a
+fixed `MAX_NATURAL_RESOURCE_CEILING`: invention's ceiling-growth branch only pushes the *current*
+ceiling toward that constant (ARD 047, deliberate hard cap), never moves the cap itself. That forecloses
+testing a specific hypothesis raised in session: that sustained innovation *combined with* discovering
+new resource pools — not just extracting the existing one more efficiently — could produce genuine
+open-ended growth rather than the boom-bust cycling every tested config produces. Two single-seed
+traces this session (biased 2:1 `INVENTION_DEPLETION_FASTER_WEIGHT`) showed why the distinction
+matters: pushing extraction efficiency up against a *fixed* pool just drains it faster and
+permanently (pool at 0% from tick 299 onward, versus the frozen-productivity baseline's cycling
+between 0% and 80–99%) — efficiency without new supply is not the same lever as new supply.
+A candidate mechanism: some event (plausibly invention, or pressure from a near-exhausted pool)
+has a chance to unlock a new resource pool with its own ceiling and regen budget, at a cost or
+probability that gets harder each time — not a literal unbounded ceiling, which would trivially
+solve the model and stop being worth studying, but a frontier that has to keep being re-earned. This
+is a new mechanic with several non-obvious choices (trigger condition, cost curve, how a second pool
+interacts with the existing one-pool Gini/consumption/welfare machinery) and needs an ARD before any
+code — not implemented here.
+
 **`extractionProductivity`'s bounds are log-asymmetric — the drift ARD 047 removed came back** — see `docs/research-thriving-reachability.md`
 ARD 047 made the faster/slower invention branches exact multiplicative inverses so "a faster–slower pair returns productivity to its prior value exactly," leaving the long-run behaviour to "the floor, the cap, and the weights — all explicit dials." The step is unbiased, but the band is not: `[EXTRACTION_PRODUCTIVITY_FLOOR=0.01, MAX_EXTRACTION_PRODUCTIVITY=10]` gives 4.6 log-units of room below the starting 1.0 and 2.3 above, so the reflected walk is asymptotically uniform over that band — Monte Carlo (200 chains × 4000 steps) gives median 0.35×, `P(<1)=0.65`, `P(<0.2)=0.42`. Gather output is linear in productivity, so the long-run economy is ~3× poorer than calibrated, and a run can starve with the commons at 100% of ceiling (directly observed at prod 0.03–0.10). Unpinning productivity takes the thriving-existence config from THRIVING×2 to EXTINCTION×2; a log-symmetric band (`FLOOR = 1/MAX`) recovers most of it. Same class of defect as the age-38 fertility window (ARD 059): an unchosen number sitting under a pessimistic result. **Likely the cheapest high-leverage fix in the model.** ARD-level — it changes how every long-horizon result since ARD 047 should be read.
 
