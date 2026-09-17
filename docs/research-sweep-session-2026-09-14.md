@@ -14,6 +14,14 @@ STRUGGLING×2`, median peak population 703, `bound%=8%`, `stable=2/32`** (from
 
 ## Headline finding: removing productivity drift exposes a latent oscillatory mode — and changes the failure mode rather than fixing it
 
+> **Re-verified 2026-09-15 (commit `a805635`) — the productivity pin holds on a paired test, at
+> longer horizons and larger populations.** `docs/research-scale-robustness.md` compares default
+> against the pin over the same 48 seeds: 48 → 31 of 48 extinct at 4000 ticks with 100 founders,
+> 48 → 21 at 300 founders, and 24 → 0 of 24 in a world whose commons is scaled to its population.
+> Peak population roughly doubles in every condition. The doc's own warning that this is Malthusian
+> cycling rather than abundance also holds: the share of ticks with the pool stripped goes from 2% to
+> 20% at 100 founders and 3% to 39% at 300.
+
 `docs/research-tuning-defaults.md` scanned for the `OSCILLATING` regime (population sustaining
 repeated boom-bust cycles instead of a single terminal collapse) and "finds none" outside two narrow
 cases: a 15× `BASE_INVENTION_RATE` (`stable=6/16` at 800t) and a strong anti-Allee fertility probe
