@@ -119,6 +119,7 @@ src/
   Helpers/
     Constants.ts           # CAUSE_OF_DEATH, EDUCATION enums
     Variables.ts           # Every tunable constant: age curves, per-event age profiles, thresholds
+                           # validate() enforces cross-constant invariants; every override path calls it
     SeededRandom.ts        # LCG seeded RNG; asRNG() returns an RNG-typed function
     AgeModifier.ts         # ageModifier(age, peakAge, scale, floor) — bell curve helper
     Inequality.ts          # Pure: gini(values), resourceGini(persons) — adult-only signal (ARD 060)
@@ -255,7 +256,7 @@ Be concise but clear in every doc — `CLAUDE.md`, ARDs, `future-ideas.md`, `dec
 **Key context vars:** LIST=VAL, ... (the 3–5 Variables most likely to shift the results if recalibrated)
 ```
 
-The commit hash lets a reader run `git show <hash>:src/Helpers/Variables.ts` to see the exact config. List only the variables with meaningful leverage on the reported outcomes — not the full 127-constant dump.
+The commit hash lets a reader run `git show <hash>:src/Helpers/Variables.ts` to see the exact config. List only the variables with meaningful leverage on the reported outcomes — not the full constant dump.
 
 **Latest ARD** is the highest-numbered Accepted ARD when the study ran. Record it because `Key context vars` cannot be trusted alone: a 2026-09-13 re-verification found all six then-existing provenance blocks listing *unchanged* variables while the results had drifted anyway — what moved was the seeding and relationship structure of ARD 052–058, which no study had thought to list. Enumerating variables will always miss the structural change nobody anticipated; one ARD number tells the next reader exactly what landed since.
 

@@ -27,12 +27,15 @@ const PERSONS = getArg('--persons', 100);
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--set' && i + 1 < args.length) {
     const [key, val] = args[i + 1].split('=');
-    if (key && val !== undefined && key in Variables) {
-      (Variables as unknown as Record<string, number>)[key] = parseFloat(val);
+    if (key && val !== undefined && typeof (Variables as unknown as Record<string, unknown>)[key] === 'number') {
+      const value = parseFloat(val);
+      if (!Number.isFinite(value)) throw new Error(`Non-numeric override: ${args[i + 1]}`);
+      (Variables as unknown as Record<string, number>)[key] = value;
     }
     i++;
   }
 }
+Variables.validate();
 
 function shuffleInPlace<T>(arr: T[], rng: RNG): void {
   for (let i = arr.length - 1; i > 0; i--) {

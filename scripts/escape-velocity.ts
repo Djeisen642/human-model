@@ -167,9 +167,15 @@ function applyOverrides(pairs: string[]): () => void {
   for (const pair of pairs) {
     const [key, raw] = pair.split('=');
     if (!(key in Variables)) throw new Error(`Unknown Variables constant: ${key}`);
+    if (typeof (Variables as unknown as Record<string, unknown>)[key] !== 'number') {
+      throw new Error(`Not a Variables constant: ${key}`);
+    }
+    const value = Number(raw);
+    if (!Number.isFinite(value)) throw new Error(`Non-numeric override: ${pair}`);
     saved.push([key, (Variables as unknown as Record<string, unknown>)[key]]);
-    (Variables as unknown as Record<string, unknown>)[key] = Number(raw);
+    (Variables as unknown as Record<string, unknown>)[key] = value;
   }
+  Variables.validate();
   return () => {
     for (const [key, value] of saved) (Variables as unknown as Record<string, unknown>)[key] = value;
   };
