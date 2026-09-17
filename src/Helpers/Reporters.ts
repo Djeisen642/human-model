@@ -4,6 +4,7 @@ import Person from '../App/Person';
 import Constants from './Constants';
 import { countPerType } from './Classifier';
 import Variables from './Variables';
+import { CycleMetrics } from './CycleDetector';
 
 /**
  * Builds a TenYearSummary from a consecutive snapshot window.
@@ -124,8 +125,8 @@ export function formatDecadeSummary(summary: TenYearSummary): string {
   );
 }
 
-/** Possible outcome labels. EXTINCTION added in ARD 031. */
-export type OutcomeLabel = 'EXTINCTION' | 'COLLAPSE' | 'STRUGGLING' | 'STABLE' | 'THRIVING';
+/** Possible outcome labels. EXTINCTION added in ARD 031; CYCLICAL replaced THRIVING in ARD 063. */
+export type OutcomeLabel = 'EXTINCTION' | 'COLLAPSE' | 'STRUGGLING' | 'CYCLICAL' | 'STABLE';
 
 /** Derived signals the outcome verdict reads, across four collapse/thrive dimensions (ARD 051). */
 interface OutcomeMetrics {
@@ -168,64 +169,76 @@ function outcomeMetrics(decadeHistory: TenYearSummary[], startPopulation: number
 }
 
 /**
- * Classifies the simulation outcome on four collapse/thrive dimensions (ARD 051): population
- * decline from peak, inequality, wellbeing, and ecological strain. Checked in order: EXTINCTION,
- * COLLAPSE, THRIVING, STRUGGLING, STABLE.
+ * Classifies the simulation outcome on population trajectory, inequality, wellbeing, and
+ * ecological strain (ARD 051, revised by ARD 063). Checked in order: EXTINCTION, COLLAPSE by
+ * inequality, COLLAPSE/STRUGGLING by peak-relative decline (skipped when the population is a
+ * confirmed stable cycle), STRUGGLING by inequality/wellbeing/commons, CYCLICAL, STABLE.
+ *
+ * Peak-relative decline is a collapse signal for a one-shot overshoot but not for a population
+ * that oscillates: a run cycling between a high and a low reads as deep in decline for most of
+ * every cycle, even while the oscillation itself is sustained and non-collapsing. `cycles` (the
+ * caller's own `CycleDetector.detectCycles` result over the run's tick-level population series —
+ * already computed for the sweep harness's `cyc`/`stable` columns, so this reuses rather than
+ * recomputes) settles that ambiguity: when it confirms a stable cycle, peak-decline is not
+ * evaluated and the trajectory reads as cycling instead of declining. Gini, happiness, and commons
+ * fill are unaffected — a cycling population can still read STRUGGLING or COLLAPSE on any of those.
  *
  * @param decadeHistory - all decade summaries in order (the last is the final decade)
  * @param startPopulation - initial population at simulation start
+ * @param cycles - cycle metrics for the run's population series (`CycleDetector.detectCycles`)
  * @returns outcome label
  */
 export function classifyOutcome(
   decadeHistory: TenYearSummary[],
   startPopulation: number,
+  cycles: CycleMetrics,
 ): OutcomeLabel {
   const m = outcomeMetrics(decadeHistory, startPopulation);
   if (m.finalPop === 0) return 'EXTINCTION';
 
-  // COLLAPSE: severe population loss from peak, or extreme inequality.
-  if (
-    m.peakDecline >= Variables.COLLAPSE_PEAK_DECLINE_FRACTION ||
-    m.gini >= Variables.COLLAPSE_GINI_THRESHOLD
-  ) {
+  // COLLAPSE by inequality: checked unconditionally — extreme inequality collapses the label
+  // regardless of population phase.
+  if (m.gini >= Variables.COLLAPSE_GINI_THRESHOLD) return 'COLLAPSE';
+
+  const cycling = cycles.stableCycle;
+
+  // COLLAPSE by decline: only reachable when the population is not a confirmed stable cycle.
+  if (!cycling && m.peakDecline >= Variables.COLLAPSE_PEAK_DECLINE_FRACTION) {
     return 'COLLAPSE';
   }
 
-  // THRIVING: all four — low inequality, high wellbeing, population near peak, healthy commons.
-  if (
-    m.gini < Variables.THRIVING_GINI_THRESHOLD &&
-    m.happiness >= Variables.THRIVING_HAPPINESS_THRESHOLD &&
-    m.peakDecline < Variables.THRIVING_MAX_PEAK_DECLINE_FRACTION &&
-    m.poolFraction >= Variables.THRIVING_RESOURCE_FRACTION
-  ) {
-    return 'THRIVING';
-  }
-
-  // STRUGGLING: any single stress signal — inequality, immiseration, notable decline, or strain.
+  // STRUGGLING: any single stress signal — inequality, immiseration, ecological strain, or
+  // (only when not cycling) notable decline from peak.
   if (
     m.gini >= Variables.STRUGGLING_GINI_THRESHOLD ||
     m.happiness < Variables.STRUGGLING_HAPPINESS_THRESHOLD ||
-    m.peakDecline >= Variables.STRUGGLING_PEAK_DECLINE_FRACTION ||
-    m.poolFraction < Variables.STRUGGLING_RESOURCE_FRACTION
+    m.poolFraction < Variables.STRUGGLING_RESOURCE_FRACTION ||
+    (!cycling && m.peakDecline >= Variables.STRUGGLING_PEAK_DECLINE_FRACTION)
   ) {
     return 'STRUGGLING';
   }
+
+  // CYCLICAL: a sustained, non-collapsing oscillation that cleared every other stress signal.
+  if (cycling) return 'CYCLICAL';
 
   return 'STABLE';
 }
 
 /**
- * Human-readable rationale for an outcome label, naming whichever dimension drove it (ARD 051).
+ * Human-readable rationale for an outcome label, naming whichever dimension drove it
+ * (ARD 051, revised by ARD 063).
  *
  * @param decadeHistory - all decade summaries in order
  * @param startPopulation - initial population at simulation start
  * @param outcome - the label returned by classifyOutcome
+ * @param cycles - cycle metrics for the run's population series, as passed to classifyOutcome
  * @returns one-line reason string
  */
 export function explainOutcome(
   decadeHistory: TenYearSummary[],
   startPopulation: number,
   outcome: OutcomeLabel,
+  cycles: CycleMetrics,
 ): string {
   const m = outcomeMetrics(decadeHistory, startPopulation);
   const giniStr = m.gini.toFixed(2);
@@ -236,12 +249,10 @@ export function explainOutcome(
   case 'EXTINCTION':
     return 'Population reached 0';
   case 'COLLAPSE':
-    if (m.peakDecline >= Variables.COLLAPSE_PEAK_DECLINE_FRACTION) {
-      return `Population fell ${declineStr} from peak (≥ ${(Variables.COLLAPSE_PEAK_DECLINE_FRACTION * 100).toFixed(0)}%)`;
+    if (m.gini >= Variables.COLLAPSE_GINI_THRESHOLD) {
+      return `Final-decade avg Gini ${giniStr} ≥ ${Variables.COLLAPSE_GINI_THRESHOLD.toFixed(2)} threshold`;
     }
-    return `Final-decade avg Gini ${giniStr} ≥ ${Variables.COLLAPSE_GINI_THRESHOLD.toFixed(2)} threshold`;
-  case 'THRIVING':
-    return `Low inequality (Gini ${giniStr}), high wellbeing (happiness ${happyStr}), population near peak, commons ${poolStr} full`;
+    return `Population fell ${declineStr} from peak (≥ ${(Variables.COLLAPSE_PEAK_DECLINE_FRACTION * 100).toFixed(0)}%)`;
   case 'STRUGGLING':
     if (m.gini >= Variables.STRUGGLING_GINI_THRESHOLD) {
       return `Final-decade Gini ${giniStr} ≥ ${Variables.STRUGGLING_GINI_THRESHOLD.toFixed(2)} threshold`;
@@ -249,10 +260,13 @@ export function explainOutcome(
     if (m.happiness < Variables.STRUGGLING_HAPPINESS_THRESHOLD) {
       return `Final-decade happiness ${happyStr} below ${Variables.STRUGGLING_HAPPINESS_THRESHOLD.toFixed(1)} threshold`;
     }
-    if (m.peakDecline >= Variables.STRUGGLING_PEAK_DECLINE_FRACTION) {
-      return `Population down ${declineStr} from peak (≥ ${(Variables.STRUGGLING_PEAK_DECLINE_FRACTION * 100).toFixed(0)}%)`;
+    if (m.poolFraction < Variables.STRUGGLING_RESOURCE_FRACTION) {
+      return `Commons drawn down to ${poolStr} of ceiling (below ${(Variables.STRUGGLING_RESOURCE_FRACTION * 100).toFixed(0)}%) — ecological strain`;
     }
-    return `Commons drawn down to ${poolStr} of ceiling (below ${(Variables.STRUGGLING_RESOURCE_FRACTION * 100).toFixed(0)}%) — ecological strain`;
+    return `Population down ${declineStr} from peak (≥ ${(Variables.STRUGGLING_PEAK_DECLINE_FRACTION * 100).toFixed(0)}%)`;
+  case 'CYCLICAL':
+    return `Sustained boom-bust cycle (${cycles.numCycles} cycles, trough trend ${cycles.troughTrend.toFixed(2)}), `
+      + `Gini ${giniStr}, happiness ${happyStr}, commons ${poolStr} full — not declining, oscillating`;
   case 'STABLE':
     return `Gini ${giniStr}, happiness ${happyStr}, population near peak, commons ${poolStr} full — within stable band`;
   }
@@ -372,6 +386,8 @@ export function formatSurvivorSection(s: SurvivorSummary): string[] {
  * @param inventionCounts.slower - count of depletion-slower firings
  * @param inventionCounts.ceiling - count of ceiling-growth firings
  * @param communityPool - community pool balance at end of run (ARD 034)
+ * @param cycles - cycle metrics for the run's population series (ARD 063); defaults to "no
+ *   confirmed cycle" so callers that do not care about the CYCLICAL dimension need not compute one
  * @returns multi-line formatted report string
  */
 export function formatEndReport(
@@ -388,6 +404,7 @@ export function formatEndReport(
   extractionProductivity = 1.0,
   inventionCounts: { faster: number; slower: number; ceiling: number } = { faster: 0, slower: 0, ceiling: 0 },
   communityPool = 0,
+  cycles: CycleMetrics = { numCycles: 0, period: 0, amplitude: 1, troughTrend: 1, stableCycle: false, extinct: false },
 ): string {
   if (decadeHistory.length === 0) {
     return `=== End of Simulation (${ticks} ticks, seed ${seed}) ===\n(Run too short to produce a decade summary.)`;
@@ -395,8 +412,8 @@ export function formatEndReport(
 
   const final = decadeHistory[decadeHistory.length - 1];
   const first = decadeHistory[0];
-  const outcome = classifyOutcome(decadeHistory, startPopulation);
-  const reason = explainOutcome(decadeHistory, startPopulation, outcome);
+  const outcome = classifyOutcome(decadeHistory, startPopulation, cycles);
+  const reason = explainOutcome(decadeHistory, startPopulation, outcome, cycles);
 
   const totalDeaths = decadeHistory.reduce((s, d) => s + d.totalDeaths, 0);
   const totalBirths = decadeHistory.reduce((s, d) => s + d.births, 0);

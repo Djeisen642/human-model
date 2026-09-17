@@ -5,6 +5,7 @@ import { formatEndReport } from '../Helpers/Reporters';
 import { writeReportHTML } from '../Helpers/ReportWriter';
 import Variables from '../Helpers/Variables';
 import { parsePersonTypes } from '../Helpers/Classifier';
+import { detectCycles } from '../Helpers/CycleDetector';
 
 interface SimConfig {
   simulation?: {
@@ -79,6 +80,10 @@ process.on('SIGINT', () => {
   const simulation = await looper.start(N, TICKS, SEED, console.log, PERSON_TYPES);
   const actualTicks = simulation.history.length;
   const extinctionTick = simulation.history.find(s => s.population === 0)?.tick;
+  const cycles = detectCycles(simulation.history.map(s => s.population), {
+    minCycles: Variables.CYCLICAL_MIN_CYCLES,
+    troughHoldFraction: Variables.CYCLICAL_TROUGH_HOLD_FRACTION,
+  });
 
   // eslint-disable-next-line no-console
   console.log(formatEndReport(
@@ -99,6 +104,7 @@ process.on('SIGINT', () => {
       ceiling: simulation.inventionCeilingCount,
     },
     simulation.communityPool,
+    cycles,
   ));
 
   if (!noReport) {

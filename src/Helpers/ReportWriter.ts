@@ -3,7 +3,9 @@ import * as path from 'path';
 import Handlebars from 'handlebars';
 import Simulation from '../App/Simulation';
 import Constants from './Constants';
+import Variables from './Variables';
 import { classifyOutcome, formatEndReport, share } from './Reporters';
+import { detectCycles, CycleMetrics } from './CycleDetector';
 
 /**
  * Writes a self-contained HTML report to <outputDir>/report-<seed>-<outcome>-<timestamp>.html.
@@ -25,15 +27,19 @@ export function writeReportHTML(simulation: Simulation, n: number, ticks: number
   }
 
   const decadeHistory = simulation.decadeHistory;
+  const cycles = detectCycles(simulation.history.map(s => s.population), {
+    minCycles: Variables.CYCLICAL_MIN_CYCLES,
+    troughHoldFraction: Variables.CYCLICAL_TROUGH_HOLD_FRACTION,
+  });
   const outcome = decadeHistory.length > 0
-    ? classifyOutcome(decadeHistory, n)
+    ? classifyOutcome(decadeHistory, n, cycles)
     : 'STABLE';
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const filename = `report-${seed}-${outcome}-${timestamp}.html`;
   const filepath = path.join(resolvedOutputDir, filename);
 
-  const html = buildHTML(simulation, n, ticks, seed, outcome, embedAssets);
+  const html = buildHTML(simulation, n, ticks, seed, outcome, embedAssets, cycles);
   fs.writeFileSync(filepath, html, 'utf8');
   const url = `file://${filepath}`;
   const link = `]8;;${url}${filepath}]8;;`;
@@ -48,6 +54,8 @@ export function writeReportHTML(simulation: Simulation, n: number, ticks: number
  * @param seed - PRNG seed
  * @param outcome - classified outcome label
  * @param embedAssets - when true, inlines Chart.js bundle instead of CDN link
+ * @param cycles - cycle metrics for the run's population series (ARD 063), reused from the caller
+ *   so the report's outcome and its embedded reason string are computed from the same signal
  * @returns full HTML string for the report
  */
 function buildHTML(
@@ -57,6 +65,7 @@ function buildHTML(
   seed: number,
   outcome: string,
   embedAssets = false,
+  cycles: CycleMetrics = { numCycles: 0, period: 0, amplitude: 1, troughTrend: 1, stableCycle: false, extinct: false },
 ): string {
   const history = simulation.history;
   const decadeHistory = simulation.decadeHistory;
@@ -243,14 +252,15 @@ function buildHTML(
       ceiling: simulation.inventionCeilingCount,
     },
     simulation.communityPool,
+    cycles,
   ).replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const outcomeColors: Record<string, string> = {
     EXTINCTION: '#7b241c',
     COLLAPSE: '#c0392b',
     STRUGGLING: '#d35400',
+    CYCLICAL: '#7d3c98',
     STABLE: '#2471a3',
-    THRIVING: '#1e8449',
   };
   const outcomeColor = outcomeColors[outcome] ?? '#555';
 

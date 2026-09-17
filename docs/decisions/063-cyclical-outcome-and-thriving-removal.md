@@ -1,6 +1,6 @@
 # ARD 063: Cyclical Outcome Label; Removal of THRIVING
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-15
 
 ## Context
