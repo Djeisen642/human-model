@@ -55,6 +55,7 @@ for (const pair of sets) {
   if (Number.isNaN(value)) throw new Error(`Non-numeric override: ${pair}`);
   (Variables as unknown as Record<string, unknown>)[key] = value;
 }
+Variables.validate();
 
 (async () => {
   for (let seed = 1; seed <= seedCount; seed++) {

@@ -46,19 +46,21 @@ if (configPath) {
 
 if (config.variables) {
   for (const [key, value] of Object.entries(config.variables)) {
-    if (!(key in Variables)) {
+    if (typeof (Variables as unknown as Record<string, unknown>)[key] !== 'number') {
       // eslint-disable-next-line no-console
       console.warn(`Config: unknown variable "${key}", skipping.`);
       continue;
     }
-    if (typeof value !== 'number') {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
       // eslint-disable-next-line no-console
-      console.warn(`Config: variable "${key}" must be a number, got ${typeof value}, skipping.`);
+      console.warn(`Config: variable "${key}" must be a finite number, got ${String(value)}, skipping.`);
       continue;
     }
     Object.assign(Variables, { [key]: value });
   }
 }
+
+Variables.validate();
 
 const N = config.simulation?.persons ?? 100;
 const TICKS = config.simulation?.ticks ?? 100;

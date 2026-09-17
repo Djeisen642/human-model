@@ -426,6 +426,8 @@ fix and the second a measurement fix, and they are worth deciding on independent
 
 ## Part 4 — Gathering has an age profile that is wired to nothing
 
+> **Acted on 2026-09-17 — the three constants are deleted.** The orphaned trio was removed from `Variables.ts` (bitwise-identical history over 8 seeds × 200 ticks, so nothing below is affected), and a comment at the age-profile block records that `GatherResourcesEvent` is deliberately age-blind so the trio does not get re-added by pattern-matching the list. The substantive finding — production has no dependency ratio while consumption does — is untouched and still open in `docs/future-ideas.md`.
+
 `GATHERING_PEAK_AGE = 28`, `GATHERING_AGE_SCALE = 35` and `GATHERING_AGE_FLOOR = 0.1` exist in
 `Variables.ts` and are **referenced nowhere in `src/` or `scripts/`**. `GatherResourcesEvent` is
 unconditional and age-blind; the ODD formula (§7) records it that way, so code and spec agree and

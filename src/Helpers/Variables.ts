@@ -253,6 +253,9 @@ export default class Variables {
   static STARVATION_ILLNESS_RATE = 0.25;
 
   // Per-event age profile constants — used by EventFactory via ageModifier()
+  // GatherResourcesEvent has no entry here: it is unconditional and age-blind (ODD §7).
+  // A GATHERING_* trio existed but was referenced nowhere and was removed 2026-09-17;
+  // wiring an age profile into gather is a new mechanism and needs an ARD first.
   static CHILDBIRTH_PEAK_AGE = 26;
   /** Half-width of the fertile window: the modifier hits its floor at PEAK ± SCALE, so 18 ends fertility at 44 (ARD 059). */
   static CHILDBIRTH_AGE_SCALE = 18;
@@ -261,10 +264,6 @@ export default class Variables {
   static WORK_PEAK_AGE = 35;
   static WORK_AGE_SCALE = 40;
   static WORK_AGE_FLOOR = 0.1;
-
-  static GATHERING_PEAK_AGE = 28;
-  static GATHERING_AGE_SCALE = 35;
-  static GATHERING_AGE_FLOOR = 0.1;
 
   static EXERCISE_PEAK_AGE = 24;
   static EXERCISE_AGE_SCALE = 35;
@@ -425,6 +424,9 @@ export default class Variables {
   static JAIL_RESOURCE_FORFEIT_FRACTION = 0.80;
 
   // Estate inheritance constants (ARD 042) — shares must sum to 1.0.
+  // The invariant is enforced by Variables.validate(), not normalised at use: normalising would
+  // silently rescale a share the operator set deliberately, and the conservation guarantee ARDs
+  // 039–042 rest on is worth a hard failure. Sweeping one share alone is the case this catches.
   /** Share of a deceased person's resources transferred to the community pool. Always applies. */
   static ESTATE_COMMUNITY_SHARE = 0.40;
   /** Share of a deceased person's resources transferred to the surviving partner; absorbs the children share when there are no living children. */
@@ -446,4 +448,21 @@ export default class Variables {
    * Scaled by ageMortalityModifier / constitution at execution time.
    */
   static DISASTER_KILL_BASE = 0.1;
+
+  /**
+   * Throws if any cross-constant invariant is violated. Call after applying config overrides and
+   * before running a simulation; every `--set`/`--config` path goes through it.
+   * @throws {Error} when the ARD 042 estate shares do not sum to 1.0
+   */
+  static validate(): void {
+    const estateSum = Variables.ESTATE_COMMUNITY_SHARE + Variables.ESTATE_PARTNER_SHARE + Variables.ESTATE_CHILDREN_SHARE;
+    // !Number.isFinite comes first: every comparison against NaN is false, so a NaN share would
+    // pass the tolerance check below and then poison every resource in the run.
+    if (!Number.isFinite(estateSum) || Math.abs(estateSum - 1) > 1e-9) {
+      throw new Error(
+        `ESTATE_COMMUNITY_SHARE + ESTATE_PARTNER_SHARE + ESTATE_CHILDREN_SHARE must sum to 1.0 (ARD 042), got ${estateSum}. ` +
+        'Estates are distributed with these shares applied raw, so any other sum creates or destroys resources on every death.'
+      );
+    }
+  }
 }
