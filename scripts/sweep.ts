@@ -119,7 +119,10 @@ async function runOne(seed: number, ticks: number, persons: number): Promise<Run
     if (extinctTick === null && s.population === 0) extinctTick = s.tick;
   }
 
-  const cycles = detectCycles(h.map((s) => s.population));
+  const cycles = detectCycles(h.map((s) => s.population), {
+    minCycles: Variables.CYCLICAL_MIN_CYCLES,
+    troughHoldFraction: Variables.CYCLICAL_TROUGH_HOLD_FRACTION,
+  });
 
   return {
     seed,
@@ -137,7 +140,7 @@ async function runOne(seed: number, ticks: number, persons: number): Promise<Run
     orphanShare: childTotal > 0 ? orphanTotal / childTotal : 0,
     peakOrphanShare,
     welfareShare: popTotal > 0 ? welfareTotal / popTotal : 0,
-    outcome: classifyOutcome(sim.decadeHistory, persons),
+    outcome: classifyOutcome(sim.decadeHistory, persons, cycles),
     numCycles: cycles.numCycles,
     period: cycles.period,
     troughTrend: cycles.troughTrend,

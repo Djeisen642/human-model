@@ -180,3 +180,4 @@ When in doubt:
 | [060](./060-gini-measurement-basis.md) | Gini Measured Over Adults, Not All Living | Accepted |
 | [061](./061-welfare-shortfall-topup.md) | Welfare Pays the Shortfall, Not an Equal Split | Accepted |
 | [062](./062-welfare-skips-subsidised-children.md) | Welfare Skips Parentally Subsidised Children | Accepted |
+| [063](./063-cyclical-outcome-and-thriving-removal.md) | Cyclical Outcome Label; Removal of THRIVING | Accepted |

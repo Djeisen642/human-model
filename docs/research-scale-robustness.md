@@ -126,8 +126,10 @@ No control arm was run at 8000 ticks because it cannot change anything: the cont
 
 **It is still not abundance, and the outcome label says so.** `classifyOutcome` reads COLLAPSE on 21
 of 24 seeds and STRUGGLING on the other 3. The commons is stripped for 39% of ticks, 48% of
-person-ticks are below the welfare threshold, adult `resourceGini` sits at 0.57–0.59, and every seed
-touches a tick where all living children are orphaned. A society that swings between 3800 people and
+person-ticks are below the welfare threshold, and every seed touches a tick where all living children
+are orphaned. Inequality is **not** part of that indictment, despite what the sweep table suggests:
+the 0.57–0.59 it shows is `peakGini`, not the final-decade adult Gini the classifier reads, which
+medians 0.35 — see "Inequality is not what blocks it" below. A society that swings between 3800 people and
 32, thirty times over, is not thriving — it is surviving a permanent Malthusian cycle at larger
 scale. The honest summary is that the model now has a configuration that does not die, and none that
 does well.

@@ -14,6 +14,14 @@ import { TenYearSummary } from '../../Helpers/Types';
 import Constants from '../../Helpers/Constants';
 import Person from '../../App/Person';
 import DeathRecord from '../../Records/DeathRecord';
+import { CycleMetrics } from '../../Helpers/CycleDetector';
+
+/** No confirmed cycle — the default for tests that don't exercise the CYCLICAL dimension. */
+const NOT_CYCLING: CycleMetrics = { numCycles: 0, period: 0, amplitude: 1, troughTrend: 1, stableCycle: false, extinct: false };
+/** A confirmed, non-ratcheting boom-bust cycle. */
+const CYCLING: CycleMetrics = { numCycles: 3, period: 250, amplitude: 2, troughTrend: 0.9, stableCycle: true, extinct: false };
+/** An oscillation whose troughs ratchet down — not a stable cycle (ARD 063's `stableCycle` gate). */
+const DECAYING_CYCLE: CycleMetrics = { numCycles: 3, period: 250, amplitude: 2, troughTrend: 0.3, stableCycle: false, extinct: false };
 
 /**
  * @param tick - zero-based tick index
@@ -331,9 +339,11 @@ describe('classifyOutcome (multi-dimensional, ARD 051)', () => {
    *
    * @param d - the final decade summary
    * @param start - starting population
+   * @param cycles - cycle metrics for the run; defaults to no confirmed cycle
    * @returns the outcome label
    */
-  const one = (d: TenYearSummary, start = 100): string => classifyOutcome([d], start);
+  const one = (d: TenYearSummary, start = 100, cycles: CycleMetrics = NOT_CYCLING): string =>
+    classifyOutcome([d], start, cycles);
 
   it('returns COLLAPSE when Gini >= 0.60', () => {
     expect(one({ ...baseDecade, avgResourceGini: 0.60 })).toBe('COLLAPSE');
@@ -345,32 +355,7 @@ describe('classifyOutcome (multi-dimensional, ARD 051)', () => {
     // start-relative check read this as healthy; peak-relative catches it.
     const peak = { ...baseDecade, endTick: 50, endPopulation: 400 };
     const final = { ...baseDecade, endPopulation: 150 };
-    expect(classifyOutcome([peak, final], 100)).toBe('COLLAPSE');
-  });
-
-  it('returns THRIVING only with all four: low Gini, high happiness, near peak, healthy commons', () => {
-    expect(one({ ...baseDecade, avgResourceGini: 0.25, avgHappiness: 6.5 })).toBe('THRIVING');
-  });
-
-  it('does not return THRIVING when the commons is drawn down (overshoot blind spot)', () => {
-    // Great Gini and happiness, but the pool is at 5% of ceiling — overexploitation, not thriving.
-    const result = one({ ...baseDecade, avgResourceGini: 0.25, avgHappiness: 6.5, avgNaturalResources: 500 });
-    expect(result).not.toBe('THRIVING');
-    expect(result).toBe('STRUGGLING');
-  });
-
-  it('does not return THRIVING when the population is in decline from peak', () => {
-    const peak = { ...baseDecade, endTick: 50, endPopulation: 200 };
-    const final = { ...baseDecade, endPopulation: 150, avgResourceGini: 0.25, avgHappiness: 6.5 };
-    expect(classifyOutcome([peak, final], 100)).not.toBe('THRIVING');
-  });
-
-  it('does not return THRIVING when Gini >= 0.30', () => {
-    expect(one({ ...baseDecade, avgResourceGini: 0.30, avgHappiness: 7.0 })).not.toBe('THRIVING');
-  });
-
-  it('does not return THRIVING when happiness < 6.0', () => {
-    expect(one({ ...baseDecade, avgResourceGini: 0.20, avgHappiness: 5.9 })).not.toBe('THRIVING');
+    expect(classifyOutcome([peak, final], 100, NOT_CYCLING)).toBe('COLLAPSE');
   });
 
   it('returns STRUGGLING when Gini >= 0.45', () => {
@@ -384,7 +369,7 @@ describe('classifyOutcome (multi-dimensional, ARD 051)', () => {
   it('returns STRUGGLING on moderate decline from peak (>= 25%, < 50%)', () => {
     const peak = { ...baseDecade, endTick: 50, endPopulation: 200 };
     const final = { ...baseDecade, endPopulation: 150 };
-    expect(classifyOutcome([peak, final], 100)).toBe('STRUGGLING');
+    expect(classifyOutcome([peak, final], 100, NOT_CYCLING)).toBe('STRUGGLING');
   });
 
   it('returns STRUGGLING when the commons is exhausted (< 10% of ceiling)', () => {
@@ -393,10 +378,6 @@ describe('classifyOutcome (multi-dimensional, ARD 051)', () => {
 
   it('returns STABLE otherwise', () => {
     expect(one(baseDecade)).toBe('STABLE');
-  });
-
-  it('COLLAPSE takes priority over THRIVING conditions', () => {
-    expect(one({ ...baseDecade, avgResourceGini: 0.65, avgHappiness: 7.0 })).toBe('COLLAPSE');
   });
 
   it('returns EXTINCTION when endPopulation is 0 (ARD 031)', () => {
@@ -412,6 +393,39 @@ describe('classifyOutcome (multi-dimensional, ARD 051)', () => {
     expect(result).toBe('COLLAPSE');
     expect(result).not.toBe('EXTINCTION');
   });
+
+  describe('CYCLICAL (ARD 063)', () => {
+    it('returns CYCLICAL for a confirmed stable cycle with acceptable Gini/happiness/commons, even deep in peak-relative decline', () => {
+      // Same shape as the COLLAPSE-by-decline case above (62% down from peak), but confirmed cycling.
+      const peak = { ...baseDecade, endTick: 50, endPopulation: 400 };
+      const final = { ...baseDecade, endPopulation: 150 };
+      expect(classifyOutcome([peak, final], 100, CYCLING)).toBe('CYCLICAL');
+    });
+
+    it('COLLAPSE by inequality overrides a confirmed stable cycle', () => {
+      expect(one({ ...baseDecade, avgResourceGini: 0.65 }, 100, CYCLING)).toBe('COLLAPSE');
+    });
+
+    it('STRUGGLING by low happiness overrides a confirmed stable cycle', () => {
+      expect(one({ ...baseDecade, avgHappiness: 2.9 }, 100, CYCLING)).toBe('STRUGGLING');
+    });
+
+    it('STRUGGLING by depleted commons overrides a confirmed stable cycle', () => {
+      expect(one({ ...baseDecade, avgNaturalResources: 500 }, 100, CYCLING)).toBe('STRUGGLING');
+    });
+
+    it('peak-decline still applies when cycles are too few to confirm a stable cycle', () => {
+      const peak = { ...baseDecade, endTick: 50, endPopulation: 400 };
+      const final = { ...baseDecade, endPopulation: 150 };
+      expect(classifyOutcome([peak, final], 100, NOT_CYCLING)).toBe('COLLAPSE');
+    });
+
+    it('a decaying-envelope oscillation (ratcheting troughs) is read as decline, not CYCLICAL', () => {
+      const peak = { ...baseDecade, endTick: 50, endPopulation: 400 };
+      const final = { ...baseDecade, endPopulation: 150 };
+      expect(classifyOutcome([peak, final], 100, DECAYING_CYCLE)).toBe('COLLAPSE');
+    });
+  });
 });
 
 describe('explainOutcome', () => {
@@ -425,26 +439,26 @@ describe('explainOutcome', () => {
   };
 
   it('EXTINCTION cites population 0', () => {
-    expect(explainOutcome([{ ...base, endPopulation: 0 }], 100, 'EXTINCTION')).toContain('Population');
+    expect(explainOutcome([{ ...base, endPopulation: 0 }], 100, 'EXTINCTION', NOT_CYCLING)).toContain('Population');
   });
 
   it('COLLAPSE by Gini cites the Gini value', () => {
-    expect(explainOutcome([{ ...base, avgResourceGini: 0.65 }], 100, 'COLLAPSE')).toContain('Gini');
+    expect(explainOutcome([{ ...base, avgResourceGini: 0.65 }], 100, 'COLLAPSE', NOT_CYCLING)).toContain('Gini');
   });
 
   it('COLLAPSE by peak decline cites the population drop', () => {
     const peak = { ...base, endTick: 50, endPopulation: 400 };
     const final = { ...base, endPopulation: 100 };
-    expect(explainOutcome([peak, final], 100, 'COLLAPSE')).toMatch(/Population.*from peak/);
+    expect(explainOutcome([peak, final], 100, 'COLLAPSE', NOT_CYCLING)).toMatch(/Population.*from peak/);
   });
 
-  it('THRIVING cites the four-dimensional state', () => {
-    expect(explainOutcome([{ ...base, avgResourceGini: 0.2, avgHappiness: 7 }], 100, 'THRIVING'))
-      .toMatch(/Gini.*happiness.*commons/);
+  it('CYCLICAL cites cycle count and trough trend', () => {
+    expect(explainOutcome([{ ...base, avgResourceGini: 0.2, avgHappiness: 7 }], 100, 'CYCLICAL', CYCLING))
+      .toMatch(/cycles.*trough trend/);
   });
 
   it('STRUGGLING by exhausted commons cites ecological strain', () => {
-    expect(explainOutcome([{ ...base, avgNaturalResources: 200 }], 100, 'STRUGGLING'))
+    expect(explainOutcome([{ ...base, avgNaturalResources: 200 }], 100, 'STRUGGLING', NOT_CYCLING))
       .toMatch(/commons|ecological/i);
   });
 });

@@ -363,14 +363,10 @@ export default class Variables {
   static STRUGGLING_PEAK_DECLINE_FRACTION = 0.25;
   /** Commons fill fraction (pool ÷ ceiling) below this → at least STRUGGLING (ecological strain / overexploitation, ARD 051). */
   static STRUGGLING_RESOURCE_FRACTION = 0.1;
-  /** Final-decade avg Gini below this (one of four THRIVING conditions) → contributes to THRIVING. */
-  static THRIVING_GINI_THRESHOLD = 0.27;
-  /** Final-decade avg happiness at or above this (one of four THRIVING conditions) → contributes to THRIVING. */
-  static THRIVING_HAPPINESS_THRESHOLD = 6.0;
-  /** Population decline from peak must be below this for THRIVING — a thriving population is at/near its peak, not in decline (ARD 051). */
-  static THRIVING_MAX_PEAK_DECLINE_FRACTION = 0.15;
-  /** Commons fill fraction (pool ÷ ceiling) must be at or above this for THRIVING — living within carrying capacity, not overexploiting (ARD 051). */
-  static THRIVING_RESOURCE_FRACTION = 0.4;
+  /** Minimum confirmed boom-bust cycles for classifyOutcome to accept a run as cycling → CYCLICAL (ARD 063; starts from CycleDetector's own minCycles default). */
+  static CYCLICAL_MIN_CYCLES = 2;
+  /** Minimum trough-hold fraction (last trough ÷ first trough) for classifyOutcome to accept a run as a non-ratcheting cycle → CYCLICAL (ARD 063; starts from CycleDetector's own troughHoldFraction default). */
+  static CYCLICAL_TROUGH_HOLD_FRACTION = 0.5;
 
   // Working-age bounds — shared by happiness getter (ARD 014) and survivor reporting
   /** Minimum age for working-age classification; also the child/adult boundary in happiness and survivor reports. */
