@@ -31,6 +31,18 @@ non-extinct regime is one THRIVING can never describe, by construction of what p
 does to a shared pool. Carrying a label the model's sole surviving regime is structurally barred from
 earning has no calibration use going forward.
 
+A second, independent line of evidence confirms the same defect. `docs/research-escape-velocity.md`
+(2026-09-17, merged as PR #116) built a forward-looking `held` check — did a run finish its window
+within `COLLAPSE_PEAK_DECLINE_FRACTION` of its highest population — reusing the identical peak-decline
+metric this ARD is correcting. Running that study's exact escape-velocity gate directly against the
+scaled-commons regime above returns 0 of 24 runs cleared, consistent with the peak/commons
+anti-correlation described above; but an unknown share of that arm's 20 "never cleared, failed" runs
+are plausibly caught mid-trough rather than genuinely declining, since "failed" there is computed with
+the same broken signal. This ARD does not touch the escape-velocity criterion or the soft-brake gap
+that study and `future-ideas.md`'s top entry both name as the deeper structural cause — it stays scoped
+to the labeling defect alone — but a correct, cycling-aware peak-decline check is a prerequisite for
+re-reading any cycling arm's escape-velocity results, not only for `classifyOutcome`'s own output.
+
 ## Decision
 
 **Add a CYCLICAL outcome**, and use it to correct the population-trajectory signal instead of
@@ -112,6 +124,10 @@ rather than asking every reader to independently rediscover that.
 - `scripts/thrive-probe.ts` measures gate failure against a label that no longer exists and should be
   retired or repurposed as a cyclical-reachability probe; not required by this ARD, flagged for the
   implementer.
+- `scripts/escape-velocity.ts`'s `held` check independently reuses `COLLAPSE_PEAK_DECLINE_FRACTION`
+  and inherits the same mislabeling on any cycling arm; not touched by this ARD (out of scope — a
+  separate forward-looking tool, not `classifyOutcome`), but flagged so a future pass on that script
+  reuses this ARD's fix rather than re-deriving it.
 - `ReportWriter.ts`'s outcome-color legend drops THRIVING's entry, gains one for CYCLICAL.
 - `Variables.ts` drops `THRIVING_GINI_THRESHOLD`, `THRIVING_HAPPINESS_THRESHOLD`,
   `THRIVING_MAX_PEAK_DECLINE_FRACTION`, `THRIVING_RESOURCE_FRACTION`; adds the two CYCLICAL
@@ -143,5 +159,6 @@ rather than asking every reader to independently rediscover that.
   reuses [`CycleDetector`](../../src/Helpers/CycleDetector.ts) (introduced as sweep-only measurement
   tooling, promoted here to feed an outcome label — the promotion `CycleDetector`'s own module header
   flagged as ARD-level). Motivated by
-  [`docs/research-scale-robustness.md`](../research-scale-robustness.md) and
-  [`docs/research-thriving-reachability.md`](../research-thriving-reachability.md).
+  [`docs/research-scale-robustness.md`](../research-scale-robustness.md),
+  [`docs/research-thriving-reachability.md`](../research-thriving-reachability.md), and
+  [`docs/research-escape-velocity.md`](../research-escape-velocity.md).
