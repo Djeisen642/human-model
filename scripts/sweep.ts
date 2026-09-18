@@ -10,7 +10,7 @@
  * bounded, non-degenerate population instead of eyeballing single-seed trajectories. The table
  * also reports cycle metrics from `CycleDetector` — `cyc` (median boom-bust oscillations) and
  * `stable` (count of seeds showing a sustained, non-collapsing cycle) — to find regimes that
- * oscillate persistently rather than booming once and going extinct, plus `orphPk%` (worst
+ * oscillate persistently rather than booming once and going extinct, plus `orph%` (pooled) and `orphPk%` (worst
  * single-tick share of children who are orphaned) and `welf%` (share of person-ticks drawing
  * welfare) as family-structure and redistribution-reach stress signals.
  *
@@ -53,7 +53,9 @@ interface RunMetrics {
   births: number;
   boundFraction: number; // share of ticks the commons pool sits below 5% of its ceiling
   orphanShare: number; // orphaned children ÷ all children, pooled over every tick of the run
-  peakOrphanShare: number; // worst single-tick orphan share (ticks with at least one child)
+  peakOrphanShare: number; // worst single-tick orphan share (ticks with at least one child).
+  // Max-of-noise, same defect class as peakGini: at a cycle trough the child population falls to a
+  // handful, so one orphan reads as 100%. Read orphanShare instead. See docs/research-productivity-band.md.
   welfareShare: number; // welfare-eligible persons ÷ living population, pooled over every tick
   outcome: OutcomeLabel;
   numCycles: number; // complete boom-bust oscillations detected in the population series
@@ -292,7 +294,7 @@ async function main(): Promise<void> {
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
 
   const header = (sweepKey ? `${sweepKey.padEnd(28)}  ` : '') +
-    `outcomes (n=${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  orphPk%  welf%  extinct  cyc  stable`;
+    `outcomes (n=${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  orph%  orphPk%  welf%  extinct  cyc  stable`;
   console.log(header);
   console.log('-'.repeat(header.length));
 
@@ -308,6 +310,7 @@ async function main(): Promise<void> {
       String(median(rows.map((r) => r.peakPop))).padStart(7) + '  ' +
       median(rows.map((r) => r.peakGini)).toFixed(2).padStart(8) + '  ' +
       (100 * median(rows.map((r) => r.boundFraction))).toFixed(0).padStart(5) + '%  ' +
+      (100 * median(rows.map((r) => r.orphanShare))).toFixed(1).padStart(4) + '%  ' +
       (100 * median(rows.map((r) => r.peakOrphanShare))).toFixed(0).padStart(6) + '%  ' +
       (100 * median(rows.map((r) => r.welfareShare))).toFixed(0).padStart(4) + '%  ' +
       `${extinctCount}/${seeds.length}`.padStart(7) + '  ' +
