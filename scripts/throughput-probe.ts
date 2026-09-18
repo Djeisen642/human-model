@@ -28,7 +28,7 @@
 
 import LooperSingleton from '../src/App/LooperSingleton';
 import Simulation from '../src/App/Simulation';
-import { applyOverrides } from './overrides';
+import { applyOverrides } from '../src/Helpers/HarnessOverrides';
 
 /**
  * Median of a numeric array; returns 0 for an empty input.

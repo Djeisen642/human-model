@@ -1,11 +1,11 @@
 import Variables from '../../Helpers/Variables';
-import { applyOverrides, parseSeeds } from '../../../scripts/overrides';
+import { applyOverrides, parseSeeds } from '../../Helpers/HarnessOverrides';
 
 /**
  * Every research claim in this project rests on the sweep harness setting and restoring `Variables`
  * correctly. That helper used to exist as four byte-identical copies under `scripts/`, outside the
- * jest root, and a restore bug lived in all four at once (`docs/future-ideas.md`). One copy now, and
- * these are its tests — reached from `src/tests/` so the existing jest root still finds them.
+ * jest root, and a restore bug lived in all four at once (`docs/future-ideas.md`). One copy now, in
+ * `src/Helpers/` where jest and tsc can both see it, and these are its tests.
  */
 describe('applyOverrides', () => {
   it('sets a numeric constant and restores it', () => {

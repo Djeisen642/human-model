@@ -42,7 +42,7 @@ import {
   mcnemarExact, pairedPermutationTest, bootstrapPairedDifference,
   median, seedsNeededForRateChange,
 } from '../src/Helpers/Statistics';
-import { applyOverrides, parseSeeds } from './overrides';
+import { applyOverrides, parseSeeds } from '../src/Helpers/HarnessOverrides';
 import { dispatch, isWorkerProcess, serveWorker } from './workerPool';
 
 /** Permutations drawn per comparison; also sets the finest probability the test can resolve. */

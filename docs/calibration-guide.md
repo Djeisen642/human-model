@@ -4,7 +4,26 @@ Read before running a sweep. Covers what the harness measures, which columns to 
 
 ## Sweep harness (`scripts/sweep.ts`)
 
-For calibration: runs the tick loop in-process across many seeds and aggregates, instead of hand-running configs one at a time. Per sweep value it prints the outcome distribution (`STABLE×2 COLLAPSE×1 …`, five labels since ARD 063: `EXTINCTION`/`COLLAPSE`/`STRUGGLING`/`CYCLICAL`/`STABLE`), median end/peak population, median peak Gini, `bound%` (share of ticks the commons pool sits below 5% of its ceiling — i.e. how often resources bind), `orph%` (median across seeds of each run's orphan share of children pooled over every tick — **this is the orphan number to read**) and `orphPk%` (median across seeds of each run's *worst single tick*; **distrust it**, it is a max-of-noise statistic in the same class as `peakGini` — at a cycle trough the child population falls to a handful, so one orphan reads as 100%, and the best-known config reports `orph% 0.2` against `orphPk% 100`; see `docs/research-productivity-band.md`), `welf%` (median share of person-ticks drawing welfare), extinction count, cycle metrics from `CycleDetector` — `cyc` (median boom-bust oscillations per series) and `stable` (count of seeds showing a sustained, non-collapsing cycle) — and two growth metrics from `GrowthDetector` (below). `--verbose` rows add `cyc`/`per`(iod)/`trTrend`, a `STABLE-CYCLE` marker, the per-run growth figures, and a `why:` line giving `explainOutcome`'s rationale — **which classifier gate actually fired**. Read that line before theorising: in the scaled-commons regime the same run reads CYCLICAL or STRUGGLING depending on whether the clock stopped in a peak decade (`commons 0% full`) or a trough decade (`commons 46% full`), and the `why:` line is what makes that visible instead of looking like a config difference. Since ARD 063, `cyc`/`stable` are not just descriptive: the same `detectCycles` call feeds `classifyOutcome` directly, so a seed marked `STABLE-CYCLE` is exactly the population-trajectory condition behind a `CYCLICAL` label — one definition of "cycling", not two.
+For calibration: runs the tick loop in-process across many seeds and aggregates, instead of hand-running configs one at a time. Per sweep value it prints the outcome distribution (`STABLE×2 COLLAPSE×1 …`, five labels since ARD 063: `EXTINCTION`/`COLLAPSE`/`STRUGGLING`/`CYCLICAL`/`STABLE`), median end/peak population, median peak Gini, `bound%` (share of ticks the commons pool sits below 5% of its ceiling — i.e. how often resources bind), `orph%` (median across seeds of each run's orphan share of children pooled over every tick — **this is the orphan number to read**) and `orphPk%` (median across seeds of each run's *worst single tick*; **distrust it**, it is a max-of-noise statistic in the same class as `peakGini` — at a cycle trough the child population falls to a handful, so one orphan reads as 100%, and the best-known config reports `orph% 0.2` against `orphPk% 100`; see `docs/research-productivity-band.md`), `welf%` (median share of person-ticks drawing welfare), extinction count, `good%` (below), cycle metrics from `CycleDetector` — `cyc` (median boom-bust oscillations per series) and `stable` (count of seeds showing a sustained, non-collapsing cycle) — and two growth metrics from `GrowthDetector` (below). `--verbose` rows add `cyc`/`per`(iod)/`trTrend`, a `STABLE-CYCLE` marker, the per-run growth figures, and a `why:` line giving `explainOutcome`'s rationale — **which classifier gate actually fired**. Read that line before theorising: in the scaled-commons regime the same run reads CYCLICAL or STRUGGLING depending on whether the clock stopped in a peak decade (`commons 0% full`) or a trough decade (`commons 46% full`), and the `why:` line is what makes that visible instead of looking like a config difference. Since ARD 063, `cyc`/`stable` are not just descriptive: the same `detectCycles` call feeds `classifyOutcome` directly, so a seed marked `STABLE-CYCLE` is exactly the population-trajectory condition behind a `CYCLICAL` label — one definition of "cycling", not two.
+
+### The label depends on when the clock stops (`good%`)
+
+`classifyOutcome` reads the **final decade**, so in an oscillating regime the label is partly a
+statement about where in the cycle the run was truncated. Measured directly: in the scaled-commons
+regime the same run reads `CYCLICAL` when the clock stops in a trough decade (commons refilled to
+46%) and `STRUGGLING` when it stops in a peak decade (commons stripped to 0%) — the `--verbose`
+`why:` lines show this happening across seeds of one configuration.
+
+`good%` is the phase-robust version. It re-classifies the same run at each of the last 30 decade
+boundaries — about one full cycle period here — and reports the share that read `CYCLICAL` or
+`STABLE`. A configuration genuinely in a good state scores high across the whole cycle; one that
+merely stopped in a flattering decade does not. Prefer it to the outcome tally whenever `stable` is
+non-zero, and note that the tally and `good%` disagreeing is information, not noise: it means the
+label is phase-driven.
+
+This generalises the hand-done probe in `docs/research-scale-robustness.md`, which re-classified two
+seeds at 27 stopping points and found COLLAPSE×20 STRUGGLING×7 and COLLAPSE×19 STRUGGLING×8 for runs
+whose single end-of-run labels were COLLAPSE and STRUGGLING respectively.
 
 ### Is anything running away? (`GrowthDetector`)
 

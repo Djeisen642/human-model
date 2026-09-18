@@ -1,11 +1,15 @@
 /**
- * Shared `Variables` override plumbing for the calibration scripts.
+ * Shared `Variables` override plumbing for the calibration scripts (`scripts/*.ts`).
  *
- * `applyOverrides` lived in both `sweep.ts` and `compare.ts` as a verbatim copy, which is how the
- * double-override restore bug (fixed 2026-09-18) had to be found and fixed twice. One copy now.
+ * This is harness support rather than model code — nothing in `src/App` or `src/Events` uses it —
+ * and it lives here for the reason `docs/future-ideas.md` gave: it existed as four byte-identical
+ * copies under `scripts/`, outside the jest root, and a restore bug lived in all four at once
+ * (fixed 2026-09-18). Every research claim in this project rests on these two functions setting and
+ * restoring `Variables` correctly, so they belong where they can be unit-tested. Same footing as
+ * `Statistics.ts` and `CycleDetector.ts`, which are also harness support in `Helpers/`.
  */
 
-import Variables from '../src/Helpers/Variables';
+import Variables from './Variables';
 
 /**
  * Apply `KEY=VALUE` pairs to the static `Variables` class.

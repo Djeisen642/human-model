@@ -21,6 +21,11 @@
  * still growing exponentially at the end after a ≥10× rise. A `rnwy` above zero means the run was
  * truncated mid-explosion and its end-state numbers describe the clock, not the model.
  *
+ * `good%` exists because the outcome label is read off the FINAL decade, so in an oscillating
+ * regime it depends on where in the cycle the clock stopped. It re-classifies the same run at each
+ * of the last 30 decade boundaries and reports the share that read CYCLICAL or STABLE. A config in
+ * a genuinely good state scores high; one that merely stopped in a flattering decade does not.
+ *
  * Usage:
  *   npx ts-node scripts/sweep.ts [options]   (or: npm run sweep -- [options])
  *
@@ -45,7 +50,7 @@ import Variables from '../src/Helpers/Variables';
 import { classifyOutcome, explainOutcome, OutcomeLabel } from '../src/Helpers/Reporters';
 import { detectCycles } from '../src/Helpers/CycleDetector';
 import { detectGrowth } from '../src/Helpers/GrowthDetector';
-import { applyOverrides, parseSeeds } from './overrides';
+import { applyOverrides, parseSeeds } from '../src/Helpers/HarnessOverrides';
 import { dispatch, isWorkerProcess, serveWorker } from './workerPool';
 
 interface RunMetrics {
@@ -74,6 +79,7 @@ interface RunMetrics {
   reason: string; // which classifier gate drove the label — the diagnosis, not just the verdict
   popTrendPerK: number; // population log-growth per 1000 ticks, end to end (0 = finishes where it started)
   popExpShare: number; // share of windows where population is growing exponentially
+  goodShare: number; // share of the last PHASE_WINDOW_DECADES stopping points reading CYCLICAL or STABLE
   runawaySeries: string[]; // tracked series still exploding when the clock stopped
 }
 
@@ -86,6 +92,17 @@ interface Job {
 
 /** Threshold below which the pool counts as "bound" (commons exhausted) for boundFraction. */
 const BOUND_THRESHOLD = 0.05;
+
+/**
+ * How many decade boundaries at the end of a run to re-classify for `good%`.
+ *
+ * The outcome label is read off the FINAL decade, so in an oscillating regime it depends on where
+ * in the cycle the clock happened to stop: the same run reads CYCLICAL at a trough decade (commons
+ * refilled) and STRUGGLING at a peak decade (commons stripped). 30 decades is 300 ticks, a little
+ * over one cycle period in the scaled-commons regime, so the window spans every phase and the
+ * resulting share is phase-robust where the single label is a coin flip.
+ */
+const PHASE_WINDOW_DECADES = 30;
 
 /** Run one simulation (overrides already applied) and reduce its history to a metrics row. */
 async function runOne(seed: number, ticks: number, persons: number): Promise<RunMetrics> {
@@ -137,6 +154,22 @@ async function runOne(seed: number, ticks: number, persons: number): Promise<Run
   ];
 
   const outcome = classifyOutcome(sim.decadeHistory, persons, cycles);
+
+  // Re-classify the same run as if the clock had stopped at each of the last PHASE_WINDOW_DECADES
+  // decade boundaries. A config that is genuinely in a good state scores high here; one that merely
+  // stopped in a flattering decade does not.
+  const populations = h.map((s) => s.population);
+  const decades = sim.decadeHistory;
+  let goodStops = 0, totalStops = 0;
+  for (let k = Math.max(2, decades.length - PHASE_WINDOW_DECADES); k <= decades.length; k++) {
+    const label = classifyOutcome(decades.slice(0, k), persons, detectCycles(
+      populations.slice(0, Math.min(populations.length, k * 10)),
+      { minCycles: Variables.CYCLICAL_MIN_CYCLES, troughHoldFraction: Variables.CYCLICAL_TROUGH_HOLD_FRACTION },
+    ));
+    totalStops++;
+    if (label === 'CYCLICAL' || label === 'STABLE') goodStops++;
+  }
+
   return {
     seed,
     endPop: last.population,
@@ -161,6 +194,7 @@ async function runOne(seed: number, ticks: number, persons: number): Promise<Run
     stableCycle: cycles.stableCycle,
     popTrendPerK: 1000 * popGrowth.trendRate,
     popExpShare: popGrowth.share,
+    goodShare: totalStops > 0 ? goodStops / totalStops : 0,
     runawaySeries: tracked.filter(([, g]) => g.runaway).map(([name]) => name),
   };
 }
@@ -233,7 +267,7 @@ async function main(): Promise<void> {
   jobs.forEach((job, i) => results.set(`${sweepVals[Math.floor(i / seeds.length)]}::${job.seed}`, flat[i]));
 
   const header = (sweepKey ? `${sweepKey.padEnd(28)}  ` : '') +
-    `outcomes (n=${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  orph%  orphPk%  welf%  extinct  cyc  stable  popTrd  rnwy`;
+    `outcomes (n=${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  orph%  orphPk%  welf%  extinct  cyc  stable  good%  popTrd  rnwy`;
   console.log(header);
   console.log('-'.repeat(header.length));
 
@@ -256,6 +290,7 @@ async function main(): Promise<void> {
       `${extinctCount}/${seeds.length}`.padStart(7) + '  ' +
       String(median(rows.map((r) => r.numCycles))).padStart(3) + '  ' +
       `${stableCount}/${seeds.length}`.padStart(6) + '  ' +
+      (100 * median(rows.map((r) => r.goodShare))).toFixed(0).padStart(4) + '%  ' +
       median(rows.map((r) => r.popTrendPerK)).toFixed(2).padStart(6) + '  ' +
       `${runawayCount}/${seeds.length}`.padStart(4),
     );
@@ -268,7 +303,7 @@ async function main(): Promise<void> {
           `orph=${(100 * r.orphanShare).toFixed(1)}%/pk${(100 * r.peakOrphanShare).toFixed(0)}% ` +
           `welf=${(100 * r.welfareShare).toFixed(0)}% ` +
           `cyc=${r.numCycles} per=${r.period.toFixed(0)} trTrend=${r.troughTrend.toFixed(2)}${r.stableCycle ? ' STABLE-CYCLE' : ''} ` +
-          `popTrd=${r.popTrendPerK.toFixed(2)}/kt exp=${(100 * r.popExpShare).toFixed(0)}%` +
+          `good=${(100 * r.goodShare).toFixed(0)}% popTrd=${r.popTrendPerK.toFixed(2)}/kt exp=${(100 * r.popExpShare).toFixed(0)}%` +
           `${r.runawaySeries.length ? ` RUNAWAY[${r.runawaySeries.join(',')}]` : ''} ` +
           `deaths(ill/mur/dis/sui)=${r.illness}/${r.murder}/${r.disaster}/${r.suicide} births=${r.births} ` +
           `${r.extinctTick !== null ? `extinct@${r.extinctTick}` : ''}`,

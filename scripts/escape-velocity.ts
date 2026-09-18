@@ -64,7 +64,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import LooperSingleton from '../src/App/LooperSingleton';
 import Variables from '../src/Helpers/Variables';
-import { applyOverrides } from './overrides';
+import { applyOverrides } from '../src/Helpers/HarnessOverrides';
 
 /**
  * Built-in arm set. These span the known regimes: the default (dies by ~1200 ticks), the two
