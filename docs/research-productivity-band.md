@@ -12,14 +12,15 @@ log-symmetric band (`FLOOR = 1/MAX`) "recovers most of it". Made log-symmetric a
 best-known configuration still loses **17 of 24 seeds**. Narrowed to `[0.5, 2]`, also log-symmetric,
 it loses **none**. Width predicts survival; symmetry does not.
 
-**What that means for the model: this model survives only when invention is close to inert.** Freezing
+**What that means for the model, in the one regime tested: survival here needs invention's effect on extraction held to roughly ±2× or switched off entirely.** This was measured at 300 founders with the scaled commons, the only regime known not to go extinct on its own; whether it generalises is untested, and it is not an audit of every configuration this project has tried. Freezing
 extraction productivity outright (`INVENTION_DEPLETION_{FASTER,SLOWER}_WEIGHT=0`, "the pin") gives 0 of
 24 extinct. Letting it move by at most ±2× gives 0 of 24. Letting it move by ±10× gives 17 of 24 dead.
 A run that wanders high strips the commons faster than it regenerates; a run that wanders low starves
 with the pool full (already directly observed at productivity 0.03–0.10 in
 `docs/research-thriving-reachability.md`). Both tails are fatal, so the wider the band, the more runs
-find one. That is the opposite of the hypothesis behind the frontier-expansion entry in
-`docs/future-ideas.md`, which supposes sustained innovation is a route to abundance.
+find one. That sits badly with the frontier-expansion entry in `docs/future-ideas.md`, which supposes sustained innovation is a
+route to abundance — though that entry proposes *new supply*, which this study did not test and which could
+plausibly change the sign of the upward tail.
 
 ## The dose-response
 
