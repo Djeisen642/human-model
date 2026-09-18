@@ -128,6 +128,8 @@ src/
     Classifier.ts          # Pure: classifyPerson, countPerType, parsePersonTypes (ARD 030)
     CycleDetector.ts       # Pure: detectCycles — boom-bust oscillation detection over a population
                            # series; sweep-harness measurement tooling, not an outcome label
+    GrowthDetector.ts      # Pure: detectGrowth — exponential-growth / runaway detection over any
+                           # series; sweep-harness measurement tooling, not an outcome label
     Reporters.ts           # Pure: buildTenYearSummary, format*, classifyOutcome, explainOutcome
     ReportWriter.ts        # writeReportHTML — self-contained HTML report with Chart.js to output/
   tests/                   # Mirrors src/ structure; one test file per source file

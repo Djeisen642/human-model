@@ -4,7 +4,30 @@ Read before running a sweep. Covers what the harness measures, which columns to 
 
 ## Sweep harness (`scripts/sweep.ts`)
 
-For calibration: runs the tick loop in-process across many seeds and aggregates, instead of hand-running configs one at a time. Per sweep value it prints the outcome distribution (`STABLE×2 COLLAPSE×1 …`, five labels since ARD 063: `EXTINCTION`/`COLLAPSE`/`STRUGGLING`/`CYCLICAL`/`STABLE`), median end/peak population, median peak Gini, `bound%` (share of ticks the commons pool sits below 5% of its ceiling — i.e. how often resources bind), `orph%` (median across seeds of each run's orphan share of children pooled over every tick — **this is the orphan number to read**) and `orphPk%` (median across seeds of each run's *worst single tick*; **distrust it**, it is a max-of-noise statistic in the same class as `peakGini` — at a cycle trough the child population falls to a handful, so one orphan reads as 100%, and the best-known config reports `orph% 0.2` against `orphPk% 100`; see `docs/research-productivity-band.md`), `welf%` (median share of person-ticks drawing welfare), extinction count, and cycle metrics from `CycleDetector` — `cyc` (median boom-bust oscillations per series) and `stable` (count of seeds showing a sustained, non-collapsing cycle). `--verbose` rows add `cyc`/`per`(iod)/`trTrend` and a `STABLE-CYCLE` marker. Since ARD 063, `cyc`/`stable` are not just descriptive: the same `detectCycles` call feeds `classifyOutcome` directly, so a seed marked `STABLE-CYCLE` is exactly the population-trajectory condition behind a `CYCLICAL` label — one definition of "cycling", not two.
+For calibration: runs the tick loop in-process across many seeds and aggregates, instead of hand-running configs one at a time. Per sweep value it prints the outcome distribution (`STABLE×2 COLLAPSE×1 …`, five labels since ARD 063: `EXTINCTION`/`COLLAPSE`/`STRUGGLING`/`CYCLICAL`/`STABLE`), median end/peak population, median peak Gini, `bound%` (share of ticks the commons pool sits below 5% of its ceiling — i.e. how often resources bind), `orph%` (median across seeds of each run's orphan share of children pooled over every tick — **this is the orphan number to read**) and `orphPk%` (median across seeds of each run's *worst single tick*; **distrust it**, it is a max-of-noise statistic in the same class as `peakGini` — at a cycle trough the child population falls to a handful, so one orphan reads as 100%, and the best-known config reports `orph% 0.2` against `orphPk% 100`; see `docs/research-productivity-band.md`), `welf%` (median share of person-ticks drawing welfare), extinction count, cycle metrics from `CycleDetector` — `cyc` (median boom-bust oscillations per series) and `stable` (count of seeds showing a sustained, non-collapsing cycle) — and two growth metrics from `GrowthDetector` (below). `--verbose` rows add `cyc`/`per`(iod)/`trTrend`, a `STABLE-CYCLE` marker, the per-run growth figures, and a `why:` line giving `explainOutcome`'s rationale — **which classifier gate actually fired**. Read that line before theorising: in the scaled-commons regime the same run reads CYCLICAL or STRUGGLING depending on whether the clock stopped in a peak decade (`commons 0% full`) or a trough decade (`commons 46% full`), and the `why:` line is what makes that visible instead of looking like a config difference. Since ARD 063, `cyc`/`stable` are not just descriptive: the same `detectCycles` call feeds `classifyOutcome` directly, so a seed marked `STABLE-CYCLE` is exactly the population-trajectory condition behind a `CYCLICAL` label — one definition of "cycling", not two.
+
+### Is anything running away? (`GrowthDetector`)
+
+Two sweep columns answer the question the outcome labels and the cycle detector both miss: whether a
+run was still exploding when the clock stopped. `popTrd` is the population's end-to-end log-growth
+per 1000 ticks — 0 means the run finishes where it started, +0.69 means it doubled over 1000 ticks,
+−0.69 means it halved. `rnwy` counts seeds where *any* tracked series (population, resource ceiling,
+extraction productivity, mean personal resources) is still growing exponentially at the end after a
+≥10× rise.
+
+**`rnwy` above zero disqualifies a result rather than decorating it.** A run that ends mid-explosion
+has end-state numbers that describe where you truncated it, not what the configuration does — the
+same trap as judging a delaying config at a short horizon, one level up. The most likely way to trip
+it is `INVENTION_CEILING_GROWTH_*`: technology lifting carrying capacity is exactly the shape of an
+unbounded ratchet.
+
+What `rnwy` is deliberately *not*: an alarm for booms. A boom-bust population grows exponentially
+inside every boom, so the per-run `exp=` figure in `--verbose` sits around 20–40% in any cycling
+regime and means nothing is wrong. Runaway requires sustained growth **end to end**, a large fold
+increase, **and** still growing at the end — all three, because each alone has a benign reading. The
+thresholds are documented options on `detectGrowth` (`src/Helpers/GrowthDetector.ts`); the detector
+is measurement tooling only and does not feed `classifyOutcome`, exactly as `CycleDetector` did not
+before ARD 063.
 
 Two narrower probes sit alongside it: `npx ts-node scripts/gini-decomp.ts` splits `resourceGini` into all-living vs adults-only at a few horizons, and `npx ts-node scripts/gini-basis-probe.ts` dumps both bases per decade as TSV for calibration work. `npx ts-node scripts/throughput-probe.ts --sweep KEY=v1,v2,… --seeds 24` reports median cumulative **births** next to median peak population, which the sweep table does not — use it whenever a lever reads as a null, because "the lever is inert" and "the lever works and the commons absorbs it" are indistinguishable in `sweep.ts` output and mean opposite things (see `docs/research-untested-variables.md`). `scripts/thrive-probe.ts` measured gates for the retired THRIVING label and was removed with it (ARD 063).
 
@@ -29,7 +52,9 @@ npx ts-node scripts/compare.ts --seeds 48 --ticks 2000 --both TAX_RATE=0.1 --a X
 ```
 
 `--a` sets the baseline arm, `--b` the treatment, `--both` a background config shared by each
-(repeat any of them). It reports six measures — runs ending extinct, peak population, final
+(repeat any of them). Both arms' runs go into one pool of forked workers (`--workers N`, default CPU
+count), so a comparison uses every core; the runs are independent and seeded, so which worker takes
+which job cannot change a result. It reports six measures — runs ending extinct, peak population, final
 population, lowest population reached, cycles completed, and share of ticks with the pool stripped —
 each with a verdict of REAL DIFFERENCE, PROBABLY REAL, or TOO CLOSE TO CALL, the size of the typical
 per-seed change, and a plausible range for that size.

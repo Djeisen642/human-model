@@ -15,6 +15,9 @@
  * When a difference is NOT established, the tool says how many seeds would have been needed, so a
  * null reads as "too small to tell with this many runs" rather than "no effect".
  *
+ * Both arms' runs are dispatched to one pool of forked workers, so a comparison uses every core.
+ * The runs are independent and seeded, so which worker takes which job cannot change any result.
+ *
  * Usage:
  *   npx ts-node scripts/compare.ts --seeds 48 --ticks 2000 --b BASE_CHILDBIRTH_RATE=1.0
  *
@@ -25,19 +28,22 @@
  *   --a KEY=VAL        baseline override (repeatable; omit entirely for stock defaults)
  *   --b KEY=VAL        treatment override (repeatable)
  *   --both KEY=VAL     override applied to BOTH arms (repeatable) — e.g. a fixed background config
+ *   --workers N        parallel worker processes (default: CPU count)
  *   --rng-seed 1       seed for the permutation and bootstrap draws, so results reproduce (default 1)
  *
  * See docs/calibration-guide.md.
  */
 
+import * as os from 'os';
 import LooperSingleton from '../src/App/LooperSingleton';
 import Simulation from '../src/App/Simulation';
-import Variables from '../src/Helpers/Variables';
 import SeededRandom from '../src/Helpers/SeededRandom';
 import {
   mcnemarExact, pairedPermutationTest, bootstrapPairedDifference,
   median, seedsNeededForRateChange,
 } from '../src/Helpers/Statistics';
+import { applyOverrides, parseSeeds } from './overrides';
+import { dispatch, isWorkerProcess, serveWorker } from './workerPool';
 
 /** Permutations drawn per comparison; also sets the finest probability the test can resolve. */
 const PERMUTATIONS = 10_000;
@@ -79,69 +85,40 @@ function parseArgs(argv: string[]): { opts: Record<string, string>; a: string[];
   return { opts, a, b, both };
 }
 
-/** Apply `KEY=VALUE` pairs to the static Variables class, returning a restore closure. */
-function applyOverrides(pairs: string[]): () => void {
-  const saved: [string, unknown][] = [];
-  for (const pair of pairs) {
-    const [key, raw] = pair.split('=');
-    if (!(key in Variables)) throw new Error(`Unknown Variables constant: ${key}`);
-    if (typeof (Variables as unknown as Record<string, unknown>)[key] !== 'number') {
-      throw new Error(`Not a Variables constant: ${key}`);
-    }
-    const value = Number(raw);
-    if (!Number.isFinite(value)) throw new Error(`Non-numeric override: ${pair}`);
-    // Save only the first sighting of a key. A key can legitimately appear twice (compare.ts
-    // composes `--both` then `--a`/`--b`, sweep.ts `--set` then `--sweep`), and the later one
-    // wins — but saving both would make restore() replay them in order and leave the
-    // intermediate value behind instead of the original.
-    if (!saved.some(([k]) => k === key)) {
-      saved.push([key, (Variables as unknown as Record<string, unknown>)[key]]);
-    }
-    (Variables as unknown as Record<string, unknown>)[key] = value;
-  }
-  Variables.validate();
-  return () => {
-    for (const [key, value] of saved) (Variables as unknown as Record<string, unknown>)[key] = value;
-  };
+/** One simulation to run: an arm's overrides plus the seed and size it runs at. */
+interface Job {
+  overrides: string[];
+  seed: number;
+  ticks: number;
+  persons: number;
 }
 
-/** Run one arm over the seed set and return its per-seed measurements, in seed order. */
-async function runArm(
-  overrides: string[], seeds: number[], ticks: number, persons: number,
-): Promise<RunMeasures[]> {
-  const restore = applyOverrides(overrides);
-  try {
-    const out: RunMeasures[] = [];
-    for (const seed of seeds) {
-      const sim: Simulation = await LooperSingleton.getInstance().start(persons, ticks, seed, () => {}, {});
-      const history = sim.history;
-      const last = history[history.length - 1];
-      let peak = 0, trough = Infinity, empty = 0;
-      for (const s of history) {
-        peak = Math.max(peak, s.population);
-        if (s.population > 0) trough = Math.min(trough, s.population);
-        if (s.naturalResourceCeiling > 0 && s.naturalResources / s.naturalResourceCeiling < 0.05) empty++;
-      }
-      // Count peaks in the population series as a simple, threshold-free cycle proxy.
-      let cycles = 0;
-      for (let i = 2; i < history.length - 2; i++) {
-        const p = history[i].population;
-        if (p > 20 && p > history[i - 2].population && p > history[i + 2].population
-          && p >= history[i - 1].population && p >= history[i + 1].population) cycles++;
-      }
-      out.push({
-        extinct: last.population === 0 ? 1 : 0,
-        peakPopulation: peak,
-        endPopulation: last.population,
-        troughPopulation: trough === Infinity ? 0 : trough,
-        cycles,
-        ticksWithCommonsEmpty: Math.round((100 * empty) / history.length),
-      });
-    }
-    return out;
-  } finally {
-    restore();
+/** Run one simulation (overrides already applied) and reduce its history to the compared measures. */
+async function runOne(seed: number, ticks: number, persons: number): Promise<RunMeasures> {
+  const sim: Simulation = await LooperSingleton.getInstance().start(persons, ticks, seed, () => {}, {});
+  const history = sim.history;
+  const last = history[history.length - 1];
+  let peak = 0, trough = Infinity, empty = 0;
+  for (const s of history) {
+    peak = Math.max(peak, s.population);
+    if (s.population > 0) trough = Math.min(trough, s.population);
+    if (s.naturalResourceCeiling > 0 && s.naturalResources / s.naturalResourceCeiling < 0.05) empty++;
   }
+  // Count peaks in the population series as a simple, threshold-free cycle proxy.
+  let cycles = 0;
+  for (let i = 2; i < history.length - 2; i++) {
+    const p = history[i].population;
+    if (p > 20 && p > history[i - 2].population && p > history[i + 2].population
+      && p >= history[i - 1].population && p >= history[i + 1].population) cycles++;
+  }
+  return {
+    extinct: last.population === 0 ? 1 : 0,
+    peakPopulation: peak,
+    endPopulation: last.population,
+    troughPopulation: trough === Infinity ? 0 : trough,
+    cycles,
+    ticksWithCommonsEmpty: Math.round((100 * empty) / history.length),
+  };
 }
 
 /**
@@ -206,20 +183,28 @@ function reportContinuous(label: string, baseline: number[], treatment: number[]
 /** Entry point: run both arms over one seed set and report each measure. */
 async function main(): Promise<void> {
   const { opts, a, b, both } = parseArgs(process.argv.slice(2));
-  const spec = opts.seeds ?? '48';
-  const seeds = spec.includes(',') ? spec.split(',').map(Number)
-    : Array.from({ length: Number(spec) }, (_, i) => i + 1);
+  const seeds = parseSeeds(opts.seeds ?? '48', []);
   const ticks = Number(opts.ticks ?? 2000);
   const persons = Number(opts.persons ?? 100);
   const rngSeed = Number(opts['rng-seed'] ?? 1);
+  const workers = Number(opts.workers ?? os.cpus().length);
 
   console.log(`Comparing ${seeds.length} seeds at ${ticks} ticks, ${persons} starting people.`);
   console.log(`  baseline:  ${[...both, ...a].join(' ') || '(stock defaults)'}`);
   console.log(`  treatment: ${[...both, ...b].join(' ') || '(stock defaults)'}`);
   console.log('  Both arms use the same seeds, so each run is compared against its own twin.');
 
-  const baseline = await runArm([...both, ...a], seeds, ticks, persons);
-  const treatment = await runArm([...both, ...b], seeds, ticks, persons);
+  // Both arms in one pool: 2N independent jobs saturate the cores better than one arm at a time.
+  const jobs: Job[] = [
+    ...seeds.map((seed) => ({ overrides: [...both, ...a], seed, ticks, persons })),
+    ...seeds.map((seed) => ({ overrides: [...both, ...b], seed, ticks, persons })),
+  ];
+  const t0 = Date.now();
+  const all = await dispatch<Job, RunMeasures>(jobs, workers, __filename);
+  const baseline = all.slice(0, seeds.length);
+  const treatment = all.slice(seeds.length);
+  console.log(`  ${jobs.length} runs on ${Math.max(1, Math.min(workers, jobs.length))} workers`
+    + ` in ${((Date.now() - t0) / 1000).toFixed(1)}s.`);
 
   for (const m of MEASURES) {
     const x = baseline.map((r) => r[m.key]);
@@ -233,4 +218,15 @@ async function main(): Promise<void> {
     + ' Treat a single surprising measure with suspicion; treat a measure you predicted in advance as stronger evidence.');
 }
 
-main();
+if (isWorkerProcess()) {
+  serveWorker<Job, RunMeasures>(async (job) => {
+    const restore = applyOverrides(job.overrides);
+    try {
+      return await runOne(job.seed, job.ticks, job.persons);
+    } finally {
+      restore();
+    }
+  });
+} else {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}
