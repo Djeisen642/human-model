@@ -86,7 +86,13 @@ function applyOverrides(pairs: string[]): () => void {
     }
     const value = Number(raw);
     if (!Number.isFinite(value)) throw new Error(`Non-numeric override: ${pair}`);
-    saved.push([key, (Variables as unknown as Record<string, unknown>)[key]]);
+    // Save only the first sighting of a key. A key can legitimately appear twice (compare.ts
+    // composes `--both` then `--a`/`--b`, sweep.ts `--set` then `--sweep`), and the later one
+    // wins — but saving both would make restore() replay them in order and leave the
+    // intermediate value behind instead of the original.
+    if (!saved.some(([k]) => k === key)) {
+      saved.push([key, (Variables as unknown as Record<string, unknown>)[key]]);
+    }
     (Variables as unknown as Record<string, unknown>)[key] = value;
   }
   Variables.validate();
