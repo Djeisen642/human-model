@@ -246,3 +246,60 @@ export function seedsNeededForRateChange(
   const variance = baselineRate * (1 - baselineRate) + treatmentRate * (1 - treatmentRate);
   return Math.ceil(((zAlpha + zBeta) ** 2 * variance) / gap ** 2);
 }
+
+/** The five-number summary plus the fences a box plot draws. */
+export interface FiveNumber {
+  /** Smallest value that is not an outlier (the lower whisker end). */
+  whiskerLow: number;
+  /** 25th percentile. */
+  q1: number;
+  /** 50th percentile. */
+  median: number;
+  /** 75th percentile. */
+  q3: number;
+  /** Largest value that is not an outlier (the upper whisker end). */
+  whiskerHigh: number;
+  /** Smallest value in the sample, outliers included. */
+  min: number;
+  /** Largest value in the sample, outliers included. */
+  max: number;
+  /** Count of values outside 1.5 × IQR of the quartiles. */
+  outliers: number;
+  /** Sample size. */
+  n: number;
+}
+
+/**
+ * Five-number summary with Tukey fences, for box-and-whisker rendering.
+ *
+ * Quartiles use linear interpolation between order statistics (the "type 7" definition, which is
+ * what R, NumPy and Excel default to), so a small sample does not snap its quartiles to whichever
+ * element happens to sit at the index.
+ *
+ * @param values - the sample; order does not matter and the input is not mutated
+ * @returns the five-number summary, or all zeros with `n: 0` for an empty sample
+ */
+export function fiveNumberSummary(values: number[]): FiveNumber {
+  if (values.length === 0) {
+    return { whiskerLow: 0, q1: 0, median: 0, q3: 0, whiskerHigh: 0, min: 0, max: 0, outliers: 0, n: 0 };
+  }
+  const s = [...values].sort((a, b) => a - b);
+  const q = (p: number): number => {
+    const h = (s.length - 1) * p;
+    const lo = Math.floor(h), hi = Math.ceil(h);
+    return s[lo] + (h - lo) * (s[hi] - s[lo]);
+  };
+  const q1 = q(0.25), med = q(0.5), q3 = q(0.75);
+  const iqr = q3 - q1;
+  const loFence = q1 - 1.5 * iqr, hiFence = q3 + 1.5 * iqr;
+  let whiskerLow = s[s.length - 1], whiskerHigh = s[0], outliers = 0;
+  for (const v of s) {
+    if (v < loFence || v > hiFence) { outliers++; continue; }
+    if (v < whiskerLow) whiskerLow = v;
+    if (v > whiskerHigh) whiskerHigh = v;
+  }
+  // Every value an outlier (possible for a degenerate sample) leaves the whiskers crossed; fall
+  // back to the quartiles rather than emitting an inverted box.
+  if (whiskerLow > whiskerHigh) { whiskerLow = q1; whiskerHigh = q3; }
+  return { whiskerLow, q1, median: med, q3, whiskerHigh, min: s[0], max: s[s.length - 1], outliers, n: s.length };
+}

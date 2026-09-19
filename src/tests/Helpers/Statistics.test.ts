@@ -2,8 +2,7 @@ import SeededRandom from '../../Helpers/SeededRandom';
 import { RNG } from '../../Helpers/Types';
 import {
   fisherExact, mcnemarExact, median, mean, pairedPermutationTest,
-  bootstrapPairedDifference, seedsNeededForRateChange,
-} from '../../Helpers/Statistics';
+  bootstrapPairedDifference, seedsNeededForRateChange, fiveNumberSummary} from '../../Helpers/Statistics';
 
 /**
  * A deterministic RNG so every randomised assertion below is reproducible.
@@ -169,5 +168,65 @@ describe('seedsNeededForRateChange', () => {
     // 0.5 vs 0.8 at the usual 5% false-alarm / 80% detection settings needs ~39 per arm.
     expect(seedsNeededForRateChange(0.5, 0.8)).toBeGreaterThanOrEqual(35);
     expect(seedsNeededForRateChange(0.5, 0.8)).toBeLessThanOrEqual(45);
+  });
+});
+
+describe('fiveNumberSummary', () => {
+  it('returns a zeroed summary for an empty sample', () => {
+    const f = fiveNumberSummary([]);
+    expect(f.n).toBe(0);
+    expect(f.median).toBe(0);
+    expect(f.outliers).toBe(0);
+  });
+
+  it('matches the type-7 quartiles R and NumPy produce', () => {
+    // percentile([1..10], [25,50,75]) = 3.25, 5.5, 7.75
+    const f = fiveNumberSummary([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(f.q1).toBeCloseTo(3.25, 10);
+    expect(f.median).toBeCloseTo(5.5, 10);
+    expect(f.q3).toBeCloseTo(7.75, 10);
+    expect(f.n).toBe(10);
+  });
+
+  it('does not mutate or depend on the input order', () => {
+    const input = [9, 1, 5, 3, 7];
+    const copy = [...input];
+    const a = fiveNumberSummary(input);
+    const b = fiveNumberSummary([1, 3, 5, 7, 9]);
+    expect(input).toEqual(copy);
+    expect(a).toEqual(b);
+  });
+
+  it('pulls whiskers in to the last non-outlier and counts what it excluded', () => {
+    // [1..10] has IQR 4.5, so the upper fence is 7.75 + 6.75 = 14.5; 100 sits outside it.
+    const f = fiveNumberSummary([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100]);
+    expect(f.outliers).toBe(1);
+    expect(f.whiskerHigh).toBe(10);
+    expect(f.max).toBe(100);
+  });
+
+  it('handles a constant sample without inverting the box', () => {
+    const f = fiveNumberSummary([4, 4, 4, 4]);
+    expect(f.q1).toBe(4);
+    expect(f.median).toBe(4);
+    expect(f.q3).toBe(4);
+    expect(f.whiskerLow).toBe(4);
+    expect(f.whiskerHigh).toBe(4);
+    expect(f.outliers).toBe(0);
+  });
+
+  it('handles a single value', () => {
+    const f = fiveNumberSummary([7]);
+    expect(f.median).toBe(7);
+    expect(f.whiskerLow).toBe(7);
+    expect(f.whiskerHigh).toBe(7);
+    expect(f.n).toBe(1);
+  });
+
+  it('keeps negative values, which is what the net-flow probe measures', () => {
+    const f = fiveNumberSummary([-5, -3, -1, 1, 3]);
+    expect(f.median).toBe(-1);
+    expect(f.min).toBe(-5);
+    expect(f.q1).toBe(-3);
   });
 });
