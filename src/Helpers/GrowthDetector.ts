@@ -186,7 +186,10 @@ export function detectGrowth(series: number[], options: GrowthOptions = {}): Gro
     const fit = ols(xs, ys);
     trendRate = fit.slope;
     trendFit = fit.r2;
-    const max = Math.max(...series.slice(first, last + 1));
+    // Loop rather than Math.max(...spread): a long run is a long series, and spreading 100k+
+    // elements into an argument list overflows the stack. 8000-tick runs are already routine.
+    let max = series[first];
+    for (let i = first; i <= last; i++) if (series[i] > max) max = series[i];
     foldGrowth = max / series[first];
   }
 

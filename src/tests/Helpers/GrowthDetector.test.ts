@@ -104,3 +104,13 @@ describe('detectGrowth', () => {
     expect(m.foldGrowth).toBeCloseTo(Math.exp(0.01 * 299), 0);
   });
 });
+
+describe('detectGrowth on long series', () => {
+  it('does not overflow the stack on a series longer than the argument limit', () => {
+    // A 200k-tick run is not routine, but 8k already is and the old spread-based maximum would
+    // have thrown somewhere between the two rather than returning a wrong answer.
+    const long = Array.from({ length: 200_000 }, (_, i) => 100 + (i % 500));
+    expect(() => detectGrowth(long)).not.toThrow();
+    expect(detectGrowth(long).foldGrowth).toBeCloseTo(599 / 100, 5);
+  });
+});
