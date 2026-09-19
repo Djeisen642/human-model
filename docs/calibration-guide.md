@@ -63,6 +63,36 @@ npm run sweep -- --seeds 20 --set MAX_NATURAL_RESOURCE_CEILING=12000 --verbose  
 
 Options: `--seeds 42,7,1` (or a single `N` → seeds 1..N; default 1..8), `--ticks`, `--persons`, `--set KEY=VAL` (repeatable Variables override), `--sweep KEY=v1,v2,…` (one sweep dimension), `--verbose` (per-seed rows with cause-of-death split). Always calibrate in a regime where the bounding feedbacks fire — see `docs/research-fertility.md`. Overrides are checked against the cross-constant invariants in `Variables.validate()` before a run starts, so a `--set` that breaks one aborts with an explanation instead of producing plausible-looking numbers: sweeping `ESTATE_COMMUNITY_SHARE`, `ESTATE_PARTNER_SHARE` or `ESTATE_CHILDREN_SHARE` alone used to silently create or destroy resources on every death, and now fails loudly. Sweep all three together if you mean to move them.
 
+### Watching, and safely stopping, a run in progress
+
+`sweep.ts` and `compare.ts` print nothing until the last job lands, so a long run used to be opaque
+while it worked and a total loss if it was killed — an 80-minute sweep that died at minute 79
+produced no rows at all. Both now publish a snapshot after every completed job.
+
+```bash
+npm run progress                 # how far along, what finished, eta
+npm run progress -- --stop       # ask the run to stop and report what it has
+npm run sweep -- --port 9876 …   # also serve the snapshot at http://127.0.0.1:9876 (/json for raw)
+```
+
+The status file (`.run-progress.json`, gitignored; override with `--status PATH`) and the port answer
+different questions. The file is up to ten seconds stale but **outlives the process**, so a killed
+run still leaves every row it finished. The port is always current and dies with the process. The
+file is written unconditionally; `--port` is opt-in, because two concurrent sweeps would collide on
+one port.
+
+`--stop` sends SIGINT to the pid recorded in the file, which is also the safe way to end a run: it
+signals one exact process rather than matching a pattern that can also match your own shell. The
+harness finishes its in-flight jobs, prints a table covering only the seeds that completed, and
+exits zero.
+
+**Read a stopped run's table carefully.** Every count is denominated in the seeds that actually
+finished, so `3/5` from an interrupted run means three of five *completed* seeds, not three of the
+twelve requested. A partial sweep is fine for deciding whether a configuration is worth pursuing and
+is not a result — take it to `compare.ts` at full seed count like any other sweep output. `compare.ts`
+reports progress but has no stop path on purpose: half of one arm cannot be paired against all of
+the other, and a half-paired test is worse than no test.
+
 ## Deciding whether a difference is real (`scripts/compare.ts`)
 
 `sweep.ts` prints medians and counts; deciding whether two of them differ has, until now, been done

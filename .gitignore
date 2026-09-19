@@ -125,3 +125,5 @@ build/
 output/
 config.default.json
 .claude/worktrees/
+.run-progress.json
+

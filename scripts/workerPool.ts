@@ -43,22 +43,45 @@ export function serveWorker<J, R>(run: (job: J) => Promise<R>): void {
   process.send!({ type: 'ready' });
 }
 
+/** Optional hooks for observing or stopping a dispatch mid-flight. */
+export interface DispatchOptions<R> {
+  /** Called as each job lands, so a caller can report progress before the run completes. */
+  onProgress?: (completed: number, total: number, index: number, result: R) => void;
+  /** Called when a job is handed to a worker, so a caller can report work in flight. */
+  onDispatch?: (inFlight: number, index: number) => void;
+  /**
+   * Requests a graceful stop. In-flight jobs are allowed to finish, no further jobs are
+   * dispatched, and the promise resolves with a sparse array holding whatever completed. This is
+   * what makes an interrupted run salvageable rather than a total loss.
+   */
+  signal?: { aborted: boolean; addEventListener: (type: 'abort', listener: () => void) => void };
+}
+
 /**
  * Run every job across a pool of forked copies of `file`, resolving with results in job order.
+ *
+ * Entries are undefined only when `options.signal` aborted the run before that job finished; an
+ * uninterrupted dispatch always fills every slot.
  *
  * @param jobs - the work items, serialised over IPC so they must be plain JSON-safe data
  * @param workerCount - maximum processes to fork; capped at the job count and floored at 1
  * @param file - the calling script's `__filename`; forked with `--worker` to serve jobs
- * @returns each job's result, in the order the jobs were given
+ * @param options - progress and cancellation hooks
+ * @returns each job's result in the order the jobs were given, sparse if aborted
  */
-export function dispatch<J, R>(jobs: J[], workerCount: number, file: string): Promise<R[]> {
+export function dispatch<J, R>(
+  jobs: J[], workerCount: number, file: string, options: DispatchOptions<R> = {},
+): Promise<(R | undefined)[]> {
   return new Promise((resolve, reject) => {
-    const results: R[] = new Array(jobs.length);
+    const results: (R | undefined)[] = new Array(jobs.length);
     const nWorkers = Math.max(1, Math.min(workerCount, jobs.length));
     const children: ReturnType<typeof fork>[] = [];
     let next = 0;
     let remaining = jobs.length;
     let settled = false;
+    let completed = 0;
+    let inFlight = 0;
+    let aborted = options.signal?.aborted ?? false;
 
     if (jobs.length === 0) { resolve(results); return; }
 
@@ -70,6 +93,14 @@ export function dispatch<J, R>(jobs: J[], workerCount: number, file: string): Pr
       resolve(results);
     };
 
+    // An abort stops new work but never discards finished work: the results array is resolved as
+    // it stands, so the caller reports a partial run instead of losing an hour of completed jobs.
+    options.signal?.addEventListener('abort', () => {
+      aborted = true;
+      if (remaining > 0) finish();
+    });
+    if (aborted) { finish(); return; }
+
     for (let w = 0; w < nWorkers; w++) {
       const child = fork(file, ['--worker'], {
         execArgv: ['-r', 'ts-node/register/transpile-only'],
@@ -77,13 +108,20 @@ export function dispatch<J, R>(jobs: J[], workerCount: number, file: string): Pr
       children.push(child);
       const pump = (): void => {
         if (settled) return;
-        if (next < jobs.length) child.send({ type: 'job', index: next, job: jobs[next++] });
-        else child.send({ type: 'done' });
+        if (!aborted && next < jobs.length) {
+          const index = next++;
+          inFlight++;
+          child.send({ type: 'job', index, job: jobs[index] });
+          options.onDispatch?.(inFlight, index);
+        } else child.send({ type: 'done' });
       };
       child.on('message', (msg: { type: string; index?: number; result?: R }) => {
         if (msg.type === 'result' && msg.index !== undefined) {
           results[msg.index] = msg.result as R;
           remaining--;
+          completed++;
+          inFlight--;
+          options.onProgress?.(completed, jobs.length, msg.index, msg.result as R);
         }
         if (remaining === 0) finish();
         else pump();
