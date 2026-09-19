@@ -10,8 +10,8 @@ healthier on every measure except the one that matters most. It does not improve
 make it slightly worse.** In the best-known regime, the commons goes from stripped 41% of ticks to
 15%, inequality from 0.62 to 0.35, people below the welfare line from 49% to 33%, and the population
 swings between about 2,100 and 200 instead of 3,900 and 40. Over 8,000 ticks each run completes
-roughly 24 boom-bust cycles with a population trend of +0.01 per 1,000 ticks — flat. But 2 of 16
-seeds still went extinct, against 0 of 16 for the untouched baseline.
+roughly 24 boom-bust cycles with a population trend of +0.01 per 1,000 ticks — flat. But it loses seeds the baseline
+does not: **3 of 24 extinct at 8,000 ticks against 0 of 24**, on paired seeds.
 
 So this is the healthiest configuration this project has measured and it is **not** the safest one.
 That is the pattern `docs/research-escape-velocity.md` already warned about, now reproduced from the
@@ -114,7 +114,7 @@ npx ts-node scripts/sweep.ts --seeds 16 --ticks 8000 --persons 300 --workers 4 -
 | | Baseline | C1 |
 |---|---|---|
 | Outcomes | STR×8 CYC×8 | EXT×2 CYC×11 STR×2 COL×1 |
-| **Extinct** | **0/16** | **2/16** (ticks 6823, 7227) |
+| **Extinct** | **0/16** | **2/16** (ticks 6823, 7227); 0/24 vs 3/24 on the paired run below |
 | `good%` (share of stopping points reading CYCLICAL or STABLE) | 56% | 71% |
 | Peak population | 3930 | 2180 |
 | Typical trough | ~40 | ~170 |
@@ -129,8 +129,31 @@ Per-seed at 2000 ticks the classifier's own rationale reads `Gini 0.16–0.26, h
 commons 29–97% full — not declining, oscillating`. Inequality is far below the 0.43 STRUGGLING gate;
 happiness clears the 3.0 gate but only just, and is now the binding constraint on the label.
 
-**The two things this does not fix.** It does not stop extinction: 2 of 16 seeds died late, and both
-had a falling trough envelope (`trTrend` 0.79 and 0.07) rather than dying from one bad roll. And
+### The paired test at 8,000 ticks
+
+24 seeds, both arms on the same seeds, with trough depth and commons strain named as the measures
+before running (`npx ts-node scripts/compare.ts --seeds 24 --ticks 8000 --persons 300 --workers 4
+--both … --b BASE_GATHER_AMOUNT=0.028 --b INTELLIGENCE_GATHER_SCALAR=0.0005`):
+
+| Measure | Baseline | C1 | Verdict |
+|---|---|---|---|
+| **Lowest population reached** *(predicted)* | 33 | 119 | **REAL**, +84 per seed (65 to 133), about 1 in 3,334 |
+| **Share of ticks with pool stripped** *(predicted)* | 41% | 15% | **REAL**, −25 points (−27 to −25), under 1 in 10,001 |
+| Peak population | 3941 | 2185 | REAL, −1742 — the cost |
+| Boom-bust cycles completed | 73 | 489 | REAL, under 1 in 10,001 |
+| Population at the end | 1055 | 1074 | unsettled; range spans zero |
+| **Runs ending extinct** | **0/24** | **3/24** | **not established** — 3 discordant seeds, all one way, about 1 in 4 by chance; needs ~55 seeds per arm |
+
+Both predicted measures hold at the long horizon. The extinction row is the one to be careful with:
+three seeds lost against none is **not** a measured regression — the tool asks for 55 seeds per arm
+to resolve a gap that size — but the direction is consistent across two independent runs (2 of 16
+in the sweep above, 3 of 24 here, baseline zero in both), so it should not be reported as a null
+either. The honest reading is that C1 buys a much healthier society and has **not** been shown to buy
+survival, with a hint it may cost some. Resolving that is the obvious next 55-seed run.
+
+**The two things this does not fix.** It does not stop extinction, per the row above; the seeds that
+died did so late and with a falling trough envelope (`trTrend` 0.79 and 0.07) rather than from one
+bad roll, so they were ratcheting down rather than unlucky. And
 `welf%` at 33% is not comparable to the baseline's 49% as a hardship measure — cutting extraction
 lowers everyone's steady-state holdings to about 27 against a `WELFARE_THRESHOLD` of 20, so a third
 of the population sits just under a line that has not moved. That is a units artifact of the
@@ -176,9 +199,9 @@ comparison.
 
 ## What this does not settle
 
-- **Survival.** C1's 2 of 16 against the baseline's 0 of 16 is not a measured regression — 2
-  discordant seeds cannot establish anything — but it is certainly not an improvement. The paired
-  8000-tick comparison is the test, and it is reported in the row above rather than claimed here.
+- **Survival.** 0 of 24 against 3 of 24 on paired seeds is not a measured regression at 24 seeds,
+  and is certainly not an improvement. ~55 seeds per arm would settle it; that run has not been
+  done.
 - **Whether the 10:1 ratio between the two gather constants is a calibration choice or a modelling
   claim.** Moving weight from the intelligence term to the flat term says production is mostly effort
   and experience rather than ability. That is a statement about the world, not a magnitude tweak, and
