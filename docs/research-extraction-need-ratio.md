@@ -160,6 +160,28 @@ of the population sits just under a line that has not moved. That is a units art
 intervention, not a third of people in distress, and `welf%` should not be used to compare
 configurations that change the resource scale.
 
+## It holds at 3.3× the founding population
+
+`docs/research-scale-robustness.md` found that two of four "helps once the commons is fixed" results
+were conditional on the founding population, so this one was re-run at 1000 founders with the commons
+scaled to match (100k/100k/200k/20k), 12 paired seeds, 3000 ticks:
+
+| Measure | Baseline | C1 | Verdict |
+|---|---|---|---|
+| **Lowest population reached** *(predicted)* | 186 | 1046 | **REAL**, +858 per seed (847 to 878), about 1 in 2,000 |
+| **Share of ticks with pool stripped** *(predicted)* | 41% | 24% | **REAL**, −17 points (−20 to −4), about 1 in 123 |
+| Peak population | 13042 | 6502 | REAL, −6436 — the same halving as at 300 founders |
+| Boom-bust cycles completed | 17 | 176 | REAL, about 1 in 2,000 |
+| Population at the end | 8551 | 4386 | unsettled — the verdict reads "probably real" but the range spans zero, and the range wins |
+| Runs ending extinct | 0/12 | 0/12 | nothing dies in either arm at 3000 ticks at this scale |
+
+Both predicted measures survive the crowding test that broke `EXPERIENCE_CAP` and
+`HAPPINESS_BASELINE`. The worst moment of a C1 run at this scale is a population of about 1,000 —
+against 186 for the same world untouched. Two caveats worth stating: the commons is stripped 24% of
+ticks here against 15% at 300 founders, so the strain benefit shrinks as the world gets bigger; and
+3000 ticks is short enough that the extinction question this study could not settle at 300 founders
+is simply not asked at 1000.
+
 ## Three lanes that did not work, and why each is useful
 
 **More regeneration buys a bigger boom, not stability.** Sweeping
@@ -207,8 +229,8 @@ comparison.
   and experience rather than ability. That is a statement about the world, not a magnitude tweak, and
   it should be an owner decision before it becomes a default. **No ARD is proposed here**, and no
   default was changed.
-- **Whether C1 holds at a different founding population.** Everything here is 300 founders.
-  `docs/research-scale-robustness.md` found two of four under-the-pin results were conditional on
-  exactly that, so assume this one is too until it is run again.
+- ~~**Whether C1 holds at a different founding population.**~~ Settled above: both predicted
+  measures hold at 1000 founders with the commons scaled to match. Not settled at that scale is
+  extinction, since nothing dies in either arm within 3000 ticks.
 - **Happiness at 3.4–3.8 is close to the 3.0 STRUGGLING gate**, so a small recalibration of the
   happiness subsystem could move C1's labels either way without changing its dynamics at all.
