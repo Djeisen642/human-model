@@ -72,27 +72,58 @@ export function etaSeconds(completed: number, total: number, elapsedMs: number):
 }
 
 /**
+ * Is a process still running?
+ *
+ * Signal 0 performs the permission and existence check without delivering anything. A pid can be
+ * recycled by the OS, so a true here means "some process holds that pid", which is the best any
+ * pid-based check can claim.
+ *
+ * @param pid - process id to test
+ * @returns whether a process with that id currently exists
+ */
+export function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Render a snapshot as the block an operator reads when they ask what a run is doing.
+ *
+ * A status file whose run has died still reads `done: false` forever, so without `alive` the
+ * difference between "working" and "died hours ago" is invisible — the exact confusion this file
+ * exists to remove. Pass it whenever the reader can check.
  *
  * @param snapshot - the snapshot to render
  * @param nowMs - current epoch milliseconds, supplied so the output is testable
+ * @param alive - whether the recorded process still exists; omit when unknown
  * @returns a multi-line human-readable status block
  */
-export function formatProgress(snapshot: ProgressSnapshot, nowMs: number): string {
+export function formatProgress(snapshot: ProgressSnapshot, nowMs: number, alive?: boolean): string {
   const elapsedMs = Math.max(0, nowMs - snapshot.startedAtMs);
   const eta = etaSeconds(snapshot.completed, snapshot.total, elapsedMs);
   const pct = snapshot.total > 0 ? Math.floor((100 * snapshot.completed) / snapshot.total) : 0;
   const staleSec = Math.round((nowMs - snapshot.updatedAtMs) / 1000);
 
+  const died = !snapshot.done && alive === false;
+  const state = snapshot.done ? ' — finished' : (died ? ' — DIED without finishing' : '');
   const lines = [
-    `${snapshot.tool} (pid ${snapshot.pid})${snapshot.done ? ' — finished' : ''}`,
+    `${snapshot.tool} (pid ${snapshot.pid})${state}`,
     `  ${snapshot.label}`,
     `  ${snapshot.completed}/${snapshot.total} jobs (${pct}%)` +
       (snapshot.done ? '' : `, ${snapshot.inFlight} in flight`) +
       `   elapsed ${formatDuration(Math.round(elapsedMs / 1000))}` +
       (eta === null ? '' : `   eta ~${formatDuration(eta)}`),
   ];
-  if (!snapshot.done && staleSec > 0) lines.push(`  last update ${formatDuration(staleSec)} ago`);
+  if (died) {
+    lines.push(`  stopped ${formatDuration(staleSec)} ago after ${snapshot.completed} of ${snapshot.total} jobs;` +
+      ' rows below are everything it produced');
+  } else if (!snapshot.done && staleSec > 0) {
+    lines.push(`  last update ${formatDuration(staleSec)} ago`);
+  }
   if (snapshot.rows.length > 0) {
     lines.push('');
     lines.push(formatRows(snapshot.rows));

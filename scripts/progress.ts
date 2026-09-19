@@ -19,7 +19,9 @@
  * it cannot take out the shell that invoked it.
  */
 
-import { DEFAULT_PROGRESS_FILE, formatProgress, readProgress } from '../src/Helpers/RunProgress';
+import {
+  DEFAULT_PROGRESS_FILE, formatProgress, isProcessAlive, readProgress,
+} from '../src/Helpers/RunProgress';
 
 /**
  * Parse `--file PATH` and the `--stop` flag from argv.
@@ -50,20 +52,16 @@ function main(): number {
     return 1;
   }
 
-  console.log(formatProgress(snapshot, Date.now()));
+  const alive = snapshot.done ? undefined : isProcessAlive(snapshot.pid);
+  console.log(formatProgress(snapshot, Date.now(), alive));
 
   if (!stop) return 0;
   if (snapshot.done) {
     console.log('\nRun already finished; nothing to stop.');
     return 0;
   }
-
-  try {
-    // Signal 0 tests for the process without touching it: a stale status file from a run that
-    // already died would otherwise make us signal a pid the OS has since handed to something else.
-    process.kill(snapshot.pid, 0);
-  } catch {
-    console.log(`\nProcess ${snapshot.pid} is gone; the status file is stale.`);
+  if (!alive) {
+    console.log('\nNothing to stop — that process is already gone.');
     return 0;
   }
 

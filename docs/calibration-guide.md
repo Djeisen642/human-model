@@ -86,6 +86,11 @@ signals one exact process rather than matching a pattern that can also match you
 harness finishes its in-flight jobs, prints a table covering only the seeds that completed, and
 exits zero.
 
+A run that dies without finishing — killed, crashed, or cut off with its terminal — leaves a file
+that would otherwise read as still working forever. `npm run progress` checks whether the recorded
+process still exists and says `DIED without finishing`, with how far it got, so a corpse is never
+mistaken for a slow run.
+
 **Read a stopped run's table carefully.** Every count is denominated in the seeds that actually
 finished, so `3/5` from an interrupted run means three of five *completed* seeds, not three of the
 twelve requested. A partial sweep is fine for deciding whether a configuration is worth pursuing and

@@ -2,8 +2,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import {
-  etaSeconds, formatDuration, formatProgress, formatRows, readProgress, writeProgress,
-  ProgressSnapshot,
+  etaSeconds, formatDuration, formatProgress, formatRows, isProcessAlive, readProgress,
+  writeProgress, ProgressSnapshot,
 } from '../../Helpers/RunProgress';
 
 /**
@@ -72,6 +72,30 @@ describe('formatProgress', () => {
     expect(out).toContain('last update 15m ago');
   });
 
+  it('calls out a run whose process is gone, instead of showing it as still working', () => {
+    const out = formatProgress(
+      snap({ completed: 3, inFlight: 4, updatedAtMs: 1_060_000 }), 1_360_000, false,
+    );
+    expect(out).toContain('DIED without finishing');
+    expect(out).toContain('stopped 5m ago after 3 of 24 jobs');
+    // The misleading "still updating" line must not also appear.
+    expect(out).not.toContain('last update');
+  });
+
+  it('does not claim death when liveness is unknown', () => {
+    const out = formatProgress(snap({ completed: 3, updatedAtMs: 1_060_000 }), 1_360_000);
+    expect(out).not.toContain('DIED');
+    expect(out).toContain('last update');
+  });
+
+  it('never marks a finished run as died', () => {
+    const out = formatProgress(
+      snap({ completed: 24, done: true, updatedAtMs: 1_060_000 }), 1_360_000, false,
+    );
+    expect(out).toContain('finished');
+    expect(out).not.toContain('DIED');
+  });
+
   it('includes finished rows', () => {
     const out = formatProgress(snap({ completed: 1, rows: [{ seed: 3, outcome: 'CYCLICAL' }] }), 1_010_000);
     expect(out).toContain('CYCLICAL');
@@ -135,5 +159,16 @@ describe('writeProgress / readProgress', () => {
     const file = path.join(dir, 'blocked');
     fs.mkdirSync(file);
     expect(() => writeProgress(file, snap())).not.toThrow();
+  });
+});
+
+describe('isProcessAlive', () => {
+  it('sees this process', () => {
+    expect(isProcessAlive(process.pid)).toBe(true);
+  });
+
+  it('reports a pid that cannot exist as gone rather than throwing', () => {
+    // 2^22 + 1 is above every default pid_max, so nothing can hold it.
+    expect(isProcessAlive(4_194_305)).toBe(false);
   });
 });
