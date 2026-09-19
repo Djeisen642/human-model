@@ -47,3 +47,36 @@ export function founderSpread(field: HeritableField): number {
   const [min, max] = SEED_RANGES[field];
   return (max - min) / Math.sqrt(12);
 }
+
+/**
+ * The heritable fields that are also mutated after birth, mapped to the field holding the value the
+ * person was born with (ARD 066).
+ *
+ * `intelligence` is raised by `LearnEvent` and `GraduationEvent` and lowered by `StatDecayEvent`;
+ * `constitution` is raised by `ExerciseEvent` and lowered by `StatDecayEvent`; `stealingIntent` is
+ * raised by `StealEvent`'s ARD 036 emboldening. For these three the expressed value is endowment
+ * plus accumulation, so heritability must read the endowment instead — regressing newborns toward
+ * the expressed mean is a feedback loop that ratchets the population to the trait's cap.
+ *
+ * The four fields absent from this map are never mutated after birth, so their expressed value *is*
+ * their endowment and a second field would be a permanent duplicate. Which fields appear here is
+ * therefore also the answer to "which traits can a life change?".
+ */
+export const ENDOWMENT_FIELDS = {
+  intelligence: 'intelligenceEndowment',
+  constitution: 'constitutionEndowment',
+  stealingIntent: 'stealingIntentEndowment',
+} as const satisfies Partial<Record<HeritableField, string>>;
+
+/** A field name holding a heritable endowment. */
+export type EndowmentField = typeof ENDOWMENT_FIELDS[keyof typeof ENDOWMENT_FIELDS];
+
+/**
+ * The field heritability should read for a trait: its endowment where one exists, else the trait.
+ *
+ * @param field - the heritable field
+ * @returns the field name carrying that trait's heritable value
+ */
+export function heritableSource(field: HeritableField): HeritableField | EndowmentField {
+  return (ENDOWMENT_FIELDS as Partial<Record<HeritableField, EndowmentField>>)[field] ?? field;
+}

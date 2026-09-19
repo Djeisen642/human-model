@@ -302,7 +302,9 @@ describe('ChildbirthEvent', () => {
       // would have, so this still guards what it was written to guard: that a newborn comes out
       // with real stats rather than the zeros of the original crash.
       a.intelligence = 6; b.intelligence = 6;
+      a.intelligenceEndowment = 6; b.intelligenceEndowment = 6;
       a.constitution = 6; b.constitution = 6;
+      a.constitutionEndowment = 6; b.constitutionEndowment = 6;
       a.charisma = 6; b.charisma = 6;
 
       new ChildbirthEvent(alwaysPass).execute(a, sim);
@@ -312,6 +314,20 @@ describe('ChildbirthEvent', () => {
       expect(child.constitution).toBeGreaterThan(0);
       expect(child.charisma).toBeGreaterThan(0);
     });
+
+    /**
+     * Set a trait and, for the three traits ARD 066 splits, its endowment too — i.e. describe a
+     * person who expresses that value and was also born with it.
+     *
+     * @param p - the person
+     * @param field - heritable field to set
+     * @param value - value to set
+     */
+    function setTrait(p: Person, field: 'intelligence' | 'stealingIntent' | 'learningIntent', value: number): void {
+      p[field] = value;
+      if (field === 'intelligence') p.intelligenceEndowment = value;
+      if (field === 'stealingIntent') p.stealingIntentEndowment = value;
+    }
 
     /**
      * Fill the simulation with enough same-valued people to clear HERITABILITY_MIN_SAMPLE, so the
@@ -325,7 +341,7 @@ describe('ChildbirthEvent', () => {
       for (let i = 0; i < Variables.HERITABILITY_MIN_SAMPLE; i++) {
         const p = new Person([]);
         p.age = 30;
-        p[field] = value;
+        setTrait(p, field, value);
         sim.add(p);
       }
     }
@@ -340,7 +356,7 @@ describe('ChildbirthEvent', () => {
       const sim = new Simulation();
       const [a, b] = makeCouple(sim);
       fillPopulation(sim, 'intelligence', 2);
-      a.intelligence = 10; b.intelligence = 10;
+      setTrait(a, 'intelligence', 10); setTrait(b, 'intelligence', 10);
 
       new ChildbirthEvent(scriptedRng(zeroNoiseDraws)).execute(a, sim);
 
@@ -359,7 +375,7 @@ describe('ChildbirthEvent', () => {
       const sim = new Simulation();
       const [a, b] = makeCouple(sim);
       fillPopulation(sim, 'intelligence', 9);
-      a.intelligence = 1; b.intelligence = 1;
+      setTrait(a, 'intelligence', 1); setTrait(b, 'intelligence', 1);
 
       new ChildbirthEvent(scriptedRng(zeroNoiseDraws)).execute(a, sim);
 
@@ -371,7 +387,7 @@ describe('ChildbirthEvent', () => {
       const sim = new Simulation();
       const [a, b] = makeCouple(sim);
       fillPopulation(sim, 'stealingIntent', 0.2);
-      a.stealingIntent = 0.8; b.stealingIntent = 0.8;
+      setTrait(a, 'stealingIntent', 0.8); setTrait(b, 'stealingIntent', 0.8);
 
       new ChildbirthEvent(scriptedRng(zeroNoiseDraws)).execute(a, sim);
 
@@ -389,7 +405,7 @@ describe('ChildbirthEvent', () => {
       // spread are noise and the draw must not use them.
       const sim = new Simulation();
       const [a, b] = makeCouple(sim);
-      a.stealingIntent = 0.8; b.stealingIntent = 0.8;
+      setTrait(a, 'stealingIntent', 0.8); setTrait(b, 'stealingIntent', 0.8);
 
       new ChildbirthEvent(scriptedRng(zeroNoiseDraws)).execute(a, sim);
 
@@ -426,7 +442,7 @@ describe('ChildbirthEvent', () => {
       const sim = new Simulation();
       const [a, b] = makeCouple(sim);
       fillPopulation(sim, 'intelligence', 7);
-      a.intelligence = 7; b.intelligence = 7;
+      setTrait(a, 'intelligence', 7); setTrait(b, 'intelligence', 7);
 
       // Deliberately noisy rng: it must not matter.
       new ChildbirthEvent(scriptedRng([0, ...Array(14).fill(0.9)])).execute(a, sim);
@@ -443,10 +459,10 @@ describe('ChildbirthEvent', () => {
       for (let i = 0; i < Variables.HERITABILITY_MIN_SAMPLE; i++) {
         const p = new Person([]);
         p.age = 30;
-        p.stealingIntent = i % 2 === 0 ? 0 : 0.3;
+        setTrait(p, 'stealingIntent', i % 2 === 0 ? 0 : 0.3);
         sim.add(p);
       }
-      a.stealingIntent = 0; b.stealingIntent = 0;
+      setTrait(a, 'stealingIntent', 0); setTrait(b, 'stealingIntent', 0);
 
       // standardNormal takes u = 1 - rng(), so an rng near 1 makes u tiny and the magnitude large;
       // v = 0.5 puts cos at -1, so the residual is large and negative.
@@ -454,6 +470,63 @@ describe('ChildbirthEvent', () => {
 
       const child = sim.getLiving().find(p => p.childOf.length === 2)!;
       expect(child.stealingIntent).toBe(0);
+    });
+
+    it('inherits the parents ENDOWMENT, not what their life added to it (ARD 066)', () => {
+      // The regression test for the defect ARD 064's measurement found: a population that has
+      // learned its way to a cap must still produce children near the endowment mean.
+      const sim = new Simulation();
+      const [a, b] = makeCouple(sim);
+      for (let i = 0; i < Variables.HERITABILITY_MIN_SAMPLE; i++) {
+        const p = new Person([]);
+        p.age = 60;
+        p.intelligenceEndowment = 6;      // born ordinary
+        p.intelligence = Variables.INTELLIGENCE_MAX; // a lifetime of LearnEvent
+        sim.add(p);
+      }
+      a.intelligenceEndowment = 6; b.intelligenceEndowment = 6;
+      a.intelligence = Variables.INTELLIGENCE_MAX; b.intelligence = Variables.INTELLIGENCE_MAX;
+
+      new ChildbirthEvent(scriptedRng(zeroNoiseDraws)).execute(a, sim);
+
+      const child = sim.getLiving().find(p => p.childOf.length === 2)!;
+      expect(child.intelligence).toBeCloseTo(6);
+      expect(child.intelligenceEndowment).toBeCloseTo(6);
+      // Under ARD 064 alone this child would have been born at the cap.
+      expect(child.intelligence).toBeLessThan(Variables.INTELLIGENCE_MAX);
+    });
+
+    it('the same holds for stealingIntent against ARD 036 emboldening', () => {
+      const sim = new Simulation();
+      const [a, b] = makeCouple(sim);
+      for (let i = 0; i < Variables.HERITABILITY_MIN_SAMPLE; i++) {
+        const p = new Person([]);
+        p.age = 40;
+        p.stealingIntentEndowment = 0.15;             // born at the founder mean
+        p.stealingIntent = Variables.STEALING_INTENT_CAP; // emboldened to the cap
+        sim.add(p);
+      }
+      a.stealingIntentEndowment = 0.15; b.stealingIntentEndowment = 0.15;
+      a.stealingIntent = Variables.STEALING_INTENT_CAP; b.stealingIntent = Variables.STEALING_INTENT_CAP;
+
+      new ChildbirthEvent(scriptedRng(zeroNoiseDraws)).execute(a, sim);
+
+      const child = sim.getLiving().find(p => p.childOf.length === 2)!;
+      expect(child.stealingIntent).toBeCloseTo(0.15);
+      expect(child.stealingIntent).toBeLessThan(Variables.STEALING_INTENT_CAP);
+    });
+
+    it('a newborn expresses exactly its endowment', () => {
+      const sim = new Simulation();
+      const [a] = makeCouple(sim);
+      fillPopulation(sim, 'intelligence', 5);
+
+      new ChildbirthEvent(scriptedRng([0, ...Array(14).fill(0.7)])).execute(a, sim);
+
+      const child = sim.getLiving().find(p => p.childOf.length === 2)!;
+      expect(child.intelligence).toBe(child.intelligenceEndowment);
+      expect(child.constitution).toBe(child.constitutionEndowment);
+      expect(child.stealingIntent).toBe(child.stealingIntentEndowment);
     });
 
     it('different rng sequences produce different children (noise creates sibling variance)', () => {

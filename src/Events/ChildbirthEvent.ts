@@ -81,13 +81,24 @@ export default class ChildbirthEvent implements IEvent {
   private seedNewborn(child: Person, p1: Person, p2: Person, simulation: Simulation): void {
     const stat = Variables.HERITABILITY_STAT_COEFFICIENT;
     const intent = Variables.HERITABILITY_INTENT_COEFFICIENT;
-    child.intelligence = this.draw('intelligence', (p1.intelligence + p2.intelligence) / 2, stat, simulation, false);
-    child.constitution = this.draw('constitution', (p1.constitution + p2.constitution) / 2, stat, simulation, false);
-    child.charisma = this.draw('charisma', (p1.charisma + p2.charisma) / 2, stat, simulation, false);
 
+    // The three split traits inherit from the parents' ENDOWMENTS, not from what those parents have
+    // since learned, exercised or been emboldened into. A newborn then expresses exactly its
+    // endowment, having done nothing yet. See ARD 066.
+    child.intelligenceEndowment = this.draw('intelligence',
+      (p1.intelligenceEndowment + p2.intelligenceEndowment) / 2, stat, simulation, false);
+    child.intelligence = child.intelligenceEndowment;
+    child.constitutionEndowment = this.draw('constitution',
+      (p1.constitutionEndowment + p2.constitutionEndowment) / 2, stat, simulation, false);
+    child.constitution = child.constitutionEndowment;
+    child.stealingIntentEndowment = this.draw('stealingIntent',
+      (p1.stealingIntentEndowment + p2.stealingIntentEndowment) / 2, intent, simulation, true);
+    child.stealingIntent = child.stealingIntentEndowment;
+
+    // The rest are never mutated after birth, so the expressed value is the endowment.
+    child.charisma = this.draw('charisma', (p1.charisma + p2.charisma) / 2, stat, simulation, false);
     child.learningIntent = this.draw('learningIntent', (p1.learningIntent + p2.learningIntent) / 2, intent, simulation, true);
     child.exerciseIntent = this.draw('exerciseIntent', (p1.exerciseIntent + p2.exerciseIntent) / 2, intent, simulation, true);
-    child.stealingIntent = this.draw('stealingIntent', (p1.stealingIntent + p2.stealingIntent) / 2, intent, simulation, true);
     child.killingIntent = this.draw('killingIntent', (p1.killingIntent + p2.killingIntent) / 2, intent, simulation, true);
   }
 

@@ -1,6 +1,6 @@
 # ARD 037: Newborn Stat Seeding via Parental Heritability
 
-**Status:** Accepted
+**Status:** Superseded by ARD 064
 **Date:** 2026-05-17
 
 ## Context

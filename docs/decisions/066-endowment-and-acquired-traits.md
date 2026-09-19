@@ -1,6 +1,6 @@
 # ARD 066: Heritability Reads Endowment, Not Accumulated State
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-19
 
 ## Context

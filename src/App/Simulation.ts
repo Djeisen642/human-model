@@ -3,7 +3,7 @@ import DeathRecord from '../Records/DeathRecord';
 import KillingRecord from '../Records/KillingRecord';
 import Constants from '../Helpers/Constants';
 import Variables from '../Helpers/Variables';
-import { SEED_RANGES, HeritableField } from '../Helpers/TraitRanges';
+import { SEED_RANGES, HeritableField, heritableSource } from '../Helpers/TraitRanges';
 import { ageModifier } from '../Helpers/AgeModifier';
 import { resourceGini } from '../Helpers/Inequality';
 import {
@@ -431,6 +431,10 @@ export default class Simulation {
       person.stealingIntent = drawField(rng, 'stealingIntent', ranges, ...SEED_RANGES.stealingIntent);
       person.killingIntent = drawField(rng, 'killingIntent', ranges, ...SEED_RANGES.killingIntent);
       person.helpingIntent = drawField(rng, 'helpingIntent', ranges, ...SEED_RANGES.helpingIntent);
+      // A founder expresses exactly their endowment: nothing has happened to them yet (ARD 066).
+      person.intelligenceEndowment = person.intelligence;
+      person.constitutionEndowment = person.constitution;
+      person.stealingIntentEndowment = person.stealingIntent;
       this.add(person);
     }
 
@@ -570,8 +574,11 @@ export default class Simulation {
   }
 
   /**
-   * Mean and standard deviation of one heritable trait across the living population, with the
-   * sample size so the caller can judge whether to trust it (ARD 064).
+   * Mean and standard deviation of one heritable trait's **endowment** across the living
+   * population, with the sample size so the caller can judge whether to trust it (ARD 064, 066).
+   *
+   * For the three traits a life can change the endowment field is read instead of the expressed
+   * value; for the other four the two are the same thing. See `heritableSource`.
    *
    * Cached per tick and deliberately **not** invalidated by births within the tick: every child
    * born in one tick regresses toward the same population state, rather than toward a mean that
@@ -592,13 +599,16 @@ export default class Simulation {
 
     const living = this.getLiving();
     const n = living.length;
+    // Read the endowment where the trait has one: the expressed value is endowment plus whatever a
+    // life has added to it, and regressing newborns toward that ratchets the population (ARD 066).
+    const source = heritableSource(field);
     let mean = 0, sd = 0;
     if (n > 0) {
       let sum = 0;
-      for (const p of living) sum += p[field];
+      for (const p of living) sum += p[source];
       mean = sum / n;
       let sq = 0;
-      for (const p of living) { const d = p[field] - mean; sq += d * d; }
+      for (const p of living) { const d = p[source] - mean; sq += d * d; }
       // Population standard deviation: this is the whole living population, not a sample of it.
       sd = Math.sqrt(sq / n);
     }

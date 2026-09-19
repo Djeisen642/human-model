@@ -4,6 +4,9 @@
 **Commands:** `npx ts-node drift-probe.ts 2000 8` (ad-hoc, see below); control run on the pre-ARD-064 tree via `git stash`
 **Key context vars:** `HERITABILITY_RESIDUAL_SPREAD=1.0`, `HERITABILITY_MIN_SAMPLE=30`, `HERITABILITY_STAT_COEFFICIENT=0.4`, `HERITABILITY_INTENT_COEFFICIENT=0.25`, `INTELLIGENCE_MAX=20`, `STEALING_INTENT_CAP=0.8`
 
+> **Resolved 2026-09-19 by ARD 066 — see "After ARD 066" below.** The runaway this document reports
+> was real and is fixed; the measurements are kept as the before-picture.
+
 **Headline: ARD 064 fixes exactly the collapse it targeted, and introduces a runaway in the two
 traits that grow during a person's life. It should not be merged as it stands.** Anchoring a
 newborn's draw to the living population's mean is a positive feedback loop for any trait some event
@@ -71,3 +74,35 @@ and a much larger change.
 - `constitution` and `exerciseIntent` were not measured.
 - The probe was ad-hoc and is not committed; `Simulation.traitDistribution` makes it a few lines to
   rebuild.
+
+
+## After ARD 066
+
+ARD 066 gives the three fields a life can change a companion endowment field, immutable for life,
+and has heritability read that instead of the expressed value. Same probe, same configuration,
+8 seeds at 2000 ticks:
+
+| Trait | Founder mean | ARD 064 alone | ARD 066 endowment | ARD 066 expressed |
+|---|---|---|---|---|
+| `intelligence` | 6.000 | 19.73 – 19.96 | **4.33 – 7.67** | 15.83 – 19.73 |
+| `constitution` | 6.000 | not measured | **5.73 – 9.87** | 16.21 – 18.89 |
+| `learningIntent` | 0.500 | 0.383 – 0.630 | 0.509 – 0.683 | same |
+| `stealingIntent` | 0.150 | 0.800, zero spread | **0.104 – 0.186** | 0.223 – 0.324 |
+| `killingIntent` | 0.050 | 0.035 – 0.076 | 0.038 – 0.069 | same |
+
+The ratchet is gone. Endowments hold near their founder means; expressed values sit well above them,
+which is correct and is the point — people do learn and do get emboldened over a life, and that is
+simply no longer heritable. `constitution`, unmeasured before and predicted to be ratcheting on the
+same mechanism, holds too.
+
+**Education recovers, which was the symptom that started this.** With `learningIntent` at ~0.5
+instead of the collapsed 0.014, enrollment fires about 35× more often: 53–72% of living adults hold
+some education across three seeds, against the ~100% "None" visible in the HTML report before.
+
+**Two things this surfaces rather than settles.** Expressed `intelligence` now sits near
+`INTELLIGENCE_MAX`, because learning finally works and nothing else bounds it — that is a
+calibration question about `LearnEvent` and the cap, not about heredity, and it was invisible while
+the intent collapse suppressed learning entirely. And `stealingIntent`'s expressed range of
+0.22–0.32 puts `STEALING_INTENT_CAP` (0.8) back out of reach, so that cap is decorative again after
+one change to an unrelated subsystem made it briefly load-bearing — the second time in this study
+that a cap's status flipped without anyone touching it, and the argument for auditing them as a set.
