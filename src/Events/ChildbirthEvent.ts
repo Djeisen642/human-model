@@ -4,6 +4,8 @@ import IEvent from './IEvent';
 import { ageModifier } from '../Helpers/AgeModifier';
 import Variables from '../Helpers/Variables';
 import { RNG } from '../Helpers/Types';
+import { standardNormal } from '../Helpers/SeededRandom';
+import { HeritableField, founderSpread } from '../Helpers/TraitRanges';
 
 /**
  * Unconditional (internal probability gate): partnered couple may produce a child.
@@ -54,7 +56,7 @@ export default class ChildbirthEvent implements IEvent {
     partner.resources = Math.max(0, partner.resources - Variables.CHILDBIRTH_BIRTH_COST);
 
     const child = new Person([person, partner]);
-    this.seedNewborn(child, person, partner);
+    this.seedNewborn(child, person, partner, simulation);
     person.hasChildren.push(child);
     partner.hasChildren.push(child);
     simulation.add(child);
@@ -62,47 +64,76 @@ export default class ChildbirthEvent implements IEvent {
   }
 
   /**
-   * Seed a newborn's stats and intents from parental heritability (ARD 037).
-   * Stats regress toward NEWBORN_STAT_POPULATION_MEAN; intents regress toward zero.
-   * Intents clamp to [0, 1] for semantic validity; stats are unclamped (calibration owns positivity).
+   * Seed a newborn's stats and intents from parental heritability (ARD 064, superseding ARD 037).
+   *
+   * Stats and intents go through the same draw; they differ only in their heritability coefficient
+   * and in whether the result is clamped. Intents clamp to [0, 1] for semantic validity; stats are
+   * unclamped, as they were before (calibration owns positivity).
+   *
+   * `helpingIntent` is deliberately not assigned here. That it is never inherited is a known
+   * defect with its own ARD pending — fixing it inside this change would bundle two decisions.
    *
    * @param child - newborn person to seed
    * @param p1 - first parent
    * @param p2 - second parent
+   * @param simulation - current simulation state, read for the living population's trait spread
    */
-  private seedNewborn(child: Person, p1: Person, p2: Person): void {
-    child.intelligence = this.drawStat((p1.intelligence + p2.intelligence) / 2);
-    child.constitution = this.drawStat((p1.constitution + p2.constitution) / 2);
-    child.charisma = this.drawStat((p1.charisma + p2.charisma) / 2);
+  private seedNewborn(child: Person, p1: Person, p2: Person, simulation: Simulation): void {
+    const stat = Variables.HERITABILITY_STAT_COEFFICIENT;
+    const intent = Variables.HERITABILITY_INTENT_COEFFICIENT;
+    child.intelligence = this.draw('intelligence', (p1.intelligence + p2.intelligence) / 2, stat, simulation, false);
+    child.constitution = this.draw('constitution', (p1.constitution + p2.constitution) / 2, stat, simulation, false);
+    child.charisma = this.draw('charisma', (p1.charisma + p2.charisma) / 2, stat, simulation, false);
 
-    child.learningIntent = this.drawIntent((p1.learningIntent + p2.learningIntent) / 2);
-    child.exerciseIntent = this.drawIntent((p1.exerciseIntent + p2.exerciseIntent) / 2);
-    child.stealingIntent = this.drawIntent((p1.stealingIntent + p2.stealingIntent) / 2);
-    child.killingIntent = this.drawIntent((p1.killingIntent + p2.killingIntent) / 2);
+    child.learningIntent = this.draw('learningIntent', (p1.learningIntent + p2.learningIntent) / 2, intent, simulation, true);
+    child.exerciseIntent = this.draw('exerciseIntent', (p1.exerciseIntent + p2.exerciseIntent) / 2, intent, simulation, true);
+    child.stealingIntent = this.draw('stealingIntent', (p1.stealingIntent + p2.stealingIntent) / 2, intent, simulation, true);
+    child.killingIntent = this.draw('killingIntent', (p1.killingIntent + p2.killingIntent) / 2, intent, simulation, true);
   }
 
   /**
-   * Draw a newborn stat: regression toward population mean plus uniform noise.
+   * Draw one heritable trait for a newborn: regression toward the living population's mean for
+   * that trait, plus a Gaussian residual scaled to that trait's own spread (ARD 064).
    *
-   * @param parentMean - average of the two parents' stat values
-   * @returns child stat value (unclamped — calibration ensures positivity)
+   * The anchor is measured, not configured — this is the change ARD 064 makes. Regressing toward a
+   * constant asserts that composition can never drift from its founding values; regressing toward
+   * the live mean lets it move under selection and drift, and removes the anchor constants
+   * entirely.
+   *
+   * The residual is scaled by the trait's own standard deviation rather than an absolute width,
+   * because an absolute width is a statement about a trait's scale and so cannot be right for two
+   * traits with different scales. `sqrt(1 - coefficient^2 / 2)` makes the draw variance-preserving:
+   * with parents drawn independently from the population, the child distribution then has the same
+   * variance as the population it was drawn from, instead of narrowing or widening each generation.
+   * `HERITABILITY_RESIDUAL_SPREAD` scales that derived value, so 1.0 is exactly variance-preserving
+   * and the constant stays available for calibration.
+   *
+   * @param field - which heritable field is being drawn
+   * @param parentMean - average of the two parents' values for it
+   * @param coefficient - heritability for this field's family (stat or intent)
+   * @param simulation - current simulation state, read for the living population's trait spread
+   * @param clampToUnit - whether to clamp the result to [0, 1], as intents require
+   * @returns the newborn's value for that field
    */
-  private drawStat(parentMean: number): number {
-    const mean = Variables.NEWBORN_STAT_POPULATION_MEAN;
-    return mean
-      + (parentMean - mean) * Variables.HERITABILITY_STAT_COEFFICIENT
-      + (this.rng() * 2 - 1) * Variables.HERITABILITY_STAT_NOISE_RANGE;
-  }
+  private draw(
+    field: HeritableField,
+    parentMean: number,
+    coefficient: number,
+    simulation: Simulation,
+    clampToUnit: boolean,
+  ): number {
+    const { mean, sd, n } = simulation.traitDistribution(field);
+    // Below the sample floor the population cannot describe itself: a handful of survivors at a
+    // cycle trough would hand back a mean and spread that are noise. Fall back to the parents as
+    // the anchor and the trait's founder range as the spread.
+    const enough = n >= Variables.HERITABILITY_MIN_SAMPLE;
+    const anchor = enough ? mean : parentMean;
+    const spread = enough ? sd : founderSpread(field);
 
-  /**
-   * Draw a newborn intent: regression toward zero plus uniform noise, clamped to [0, 1].
-   *
-   * @param parentMean - average of the two parents' intent values
-   * @returns child intent value in [0, 1]
-   */
-  private drawIntent(parentMean: number): number {
-    const raw = parentMean * Variables.HERITABILITY_INTENT_COEFFICIENT
-      + (this.rng() * 2 - 1) * Variables.HERITABILITY_INTENT_NOISE_RANGE;
-    return Math.max(0, Math.min(1, raw));
+    const residual = spread
+      * Math.sqrt(1 - (coefficient * coefficient) / 2)
+      * Variables.HERITABILITY_RESIDUAL_SPREAD;
+    const raw = anchor + (parentMean - anchor) * coefficient + standardNormal(this.rng) * residual;
+    return clampToUnit ? Math.max(0, Math.min(1, raw)) : raw;
   }
 }

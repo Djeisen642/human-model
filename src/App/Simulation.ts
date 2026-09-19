@@ -3,7 +3,7 @@ import DeathRecord from '../Records/DeathRecord';
 import KillingRecord from '../Records/KillingRecord';
 import Constants from '../Helpers/Constants';
 import Variables from '../Helpers/Variables';
-import { SEED_RANGES } from '../Helpers/TraitRanges';
+import { SEED_RANGES, HeritableField } from '../Helpers/TraitRanges';
 import { ageModifier } from '../Helpers/AgeModifier';
 import { resourceGini } from '../Helpers/Inequality';
 import {
@@ -97,6 +97,9 @@ export interface TickSnapshot {
 }
 
 export default class Simulation {
+  /** Per-tick cache for `traitDistribution`; see that method for why births do not invalidate it. */
+  private traitCache: { tick: number; byField: Map<HeritableField, { mean: number; sd: number; n: number }> } | null = null;
+
   private living: Person[] = [];
   /**
    * Position of each living person in `living`. Maintained by `add` and `kill` so
@@ -564,6 +567,44 @@ export default class Simulation {
       this.naturalResourceCeiling - loss,
     );
     this.naturalResources = Math.min(this.naturalResources, this.naturalResourceCeiling);
+  }
+
+  /**
+   * Mean and standard deviation of one heritable trait across the living population, with the
+   * sample size so the caller can judge whether to trust it (ARD 064).
+   *
+   * Cached per tick and deliberately **not** invalidated by births within the tick: every child
+   * born in one tick regresses toward the same population state, rather than toward a mean that
+   * shifts as its siblings are born. That is both the cheaper option — one O(n) pass per tick
+   * instead of one per birth — and the more defensible one, since "the population a child is born
+   * into" should not depend on the order births happen to be processed in.
+   *
+   * @param field - the heritable field to summarise
+   * @returns the living population's mean, standard deviation and count for that field
+   */
+  traitDistribution(field: HeritableField): { mean: number; sd: number; n: number } {
+    const tick = this.history.length;
+    if (!this.traitCache || this.traitCache.tick !== tick) {
+      this.traitCache = { tick, byField: new Map() };
+    }
+    const cached = this.traitCache.byField.get(field);
+    if (cached) return cached;
+
+    const living = this.getLiving();
+    const n = living.length;
+    let mean = 0, sd = 0;
+    if (n > 0) {
+      let sum = 0;
+      for (const p of living) sum += p[field];
+      mean = sum / n;
+      let sq = 0;
+      for (const p of living) { const d = p[field] - mean; sq += d * d; }
+      // Population standard deviation: this is the whole living population, not a sample of it.
+      sd = Math.sqrt(sq / n);
+    }
+    const stats = { mean, sd, n };
+    this.traitCache.byField.set(field, stats);
+    return stats;
   }
 
   /**

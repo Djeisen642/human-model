@@ -153,16 +153,14 @@ export default class Variables {
   static CHILDBIRTH_BIRTH_COST = 12;
 
   // Newborn heritability constants (ARD 037)
-  /** Anchor point that newborn stats regress toward; midpoint of the adult seed range [1, 10]. */
-  static NEWBORN_STAT_POPULATION_MEAN = 5.5;
   /** Strength of regression toward parental mean for stats. ~0.4 matches twin-study heritability for physical/cognitive traits. */
   static HERITABILITY_STAT_COEFFICIENT = 0.4;
-  /** Uniform noise half-width on newborn stat draws. Calibrated so worst-case parental mean still yields positive child stats. */
-  static HERITABILITY_STAT_NOISE_RANGE = 2.5;
   /** Strength of regression toward parental intent for intents (target = 0). Lower than stat coefficient: behavioral transmission is weaker than trait heritability. */
   static HERITABILITY_INTENT_COEFFICIENT = 0.25;
-  /** Uniform noise half-width on newborn intent draws. Large enough to occasionally produce antisocial intents in clean lineages. */
-  static HERITABILITY_INTENT_NOISE_RANGE = 0.05;
+  /** Scales the variance-preserving residual spread in the ARD 064 newborn draw; 1.0 leaves a child generation with the same trait variance as the population it was drawn from, below 1 narrows it each generation, above 1 widens it. Dimensionless by construction — the trait's own standard deviation supplies the scale, which is why no per-trait noise width exists any more. */
+  static HERITABILITY_RESIDUAL_SPREAD = 1.0;
+  /** Minimum living population for the ARD 064 newborn draw to trust the population's own mean and spread. Below it the draw anchors to the parents and takes its spread from the founder seeding range, because a handful of survivors at a cycle trough describe noise rather than a population. Calibration placeholder — this model's troughs reach tens of people, so the value decides how often the fallback fires. */
+  static HERITABILITY_MIN_SAMPLE = 30;
 
   // WindfallEvent constants (ARD 028)
   /** Per-tick base probability of a windfall at peak age; ~3% annually, consistent with SCF/HRS inheritance prevalence. */
