@@ -154,7 +154,7 @@ When in doubt:
 | [034](./034-community-pool-tax-welfare.md) | Community Pool, Taxation, and Welfare Distribution | Accepted |
 | [035](./035-jail-and-retribution.md) | Jail and Retribution | Accepted |
 | [036](./036-dynamic-intent-multipliers.md) | Dynamic Intent Multipliers and Theft Emboldening | Accepted |
-| [037](./037-newborn-stat-seeding.md) | Newborn Stat Seeding via Parental Heritability | Accepted |
+| [037](./037-newborn-stat-seeding.md) | Newborn Stat Seeding via Parental Heritability | Superseded by ARD 064 |
 | [038](./038-handlebars-html-generation.md) | Handlebars HTML Generation | Accepted |
 | [039](./039-gather-productivity-model.md) | GatherResourcesEvent Productivity Model | Accepted |
 | [040](./040-windfall-from-pool.md) | WindfallEvent Sourced From Natural Resource Pool | Accepted |
@@ -181,3 +181,5 @@ When in doubt:
 | [061](./061-welfare-shortfall-topup.md) | Welfare Pays the Shortfall, Not an Equal Split | Accepted |
 | [062](./062-welfare-skips-subsidised-children.md) | Welfare Skips Parentally Subsidised Children | Accepted |
 | [063](./063-cyclical-outcome-and-thriving-removal.md) | Cyclical Outcome Label; Removal of THRIVING | Accepted |
+| [064](./064-heritable-trait-regression.md) | Heritable Traits Regress Toward the Living Population | Accepted |
+| [066](./066-endowment-and-acquired-traits.md) | Heritability Reads Endowment, Not Accumulated State | Accepted |

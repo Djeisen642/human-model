@@ -25,6 +25,18 @@ export default class Person {
   exerciseIntent = 0;
   stealingIntent = 0;
   killingIntent = 0;
+  /**
+   * Heritable endowment behind `intelligence` — the value this person was born or seeded with,
+   * never changed afterwards. `intelligence` itself is the effective, currently-expressed value and
+   * is raised by LearnEvent and GraduationEvent and lowered by StatDecayEvent, so it is endowment
+   * plus a lifetime of accumulation. Heritability reads this field, because feeding the expressed
+   * mean forward ratchets the population to its cap. See ARD 066.
+   */
+  intelligenceEndowment = 0;
+  /** Heritable endowment behind `constitution`, which ExerciseEvent raises and StatDecayEvent lowers. See ARD 066. */
+  constitutionEndowment = 0;
+  /** Heritable endowment behind `stealingIntent`, which StealEvent's ARD 036 emboldening raises. See ARD 066. */
+  stealingIntentEndowment = 0;
   /** Probability gate for HelpEvent; seeded higher than antisocial intents. See ARD 045. */
   helpingIntent = 0;
   /** Ticks remaining in current jail sentence; 0 means free. Decremented by LooperSingleton each tick before EventFactory. See ARD 035. */
