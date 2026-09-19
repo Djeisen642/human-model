@@ -3,6 +3,7 @@ import DeathRecord from '../Records/DeathRecord';
 import KillingRecord from '../Records/KillingRecord';
 import Constants from '../Helpers/Constants';
 import Variables from '../Helpers/Variables';
+import { SEED_RANGES } from '../Helpers/TraitRanges';
 import { ageModifier } from '../Helpers/AgeModifier';
 import { resourceGini } from '../Helpers/Inequality';
 import {
@@ -419,14 +420,14 @@ export default class Simulation {
         0,
         Math.floor(Math.min(person.age, Variables.EXPERIENCE_CAP, effectiveExperience)) + 1,
       );
-      person.intelligence = drawField(rng, 'intelligence', ranges, 1, 11);
-      person.constitution = drawField(rng, 'constitution', ranges, 1, 11);
-      person.charisma = drawField(rng, 'charisma', ranges, 1, 11);
-      person.learningIntent = drawField(rng, 'learningIntent', ranges, 0, 1);
-      person.exerciseIntent = drawField(rng, 'exerciseIntent', ranges, 0, 1);
-      person.stealingIntent = drawField(rng, 'stealingIntent', ranges, 0, 0.3);
-      person.killingIntent = drawField(rng, 'killingIntent', ranges, 0, 0.1);
-      person.helpingIntent = drawField(rng, 'helpingIntent', ranges, 0, 0.5);
+      person.intelligence = drawField(rng, 'intelligence', ranges, ...SEED_RANGES.intelligence);
+      person.constitution = drawField(rng, 'constitution', ranges, ...SEED_RANGES.constitution);
+      person.charisma = drawField(rng, 'charisma', ranges, ...SEED_RANGES.charisma);
+      person.learningIntent = drawField(rng, 'learningIntent', ranges, ...SEED_RANGES.learningIntent);
+      person.exerciseIntent = drawField(rng, 'exerciseIntent', ranges, ...SEED_RANGES.exerciseIntent);
+      person.stealingIntent = drawField(rng, 'stealingIntent', ranges, ...SEED_RANGES.stealingIntent);
+      person.killingIntent = drawField(rng, 'killingIntent', ranges, ...SEED_RANGES.killingIntent);
+      person.helpingIntent = drawField(rng, 'helpingIntent', ranges, ...SEED_RANGES.helpingIntent);
       this.add(person);
     }
 
