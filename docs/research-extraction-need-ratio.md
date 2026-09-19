@@ -200,6 +200,36 @@ is simply not asked at 1000.
 > so learning, exercise, stealing and killing dispositions collapse ~35× within three generations and
 > the population is behaviourally inert for almost every tick measured here; and `helpingIntent` is
 > never inherited at all. Every run in this study was made on that population.
+>
+> **Resolved 2026-09-19 (commit 5c62765) — the damping does not survive raising the cap. It was the
+> ceiling.** Ran the separating test above: sweep `NATURAL_RESOURCE_REGEN_FRACTION` (0.015/0.03/0.06/0.12,
+> 16 seeds, 2000 ticks) and, more directly, sweep `MAX_NATURAL_RESOURCE_CEILING` itself
+> (60000/120000/240000, same 16 seeds) holding everything else at C1. Both move the same way.
+>
+> Peak population scales almost exactly with the cap: median 2078 → 3865 → 7196 as
+> `MAX_NATURAL_RESOURCE_CEILING` doubles then doubles again (each step ≈1.86×, i.e. essentially
+> proportional, not the flat line an independent equilibrium would show). Confirmed with
+> `scripts/compare.ts` on the 60000→120000 step, 24 paired seeds: peak population 2064 → 3881, **REAL
+> DIFFERENCE**, +1812 per seed (1735 to 1961), under 1 in 10,001 — almost exactly a doubling to match
+> the cap's doubling. "Lowest population reached" on the same run is unsettled (typical change reported
+> as 0, range spans zero) — the trough barely moves while the peak doubles, which is exactly what widens
+> the ratio.
+>
+> And the peak-to-trough ratio itself does **not** hold near 8×: it climbs to 13.3× at 120000 and 25.0×
+> at 240000 (computed from the same sweep's per-seed `peak=`/`min=`), heading back toward the untouched
+> baseline's ~90–98×. The regen-fraction sweep shows the same shape from a different angle: 30.6× at
+> 0.015, 8.9× at 0.03 (this study's own C1 value — reproduces the headline number), 11.8× at 0.06, 20.8×
+> at 0.12.
+>
+> **So the "90-fold to 8-fold" headline is real only at the one cap value tested, and is not a property
+> of cutting extraction — it is the population sitting at
+> `MAX_NATURAL_RESOURCE_CEILING × NATURAL_RESOURCE_REGEN_FRACTION ÷ CONSUMPTION_BASE`.** Raise the cap
+> and the same C1 config produces a bigger population with a wider swing, moving back toward the
+> baseline's shape rather than staying damped. Every trough-depth and commons-strain number reported
+> above is still a real, correctly paired measurement — that part of this study is not in question — but
+> reading them as evidence of a self-regulating equilibrium is now contradicted, not just unsupported.
+> Extraction cuts still help (less commons stripping, a shallower crash) — they just do it by handing the
+> population a smaller hard ceiling to sit under, not by producing a qualitatively different dynamic.
 
 ## What the distributions show: the two configs trade which scarcity you get
 
