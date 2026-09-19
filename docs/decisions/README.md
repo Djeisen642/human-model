@@ -182,3 +182,4 @@ When in doubt:
 | [062](./062-welfare-skips-subsidised-children.md) | Welfare Skips Parentally Subsidised Children | Accepted |
 | [063](./063-cyclical-outcome-and-thriving-removal.md) | Cyclical Outcome Label; Removal of THRIVING | Accepted |
 | [064](https://github.com/Djeisen642/human-model/pull/122) | Heritable Traits Regress Toward the Living Population | Accepted (landing via PR #122) |
+| [065](./065-resource-threshold-years-and-reporting.md) | Resource Thresholds Documented as Years of Consumption, With a Mandatory Cross-Config Reporting Convention | Proposed |
