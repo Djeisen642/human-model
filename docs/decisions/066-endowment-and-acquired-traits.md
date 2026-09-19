@@ -1,4 +1,4 @@
-# ARD 065: Heritability Reads Endowment, Not Accumulated State
+# ARD 066: Heritability Reads Endowment, Not Accumulated State
 
 **Status:** Proposed
 **Date:** 2026-09-19
@@ -43,5 +43,6 @@ No new `Variables` constants. The four unsplit fields are left alone deliberatel
 - The events that mutate these traits are untouched, as is every consumer of the effective values. That is the point of keeping the existing field names.
 - Tests: a person's endowment never changes while their effective value does; a newborn's endowment is drawn from the population's endowments, not from their expressed values; a population whose expressed values have all ratcheted to a cap still produces children near the endowment mean — the regression test for the defect this ARD fixes.
 - **Re-run the ARD 064 measurement after this lands.** `docs/research-heritability-anchor.md` is the before; the same probe should show `intelligence` and `stealingIntent` holding near their founder means instead of pegging at their caps, and the four unsplit fields unchanged from their ARD 064 behaviour. Until that is measured this is unproven, exactly as ARD 064 was.
+- Numbered 066 rather than 065: PR #121 proposed a different ARD 065 (resource-threshold years) concurrently. That PR is mergeable and this one is blocked on sign-off, so this side renumbered.
 - Known weakness: `StatDecayEvent` pushes an elderly person's effective value below their endowment, so the effective and endowment population means diverge with the age structure. That is correct — endowment is what is heritable — but it means the two numbers tell different stories and a future reader comparing them should know which one a given report is using.
 - `docs/model-reference.md`'s heritability bullet and its ARD 064 caveat both need rewriting once this lands.

@@ -182,4 +182,4 @@ When in doubt:
 | [062](./062-welfare-skips-subsidised-children.md) | Welfare Skips Parentally Subsidised Children | Accepted |
 | [063](./063-cyclical-outcome-and-thriving-removal.md) | Cyclical Outcome Label; Removal of THRIVING | Accepted |
 | [064](./064-heritable-trait-regression.md) | Heritable Traits Regress Toward the Living Population | Accepted |
-| [065](./065-endowment-and-acquired-traits.md) | Heritability Reads Endowment, Not Accumulated State | Proposed |
+| [066](./066-endowment-and-acquired-traits.md) | Heritability Reads Endowment, Not Accumulated State | Proposed |
