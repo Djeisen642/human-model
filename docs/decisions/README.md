@@ -181,3 +181,4 @@ When in doubt:
 | [061](./061-welfare-shortfall-topup.md) | Welfare Pays the Shortfall, Not an Equal Split | Accepted |
 | [062](./062-welfare-skips-subsidised-children.md) | Welfare Skips Parentally Subsidised Children | Accepted |
 | [063](./063-cyclical-outcome-and-thriving-removal.md) | Cyclical Outcome Label; Removal of THRIVING | Accepted |
+| [064](./064-heritable-trait-regression.md) | Heritable Traits Regress Toward the Living Population | Proposed |
