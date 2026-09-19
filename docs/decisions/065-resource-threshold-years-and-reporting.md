@@ -1,6 +1,6 @@
 # ARD 065: Resource Thresholds Documented as Years of Consumption, With a Mandatory Cross-Config Reporting Convention
 
-**Status:** Proposed
+**Status:** Superseded by ARD 067
 **Date:** 2026-09-19
 
 ## Context
