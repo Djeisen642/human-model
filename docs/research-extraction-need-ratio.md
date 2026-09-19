@@ -182,6 +182,41 @@ ticks here against 15% at 300 founders, so the strain benefit shrinks as the wor
 3000 ticks is short enough that the extinction question this study could not settle at 300 founders
 is simply not asked at 1000.
 
+## What the distributions show: the two configs trade which scarcity you get
+
+*(Added 2026-09-19 with `scripts/flow-probe.ts`, which prints the per-person distribution of
+resource flow per decade — the model records only means and sums, so `resourceGini` had been the
+only spread statistic anywhere.)*
+
+Seed 2, both arms, share of the living population whose extraction capacity is below their own
+per-tick living cost:
+
+| Decade sample | Default extraction | C1 (cut extraction) |
+|---|---|---|
+| Commons fill | **0%** for most decades | **60–99%** |
+| Share below their own living cost | **0–6%** | **36–83%** |
+| Population | swings 83 → 3,384 | holds 685 → 1,658 |
+
+**These are not more and less of the same thing.** At default extraction individuals carry enormous
+capacity and the commons is destroyed: the scarcity is ecological. Under C1 the commons stays healthy
+and the population sits permanently at its own break-even line: the scarcity is distributive. C1
+does not remove the shortage, it moves it from the pool into the people.
+
+That is the most plausible mechanism yet for the result this study could not otherwise explain — why
+the healthier configuration is the one that loses seeds. A population living at break-even is one bad
+roll from a cohort going under; a population with four times the capacity it needs is not, however
+stripped its commons. It also predicts where to look next: the fix is not more extraction (that
+rebuilds the overshoot) but a narrower *spread* around the break-even line, which is the same lever
+Finding 3 already identified, pushed further.
+
+**Read the numbers with the caveat, because it favours the baseline.** `extract` here is potential,
+not realised — `GatherResourcesEvent` takes `min(output, naturalResources)` and discards what each
+person actually got. The baseline's 0–6% is measured while its pool reads 0%, so almost nobody is
+short on paper and almost everybody is short in fact; C1's much worse-looking figure is close to the
+truth because its pool is full. The comparison is therefore a lower bound on how bad the baseline is,
+not an overstatement of C1. Realised per-person extraction needs the gather event instrumented, which
+is a model change and is logged in `docs/future-ideas.md` as ARD-level.
+
 ## Three lanes that did not work, and why each is useful
 
 **More regeneration buys a bigger boom, not stability.** Sweeping
