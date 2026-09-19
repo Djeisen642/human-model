@@ -371,8 +371,10 @@ async function main(): Promise<void> {
     console.log(`(stopped: ${results.size} of ${jobs.length} jobs completed; rows below cover only those)\n`);
   }
 
+  // `n≤` when stopped: each row's counts are denominated in the seeds that finished, which may
+  // differ per sweep value, so a flat `n=12` in the header would contradict a `0/2` in the row.
   const header = (sweepKey ? `${sweepKey.padEnd(28)}  ` : '') +
-    `outcomes (n=${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  orph%  orphPk%  welf%  extinct  cyc  stable  good%  popTrd  rnwy`;
+    `outcomes (n${stopping ? '≤' : '='}${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  orph%  orphPk%  welf%  extinct  cyc  stable  good%  popTrd  rnwy`;
   console.log(header);
   console.log('-'.repeat(header.length));
 
