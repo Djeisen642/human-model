@@ -3,6 +3,7 @@ import DeathRecord from '../Records/DeathRecord';
 import KillingRecord from '../Records/KillingRecord';
 import Constants from '../Helpers/Constants';
 import Variables from '../Helpers/Variables';
+import { SEED_RANGES, HeritableField, heritableSource } from '../Helpers/TraitRanges';
 import { ageModifier } from '../Helpers/AgeModifier';
 import { resourceGini } from '../Helpers/Inequality';
 import {
@@ -96,6 +97,9 @@ export interface TickSnapshot {
 }
 
 export default class Simulation {
+  /** Per-tick cache for `traitDistribution`; see that method for why births do not invalidate it. */
+  private traitCache: { tick: number; byField: Map<HeritableField, { mean: number; sd: number; n: number }> } | null = null;
+
   private living: Person[] = [];
   /**
    * Position of each living person in `living`. Maintained by `add` and `kill` so
@@ -419,14 +423,18 @@ export default class Simulation {
         0,
         Math.floor(Math.min(person.age, Variables.EXPERIENCE_CAP, effectiveExperience)) + 1,
       );
-      person.intelligence = drawField(rng, 'intelligence', ranges, 1, 11);
-      person.constitution = drawField(rng, 'constitution', ranges, 1, 11);
-      person.charisma = drawField(rng, 'charisma', ranges, 1, 11);
-      person.learningIntent = drawField(rng, 'learningIntent', ranges, 0, 1);
-      person.exerciseIntent = drawField(rng, 'exerciseIntent', ranges, 0, 1);
-      person.stealingIntent = drawField(rng, 'stealingIntent', ranges, 0, 0.3);
-      person.killingIntent = drawField(rng, 'killingIntent', ranges, 0, 0.1);
-      person.helpingIntent = drawField(rng, 'helpingIntent', ranges, 0, 0.5);
+      person.intelligence = drawField(rng, 'intelligence', ranges, ...SEED_RANGES.intelligence);
+      person.constitution = drawField(rng, 'constitution', ranges, ...SEED_RANGES.constitution);
+      person.charisma = drawField(rng, 'charisma', ranges, ...SEED_RANGES.charisma);
+      person.learningIntent = drawField(rng, 'learningIntent', ranges, ...SEED_RANGES.learningIntent);
+      person.exerciseIntent = drawField(rng, 'exerciseIntent', ranges, ...SEED_RANGES.exerciseIntent);
+      person.stealingIntent = drawField(rng, 'stealingIntent', ranges, ...SEED_RANGES.stealingIntent);
+      person.killingIntent = drawField(rng, 'killingIntent', ranges, ...SEED_RANGES.killingIntent);
+      person.helpingIntent = drawField(rng, 'helpingIntent', ranges, ...SEED_RANGES.helpingIntent);
+      // A founder expresses exactly their endowment: nothing has happened to them yet (ARD 066).
+      person.intelligenceEndowment = person.intelligence;
+      person.constitutionEndowment = person.constitution;
+      person.stealingIntentEndowment = person.stealingIntent;
       this.add(person);
     }
 
@@ -563,6 +571,50 @@ export default class Simulation {
       this.naturalResourceCeiling - loss,
     );
     this.naturalResources = Math.min(this.naturalResources, this.naturalResourceCeiling);
+  }
+
+  /**
+   * Mean and standard deviation of one heritable trait's **endowment** across the living
+   * population, with the sample size so the caller can judge whether to trust it (ARD 064, 066).
+   *
+   * For the three traits a life can change the endowment field is read instead of the expressed
+   * value; for the other four the two are the same thing. See `heritableSource`.
+   *
+   * Cached per tick and deliberately **not** invalidated by births within the tick: every child
+   * born in one tick regresses toward the same population state, rather than toward a mean that
+   * shifts as its siblings are born. That is both the cheaper option — one O(n) pass per tick
+   * instead of one per birth — and the more defensible one, since "the population a child is born
+   * into" should not depend on the order births happen to be processed in.
+   *
+   * @param field - the heritable field to summarise
+   * @returns the living population's mean, standard deviation and count for that field
+   */
+  traitDistribution(field: HeritableField): { mean: number; sd: number; n: number } {
+    const tick = this.history.length;
+    if (!this.traitCache || this.traitCache.tick !== tick) {
+      this.traitCache = { tick, byField: new Map() };
+    }
+    const cached = this.traitCache.byField.get(field);
+    if (cached) return cached;
+
+    const living = this.getLiving();
+    const n = living.length;
+    // Read the endowment where the trait has one: the expressed value is endowment plus whatever a
+    // life has added to it, and regressing newborns toward that ratchets the population (ARD 066).
+    const source = heritableSource(field);
+    let mean = 0, sd = 0;
+    if (n > 0) {
+      let sum = 0;
+      for (const p of living) sum += p[source];
+      mean = sum / n;
+      let sq = 0;
+      for (const p of living) { const d = p[source] - mean; sq += d * d; }
+      // Population standard deviation: this is the whole living population, not a sample of it.
+      sd = Math.sqrt(sq / n);
+    }
+    const stats = { mean, sd, n };
+    this.traitCache.byField.set(field, stats);
+    return stats;
   }
 
   /**
