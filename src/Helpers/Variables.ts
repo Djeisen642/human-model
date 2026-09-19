@@ -143,13 +143,13 @@ export default class Variables {
   static BASE_CHILDBIRTH_RATE = 0.6;
   /** Illness suppressor: at 0.8, full illness (1.0) eliminates fertility; 0.5 illness halves it. */
   static CHILDBIRTH_ILLNESS_SCALAR = 0.8;
-  /** Resource floor below which fertility is zero; models famine-threshold amenorrhea. */
+  /** Resource floor below which fertility is zero; models famine-threshold amenorrhea. 10 years of consumption at CONSUMPTION_BASE (ARD 067); validate() requires this strictly below CHILDBIRTH_RESOURCE_SCALE. */
   static CHILDBIRTH_RESOURCE_MIN = 10;
-  /** Resource level at which full fertility is restored; linear ramp between MIN and SCALE. */
+  /** Resource level at which full fertility is restored; linear ramp between MIN and SCALE. 30 years of consumption at CONSUMPTION_BASE (ARD 067); validate() requires this strictly above CHILDBIRTH_RESOURCE_MIN — equal values divide 0/0 and make birth certain instead of blocked. */
   static CHILDBIRTH_RESOURCE_SCALE = 30;
   /** Happiness multiplier on birth probability; small but real signal (0.05 → +50% at happiness=10). */
   static CHILDBIRTH_HAPPINESS_SCALAR = 0.05;
-  /** One-time resource deduction per parent at birth; ~25% of median resources. */
+  /** One-time resource deduction per parent at birth; ~25% of median resources. 12 years of consumption per parent (ARD 067); deliberately left unconstrained by validate(). */
   static CHILDBIRTH_BIRTH_COST = 12;
 
   // Newborn heritability constants (ARD 037)
@@ -306,7 +306,7 @@ export default class Variables {
   static SEED_AGE_MAX = 80;
   /** Power applied to a uniform variate when drawing seed age; >1 skews young (expansive pyramid) and sets taper steepness. See ARD 056. */
   static SEED_AGE_DISTRIBUTION_EXPONENT = 1.8;
-  /** Central starting wealth for seeded adults; children seed at 0 (parentally subsidized). See ARD 057. */
+  /** Central starting wealth for seeded adults; children seed at 0 (parentally subsidized). See ARD 057. 50 years of consumption at CONSUMPTION_BASE (ARD 067); deliberately left unconstrained by validate(). */
   static SEED_ADULT_RESOURCES_MEAN = 50;
   /** Relative half-width of the adult resource band [mean·(1−spread), mean·(1+spread)); seed-time adult Gini = spread/3. See ARD 057. */
   static SEED_ADULT_RESOURCES_SPREAD = 0.3;
@@ -378,17 +378,17 @@ export default class Variables {
   static HAPPINESS_UNEMPLOYED_PENALTY = 3;
 
   // Happiness: resource thresholds and signals (ARD 014)
-  /** Resources below this → critical penalty (non-elderly). */
+  /** Resources below this → critical penalty (non-elderly). 10 years of consumption at CONSUMPTION_BASE (ARD 067); validate() requires this strictly below HAPPINESS_RESOURCE_LOW_THRESHOLD. */
   static HAPPINESS_RESOURCE_CRITICAL_THRESHOLD = 10;
-  /** Resources below this (and ≥ critical) → low penalty (non-elderly). */
+  /** Resources below this (and ≥ critical) → low penalty (non-elderly). 30 years of consumption at CONSUMPTION_BASE (ARD 067); validate() requires this strictly between the critical and comfortable thresholds. */
   static HAPPINESS_RESOURCE_LOW_THRESHOLD = 30;
-  /** Resources at or above this → comfortable bonus (non-elderly). */
+  /** Resources at or above this → comfortable bonus (non-elderly). 70 years of consumption at CONSUMPTION_BASE (ARD 067); validate() requires this strictly above HAPPINESS_RESOURCE_LOW_THRESHOLD. */
   static HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD = 70;
-  /** Critical resource threshold for elderly persons; higher because fixed costs rise. */
+  /** Critical resource threshold for elderly persons; higher because fixed costs rise. 13.3 years of consumption (÷ CONSUMPTION_ELDER_MULTIPLIER; ARD 067); validate() requires this strictly below HAPPINESS_RESOURCE_LOW_THRESHOLD_ELDERLY. Checked independently of the adult ladder — in years the two are not monotonic against each other (ARD 067 Decision; see docs/future-ideas.md). */
   static HAPPINESS_RESOURCE_CRITICAL_THRESHOLD_ELDERLY = 20;
-  /** Low resource threshold for elderly persons. */
+  /** Low resource threshold for elderly persons. 33.3 years of consumption (÷ CONSUMPTION_ELDER_MULTIPLIER; ARD 067); validate() requires this strictly between the elderly critical and comfortable thresholds. */
   static HAPPINESS_RESOURCE_LOW_THRESHOLD_ELDERLY = 50;
-  /** Comfortable resource threshold for elderly persons. */
+  /** Comfortable resource threshold for elderly persons. 66.7 years of consumption (÷ CONSUMPTION_ELDER_MULTIPLIER; ARD 067); validate() requires this strictly above HAPPINESS_RESOURCE_LOW_THRESHOLD_ELDERLY. */
   static HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD_ELDERLY = 100;
   /** Happiness deducted when resources are below the critical threshold. */
   static HAPPINESS_RESOURCE_CRITICAL_PENALTY = 5;
@@ -414,7 +414,7 @@ export default class Variables {
   // Community pool, taxation, and welfare constants (ARD 034)
   /** Flat fraction of each living person's resources deducted per tick and added to the community pool. */
   static TAX_RATE = 0.02;
-  /** Resource level below which a person qualifies for welfare distribution each tick. */
+  /** Resource level below which a person qualifies for welfare distribution each tick. 20 years of consumption at CONSUMPTION_BASE (ARD 067); deliberately left unconstrained by validate() against the happiness/childbirth thresholds — welfare generosity relative to those bands is a policy setting this project sweeps on purpose (e.g. WELFARE_THRESHOLD=1e9 as a universal dividend). */
   static WELFARE_THRESHOLD = 20;
   /** Fraction of the community pool retained as reserve after each distribution; prevents one-tick exhaustion. */
   static COMMUNITY_POOL_RESERVE_FRACTION = 0.20;
@@ -451,6 +451,8 @@ export default class Variables {
    * Throws if any cross-constant invariant is violated. Call after applying config overrides and
    * before running a simulation; every `--set`/`--config` path goes through it.
    * @throws {Error} when the ARD 042 estate shares do not sum to 1.0
+   * @throws {Error} when the ARD 067 adult happiness ladder, elderly happiness ladder, or
+   *   childbirth resource ramp is not strictly ordered
    */
   static validate(): void {
     const estateSum = Variables.ESTATE_COMMUNITY_SHARE + Variables.ESTATE_PARTNER_SHARE + Variables.ESTATE_CHILDREN_SHARE;
@@ -460,6 +462,38 @@ export default class Variables {
       throw new Error(
         `ESTATE_COMMUNITY_SHARE + ESTATE_PARTNER_SHARE + ESTATE_CHILDREN_SHARE must sum to 1.0 (ARD 042), got ${estateSum}. ` +
         'Estates are distributed with these shares applied raw, so any other sum creates or destroys resources on every death.'
+      );
+    }
+
+    // ARD 067: guards only the orderings that fail silently — a strict `<`, which is also false
+    // for any NaN operand, so an unset/corrupted threshold throws here rather than downstream.
+    if (
+      !(Variables.HAPPINESS_RESOURCE_CRITICAL_THRESHOLD < Variables.HAPPINESS_RESOURCE_LOW_THRESHOLD &&
+        Variables.HAPPINESS_RESOURCE_LOW_THRESHOLD < Variables.HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD)
+    ) {
+      throw new Error(
+        'HAPPINESS_RESOURCE_CRITICAL_THRESHOLD < HAPPINESS_RESOURCE_LOW_THRESHOLD < HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD must hold (ARD 067), ' +
+        `got critical=${Variables.HAPPINESS_RESOURCE_CRITICAL_THRESHOLD}, low=${Variables.HAPPINESS_RESOURCE_LOW_THRESHOLD}, comfortable=${Variables.HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD}. ` +
+        'Person.happiness evaluates these as a single if/else-if ladder; an inversion makes a band unreachable.'
+      );
+    }
+
+    if (
+      !(Variables.HAPPINESS_RESOURCE_CRITICAL_THRESHOLD_ELDERLY < Variables.HAPPINESS_RESOURCE_LOW_THRESHOLD_ELDERLY &&
+        Variables.HAPPINESS_RESOURCE_LOW_THRESHOLD_ELDERLY < Variables.HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD_ELDERLY)
+    ) {
+      throw new Error(
+        'HAPPINESS_RESOURCE_CRITICAL_THRESHOLD_ELDERLY < HAPPINESS_RESOURCE_LOW_THRESHOLD_ELDERLY < HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD_ELDERLY must hold (ARD 067), ' +
+        `got critical=${Variables.HAPPINESS_RESOURCE_CRITICAL_THRESHOLD_ELDERLY}, low=${Variables.HAPPINESS_RESOURCE_LOW_THRESHOLD_ELDERLY}, comfortable=${Variables.HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD_ELDERLY}. ` +
+        'Same failure mode as the adult ladder, checked independently — the two ladders are not multiples of one another and are not required to agree.'
+      );
+    }
+
+    if (!(Variables.CHILDBIRTH_RESOURCE_MIN < Variables.CHILDBIRTH_RESOURCE_SCALE)) {
+      throw new Error(
+        `CHILDBIRTH_RESOURCE_MIN must be strictly less than CHILDBIRTH_RESOURCE_SCALE (ARD 067), got min=${Variables.CHILDBIRTH_RESOURCE_MIN}, scale=${Variables.CHILDBIRTH_RESOURCE_SCALE}. ` +
+        'ChildbirthEvent divides by (SCALE − MIN): equal values produce 0/0 → NaN, and `rng() >= NaN` is false, so birth becomes ' +
+        'certain instead of blocked; an inverted ramp turns the famine brake into a famine accelerator.'
       );
     }
   }

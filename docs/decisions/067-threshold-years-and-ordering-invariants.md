@@ -1,6 +1,6 @@
 # ARD 067: Stock Thresholds Documented in Years of Consumption; `validate()` Guards Only the Orderings That Can Fail Silently
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-19
 
 ## Context
