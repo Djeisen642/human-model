@@ -4,7 +4,7 @@
 **Commands:** `npx ts-node scripts/sweep.ts --seeds {8,12,16} --ticks {2000,8000} --persons 300 --workers 4 --verbose --set …`; `npx ts-node scripts/compare.ts --seeds 24 --ticks {2000,8000} --persons 300 --workers 4 --both … --b …`
 **Key context vars:** `BASE_GATHER_AMOUNT=0.05`, `INTELLIGENCE_GATHER_SCALAR=0.005`, `CONSUMPTION_BASE=1.0`, `NATURAL_RESOURCE_REGEN_FRACTION=0.03`, `EXPERIENCE_CAP=50`
 
-**Headline: cutting how much each person extracts — without touching the pool, the birth rate or
+**Headline (read the dated note above first): cutting how much each person extracts — without touching the pool, the birth rate or
 anything else — turns the model's 90-fold boom-bust into an 8-fold one, and makes the society far
 healthier on every measure except the one that matters most. It does not improve survival, and may
 make it slightly worse.** In the best-known regime, the commons goes from stripped 41% of ticks to
@@ -181,6 +181,25 @@ against 186 for the same world untouched. Two caveats worth stating: the commons
 ticks here against 15% at 300 founders, so the strain benefit shrinks as the world gets bigger; and
 3000 ticks is short enough that the extinction question this study could not settle at 300 founders
 is simply not asked at 1000.
+
+> **Re-examined 2026-09-19 (commit af5de99) — the stability claim below is partly the ceiling, not the intervention.**
+> Regeneration is `ceiling × NATURAL_RESOURCE_REGEN_FRACTION`, and the ceiling reaches
+> `MAX_NATURAL_RESOURCE_CEILING` by tick ~50 and stays there for **98% of a 2,000-tick run**. So
+> inflow is a constant for essentially the whole run, and
+> `MAX_NATURAL_RESOURCE_CEILING × REGEN_FRACTION ÷ CONSUMPTION_BASE` is a hard cap on sustainable
+> population: ~2,100 here and ~7,100 at the 1,000-founder scale. **Measured peak population under C1
+> is 2,185 and 6,502 — sitting on those caps.** So cutting extraction plausibly did not create a
+> self-regulating population; it removed the 4× overshoot corridor so the population can sit *at* a
+> hard-coded limit instead of oscillating around it. The measured improvements to trough depth and
+> commons strain stand — those are paired tests. What is now unsupported is reading them as an
+> emergent equilibrium. The test that separates the two is sweeping the cap and checking whether the
+> peak-to-trough ratio holds as it rises; that has **not** been run.
+>
+> Two further defects found the same day bear on everything below, and are detailed in
+> `docs/future-ideas.md`: newborn intents regress toward zero rather than toward a population mean,
+> so learning, exercise, stealing and killing dispositions collapse ~35× within three generations and
+> the population is behaviourally inert for almost every tick measured here; and `helpingIntent` is
+> never inherited at all. Every run in this study was made on that population.
 
 ## What the distributions show: the two configs trade which scarcity you get
 
