@@ -28,7 +28,7 @@
 
 import LooperSingleton from '../src/App/LooperSingleton';
 import Simulation from '../src/App/Simulation';
-import Variables from '../src/Helpers/Variables';
+import { applyOverrides } from '../src/Helpers/HarnessOverrides';
 
 /**
  * Median of a numeric array; returns 0 for an empty input.
@@ -62,37 +62,6 @@ function parseArgs(argv: string[]): { opts: Record<string, string>; sets: string
     i++;
   }
   return { opts, sets };
-}
-
-/**
- * Apply `KEY=VALUE` pairs to the static Variables class, returning a restore closure.
- *
- * @param pairs - overrides in `KEY=VALUE` form
- * @returns a function that restores every overridden constant to its prior value
- */
-function applyOverrides(pairs: string[]): () => void {
-  const saved: [string, unknown][] = [];
-  for (const pair of pairs) {
-    const [key, raw] = pair.split('=');
-    if (!(key in Variables)) throw new Error(`Unknown Variables constant: ${key}`);
-    if (typeof (Variables as unknown as Record<string, unknown>)[key] !== 'number') {
-      throw new Error(`Not a Variables constant: ${key}`);
-    }
-    const value = Number(raw);
-    if (!Number.isFinite(value)) throw new Error(`Non-numeric override: ${pair}`);
-    // Save only the first sighting of a key. A key can legitimately appear twice (compare.ts
-    // composes `--both` then `--a`/`--b`, sweep.ts `--set` then `--sweep`), and the later one
-    // wins — but saving both would make restore() replay them in order and leave the
-    // intermediate value behind instead of the original.
-    if (!saved.some(([k]) => k === key)) {
-      saved.push([key, (Variables as unknown as Record<string, unknown>)[key]]);
-    }
-    (Variables as unknown as Record<string, unknown>)[key] = value;
-  }
-  Variables.validate();
-  return () => {
-    for (const [key, value] of saved) (Variables as unknown as Record<string, unknown>)[key] = value;
-  };
 }
 
 /**

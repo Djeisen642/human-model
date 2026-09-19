@@ -64,6 +64,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import LooperSingleton from '../src/App/LooperSingleton';
 import Variables from '../src/Helpers/Variables';
+import { applyOverrides } from '../src/Helpers/HarnessOverrides';
 
 /**
  * Built-in arm set. These span the known regimes: the default (dies by ~1200 ticks), the two
@@ -159,32 +160,6 @@ interface Job {
   stride: number;
   /** `KEY=VAL` Variables overrides for this run. */
   overrides: string[];
-}
-
-/** Apply `KEY=VALUE` to the static Variables class, returning a restore closure. */
-function applyOverrides(pairs: string[]): () => void {
-  const saved: [string, unknown][] = [];
-  for (const pair of pairs) {
-    const [key, raw] = pair.split('=');
-    if (!(key in Variables)) throw new Error(`Unknown Variables constant: ${key}`);
-    if (typeof (Variables as unknown as Record<string, unknown>)[key] !== 'number') {
-      throw new Error(`Not a Variables constant: ${key}`);
-    }
-    const value = Number(raw);
-    if (!Number.isFinite(value)) throw new Error(`Non-numeric override: ${pair}`);
-    // Save only the first sighting of a key. A key can legitimately appear twice (compare.ts
-    // composes `--both` then `--a`/`--b`, sweep.ts `--set` then `--sweep`), and the later one
-    // wins — but saving both would make restore() replay them in order and leave the
-    // intermediate value behind instead of the original.
-    if (!saved.some(([k]) => k === key)) {
-      saved.push([key, (Variables as unknown as Record<string, unknown>)[key]]);
-    }
-    (Variables as unknown as Record<string, unknown>)[key] = value;
-  }
-  Variables.validate();
-  return () => {
-    for (const [key, value] of saved) (Variables as unknown as Record<string, unknown>)[key] = value;
-  };
 }
 
 /**

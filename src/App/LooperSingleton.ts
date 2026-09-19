@@ -27,6 +27,11 @@ export default class LooperSingleton {
    * @param seed - PRNG seed for reproducibility
    * @param logger - output function for progress lines; defaults to console.log
    * @param personTypes - optional ARD-030 type definitions; defaults to no types
+   * @param onDecade - optional observer called at each decade boundary with the live simulation,
+   *   for probes that need per-person state over time. Observation only: it runs after the decade
+   *   summary is recorded and must not mutate the simulation. Without it a probe can only sample
+   *   `getLiving()` once, at run end, which is why the per-decade probes re-ran the whole
+   *   simulation per time point.
    * @returns the simulation after all ticks have run (or after interrupt)
    */
   public async start(
@@ -36,6 +41,7 @@ export default class LooperSingleton {
     // eslint-disable-next-line no-console
     logger: (msg: string) => void = console.log,
     personTypes: PersonTypes = {},
+    onDecade?: (simulation: Simulation, endTick: number) => void,
   ): Promise<Simulation> {
     this.interrupted = false;
     const rng = new SeededRandom(seed).asRNG();
@@ -76,6 +82,7 @@ export default class LooperSingleton {
         simulation.decadeHistory.push(summary);
         logger(formatDecadeSummary(summary));
         startPopulation = summary.endPopulation;
+        onDecade?.(simulation, t + 1);
       }
 
       // Yield to the event loop so SIGINT can be delivered between ticks.
@@ -98,6 +105,7 @@ export default class LooperSingleton {
       const window = simulation.history.slice(actualTicks - remainder, actualTicks);
       const partial = buildTenYearSummary(window, actualTicks, startPopulation);
       simulation.decadeHistory.push(partial);
+      onDecade?.(simulation, actualTicks);
       logger(formatDecadeSummary(partial));
     }
 

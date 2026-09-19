@@ -14,6 +14,18 @@
  * single-tick share of children who are orphaned) and `welf%` (share of person-ticks drawing
  * welfare) as family-structure and redistribution-reach stress signals.
  *
+ * Two columns come from `GrowthDetector` and answer "is anything running away?": `popTrd` is the
+ * population's end-to-end log-growth per 1000 ticks (0 means the run finishes where it started,
+ * +0.69 means it doubled, −0.69 means it halved), and `rnwy` counts seeds where *any* tracked
+ * series — population, resource ceiling, extraction productivity, mean personal resources — is
+ * still growing exponentially at the end after a ≥10× rise. A `rnwy` above zero means the run was
+ * truncated mid-explosion and its end-state numbers describe the clock, not the model.
+ *
+ * `good%` exists because the outcome label is read off the FINAL decade, so in an oscillating
+ * regime it depends on where in the cycle the clock stopped. It re-classifies the same run at each
+ * of the last 30 decade boundaries and reports the share that read CYCLICAL or STABLE. A config in
+ * a genuinely good state scores high; one that merely stopped in a flattering decade does not.
+ *
  * Usage:
  *   npx ts-node scripts/sweep.ts [options]   (or: npm run sweep -- [options])
  *
@@ -24,20 +36,22 @@
  *   --set KEY=VAL         override a Variables constant for every run (repeatable)
  *   --sweep KEY=a,b,c     run the whole seed set once per value of KEY (one sweep dimension)
  *   --workers N           parallel worker processes (default: CPU count)
- *   --verbose             also print every individual run, not just the per-value aggregate
+ *   --verbose             also print every individual run, plus the classifier gate that drove its label
  *
  * Examples:
  *   npm run sweep -- --seeds 40 --ticks 300 --sweep BASE_CHILDBIRTH_RATE=0.2,0.3,0.4
  *   npm run sweep -- --seeds 20 --set MAX_NATURAL_RESOURCE_CEILING=12000 --verbose
  */
 
-import { fork } from 'child_process';
 import * as os from 'os';
 import LooperSingleton from '../src/App/LooperSingleton';
 import Simulation from '../src/App/Simulation';
 import Variables from '../src/Helpers/Variables';
-import { classifyOutcome, OutcomeLabel } from '../src/Helpers/Reporters';
+import { classifyOutcome, explainOutcome, OutcomeLabel } from '../src/Helpers/Reporters';
 import { detectCycles } from '../src/Helpers/CycleDetector';
+import { detectGrowth } from '../src/Helpers/GrowthDetector';
+import { applyOverrides, parseSeeds } from '../src/Helpers/HarnessOverrides';
+import { dispatch, isWorkerProcess, serveWorker } from './workerPool';
 
 interface RunMetrics {
   seed: number;
@@ -62,10 +76,14 @@ interface RunMetrics {
   period: number; // avg ticks between successive peaks
   troughTrend: number; // last trough ÷ first trough (≈1 holds, <1 ratchets toward extinction)
   stableCycle: boolean; // sustained, non-collapsing oscillation
+  reason: string; // which classifier gate drove the label — the diagnosis, not just the verdict
+  popTrendPerK: number; // population log-growth per 1000 ticks, end to end (0 = finishes where it started)
+  popExpShare: number; // share of windows where population is growing exponentially
+  goodShare: number; // share of the last PHASE_WINDOW_DECADES stopping points reading CYCLICAL or STABLE
+  runawaySeries: string[]; // tracked series still exploding when the clock stopped
 }
 
 interface Job {
-  id: string;
   seed: number;
   ticks: number;
   persons: number;
@@ -75,31 +93,16 @@ interface Job {
 /** Threshold below which the pool counts as "bound" (commons exhausted) for boundFraction. */
 const BOUND_THRESHOLD = 0.05;
 
-/** Apply `KEY=VALUE` to the static Variables class, returning a restore closure. */
-function applyOverrides(pairs: string[]): () => void {
-  const saved: [string, unknown][] = [];
-  for (const pair of pairs) {
-    const [key, raw] = pair.split('=');
-    if (!(key in Variables)) throw new Error(`Unknown Variables constant: ${key}`);
-    if (typeof (Variables as unknown as Record<string, unknown>)[key] !== 'number') {
-      throw new Error(`Not a Variables constant: ${key}`);
-    }
-    const value = Number(raw);
-    if (!Number.isFinite(value)) throw new Error(`Non-numeric override: ${pair}`);
-    // Save only the first sighting of a key. A key can legitimately appear twice (compare.ts
-    // composes `--both` then `--a`/`--b`, sweep.ts `--set` then `--sweep`), and the later one
-    // wins — but saving both would make restore() replay them in order and leave the
-    // intermediate value behind instead of the original.
-    if (!saved.some(([k]) => k === key)) {
-      saved.push([key, (Variables as unknown as Record<string, unknown>)[key]]);
-    }
-    (Variables as unknown as Record<string, unknown>)[key] = value;
-  }
-  Variables.validate();
-  return () => {
-    for (const [key, value] of saved) (Variables as unknown as Record<string, unknown>)[key] = value;
-  };
-}
+/**
+ * How many decade boundaries at the end of a run to re-classify for `good%`.
+ *
+ * The outcome label is read off the FINAL decade, so in an oscillating regime it depends on where
+ * in the cycle the clock happened to stop: the same run reads CYCLICAL at a trough decade (commons
+ * refilled) and STRUGGLING at a peak decade (commons stripped). 30 decades is 300 ticks, a little
+ * over one cycle period in the scaled-commons regime, so the window spans every phase and the
+ * resulting share is phase-robust where the single label is a coin flip.
+ */
+const PHASE_WINDOW_DECADES = 30;
 
 /** Run one simulation (overrides already applied) and reduce its history to a metrics row. */
 async function runOne(seed: number, ticks: number, persons: number): Promise<RunMetrics> {
@@ -138,6 +141,35 @@ async function runOne(seed: number, ticks: number, persons: number): Promise<Run
     troughHoldFraction: Variables.CYCLICAL_TROUGH_HOLD_FRACTION,
   });
 
+  // Four series can run away, and each means something different: population (a boom the clock cut
+  // short), ceiling (technology lifting carrying capacity without bound), productivity (parking at
+  // its cap), mean resources (wealth compounding faster than it is consumed). minLevel is scaled
+  // per series because productivity lives near 1 while population lives in the thousands.
+  const popGrowth = detectGrowth(h.map((s) => s.population));
+  const tracked: [string, ReturnType<typeof detectGrowth>][] = [
+    ['population', popGrowth],
+    ['ceiling', detectGrowth(h.map((s) => s.naturalResourceCeiling))],
+    ['productivity', detectGrowth(h.map((s) => s.extractionProductivity), { minLevel: 0.001 })],
+    ['resources', detectGrowth(h.map((s) => s.averageResources), { minLevel: 0.1 })],
+  ];
+
+  const outcome = classifyOutcome(sim.decadeHistory, persons, cycles);
+
+  // Re-classify the same run as if the clock had stopped at each of the last PHASE_WINDOW_DECADES
+  // decade boundaries. A config that is genuinely in a good state scores high here; one that merely
+  // stopped in a flattering decade does not.
+  const populations = h.map((s) => s.population);
+  const decades = sim.decadeHistory;
+  let goodStops = 0, totalStops = 0;
+  for (let k = Math.max(2, decades.length - PHASE_WINDOW_DECADES); k <= decades.length; k++) {
+    const label = classifyOutcome(decades.slice(0, k), persons, detectCycles(
+      populations.slice(0, Math.min(populations.length, k * 10)),
+      { minCycles: Variables.CYCLICAL_MIN_CYCLES, troughHoldFraction: Variables.CYCLICAL_TROUGH_HOLD_FRACTION },
+    ));
+    totalStops++;
+    if (label === 'CYCLICAL' || label === 'STABLE') goodStops++;
+  }
+
   return {
     seed,
     endPop: last.population,
@@ -154,35 +186,17 @@ async function runOne(seed: number, ticks: number, persons: number): Promise<Run
     orphanShare: childTotal > 0 ? orphanTotal / childTotal : 0,
     peakOrphanShare,
     welfareShare: popTotal > 0 ? welfareTotal / popTotal : 0,
-    outcome: classifyOutcome(sim.decadeHistory, persons, cycles),
+    outcome,
+    reason: explainOutcome(sim.decadeHistory, persons, outcome, cycles),
     numCycles: cycles.numCycles,
     period: cycles.period,
     troughTrend: cycles.troughTrend,
     stableCycle: cycles.stableCycle,
+    popTrendPerK: 1000 * popGrowth.trendRate,
+    popExpShare: popGrowth.share,
+    goodShare: totalStops > 0 ? goodStops / totalStops : 0,
+    runawaySeries: tracked.filter(([, g]) => g.runaway).map(([name]) => name),
   };
-}
-
-// ----- Worker mode: receive jobs over IPC, run them, return metrics -----
-
-interface JobMsg { type: 'job'; job: Job }
-interface DoneMsg { type: 'done' }
-type ParentMsg = JobMsg | DoneMsg;
-
-function runWorker(): void {
-  process.on('message', (msg: ParentMsg) => {
-    if (msg.type === 'done') { process.exit(0); }
-    const { job } = msg;
-    const restore = applyOverrides(job.overrides);
-    runOne(job.seed, job.ticks, job.persons).then(metrics => {
-      restore();
-      process.send!({ type: 'result', id: job.id, metrics });
-    }).catch(err => {
-      restore();
-      console.error(err);
-      process.exit(1);
-    });
-  });
-  process.send!({ type: 'ready' });
 }
 
 // ----- Parent mode: build the matrix, dispatch to a worker pool, aggregate -----
@@ -202,12 +216,6 @@ function parseArgs(argv: string[]): { opts: Record<string, string>; sets: string
   return { opts, sets };
 }
 
-function parseSeeds(spec: string | undefined): number[] {
-  if (!spec) return [1, 2, 3, 4, 5, 6, 7, 8];
-  if (spec.includes(',')) return spec.split(',').map((s) => Number(s.trim()));
-  return Array.from({ length: Number(spec) }, (_, i) => i + 1);
-}
-
 function median(xs: number[]): number {
   const s = [...xs].sort((a, b) => a - b);
   const mid = Math.floor(s.length / 2);
@@ -220,53 +228,9 @@ function tally(labels: OutcomeLabel[]): string {
   return [...counts.entries()].map(([k, v]) => `${k}×${v}`).join(' ');
 }
 
-/** Run all jobs across a pool of forked workers; resolve with id→metrics when every job is done. */
-function dispatch(jobs: Job[], workerCount: number): Promise<Map<string, RunMetrics>> {
-  return new Promise((resolve, reject) => {
-    const results = new Map<string, RunMetrics>();
-    const nWorkers = Math.max(1, Math.min(workerCount, jobs.length));
-    const children: ReturnType<typeof fork>[] = [];
-    let next = 0;
-    let remaining = jobs.length;
-    let settled = false;
-
-    const finish = (): void => {
-      if (settled) return;
-      settled = true;
-      // Tell every worker to exit so their IPC channels close and the parent can terminate.
-      for (const c of children) if (c.connected) c.send({ type: 'done' });
-      resolve(results);
-    };
-
-    for (let w = 0; w < nWorkers; w++) {
-      const child = fork(__filename, ['--worker'], {
-        execArgv: ['-r', 'ts-node/register/transpile-only'],
-      });
-      children.push(child);
-      const pump = (): void => {
-        if (settled) return;
-        if (next < jobs.length) child.send({ type: 'job', job: jobs[next++] });
-        else child.send({ type: 'done' });
-      };
-      child.on('message', (msg: { type: string; id?: string; metrics?: RunMetrics }) => {
-        if (msg.type === 'result' && msg.id) {
-          results.set(msg.id, msg.metrics as RunMetrics);
-          remaining--;
-        }
-        if (remaining === 0) finish();
-        else pump();
-      });
-      child.on('error', reject);
-      child.on('exit', (code) => {
-        if (code && code !== 0 && !settled) reject(new Error(`worker exited with code ${code}`));
-      });
-    }
-  });
-}
-
 async function main(): Promise<void> {
   const { opts, sets } = parseArgs(process.argv.slice(2));
-  const seeds = parseSeeds(opts.seeds);
+  const seeds = parseSeeds(opts.seeds, [1, 2, 3, 4, 5, 6, 7, 8]);
   const ticks = Number(opts.ticks ?? 200);
   const persons = Number(opts.persons ?? 100);
   const verbose = opts.verbose === 'true';
@@ -286,7 +250,7 @@ async function main(): Promise<void> {
     for (const seed of seeds) {
       const overrides = [...sets];
       if (sweepKey) overrides.push(`${sweepKey}=${sv}`);
-      jobs.push({ id: `${sv}::${seed}`, seed, ticks, persons, overrides });
+      jobs.push({ seed, ticks, persons, overrides });
     }
   }
 
@@ -296,11 +260,14 @@ async function main(): Promise<void> {
   console.log('');
 
   const t0 = Date.now();
-  const results = await dispatch(jobs, workers);
+  const flat = await dispatch<Job, RunMetrics>(jobs, workers, __filename);
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  // Jobs were emitted sweep-value-major, seed-minor, and come back in the same order.
+  const results = new Map<string, RunMetrics>();
+  jobs.forEach((job, i) => results.set(`${sweepVals[Math.floor(i / seeds.length)]}::${job.seed}`, flat[i]));
 
   const header = (sweepKey ? `${sweepKey.padEnd(28)}  ` : '') +
-    `outcomes (n=${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  orph%  orphPk%  welf%  extinct  cyc  stable`;
+    `outcomes (n=${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  orph%  orphPk%  welf%  extinct  cyc  stable  good%  popTrd  rnwy`;
   console.log(header);
   console.log('-'.repeat(header.length));
 
@@ -308,6 +275,7 @@ async function main(): Promise<void> {
     const rows = seeds.map((seed) => results.get(`${sv}::${seed}`)!);
     const extinctCount = rows.filter((r) => r.extinctTick !== null).length;
     const stableCount = rows.filter((r) => r.stableCycle).length;
+    const runawayCount = rows.filter((r) => r.runawaySeries.length > 0).length;
     const label = sweepKey ? `${sweepKey}=${sv}`.padEnd(28) + '  ' : '';
     console.log(
       label +
@@ -321,7 +289,10 @@ async function main(): Promise<void> {
       (100 * median(rows.map((r) => r.welfareShare))).toFixed(0).padStart(4) + '%  ' +
       `${extinctCount}/${seeds.length}`.padStart(7) + '  ' +
       String(median(rows.map((r) => r.numCycles))).padStart(3) + '  ' +
-      `${stableCount}/${seeds.length}`.padStart(6),
+      `${stableCount}/${seeds.length}`.padStart(6) + '  ' +
+      (100 * median(rows.map((r) => r.goodShare))).toFixed(0).padStart(4) + '%  ' +
+      median(rows.map((r) => r.popTrendPerK)).toFixed(2).padStart(6) + '  ' +
+      `${runawayCount}/${seeds.length}`.padStart(4),
     );
     if (verbose) {
       for (const r of rows) {
@@ -332,17 +303,27 @@ async function main(): Promise<void> {
           `orph=${(100 * r.orphanShare).toFixed(1)}%/pk${(100 * r.peakOrphanShare).toFixed(0)}% ` +
           `welf=${(100 * r.welfareShare).toFixed(0)}% ` +
           `cyc=${r.numCycles} per=${r.period.toFixed(0)} trTrend=${r.troughTrend.toFixed(2)}${r.stableCycle ? ' STABLE-CYCLE' : ''} ` +
+          `good=${(100 * r.goodShare).toFixed(0)}% popTrd=${r.popTrendPerK.toFixed(2)}/kt exp=${(100 * r.popExpShare).toFixed(0)}%` +
+          `${r.runawaySeries.length ? ` RUNAWAY[${r.runawaySeries.join(',')}]` : ''} ` +
           `deaths(ill/mur/dis/sui)=${r.illness}/${r.murder}/${r.disaster}/${r.suicide} births=${r.births} ` +
           `${r.extinctTick !== null ? `extinct@${r.extinctTick}` : ''}`,
         );
+        console.log(`                   why: ${r.reason}`);
       }
     }
   }
   console.log(`\n(${jobs.length} runs in ${elapsed}s)`);
 }
 
-if (process.argv.includes('--worker')) {
-  runWorker();
+if (isWorkerProcess()) {
+  serveWorker<Job, RunMetrics>(async (job) => {
+    const restore = applyOverrides(job.overrides);
+    try {
+      return await runOne(job.seed, job.ticks, job.persons);
+    } finally {
+      restore();
+    }
+  });
 } else {
   main().catch((e) => { console.error(e); process.exit(1); });
 }
