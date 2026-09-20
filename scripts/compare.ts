@@ -44,6 +44,7 @@ import {
 } from '../src/Helpers/Statistics';
 import { applyOverrides, parseSeeds } from '../src/Helpers/HarnessOverrides';
 import { dispatch, isWorkerProcess, serveWorker } from './workerPool';
+import { DEFAULT_PROGRESS_FILE, ProgressSnapshot, writeProgress } from '../src/Helpers/RunProgress';
 
 /** Permutations drawn per comparison; also sets the finest probability the test can resolve. */
 const PERMUTATIONS = 10_000;
@@ -200,9 +201,47 @@ async function main(): Promise<void> {
     ...seeds.map((seed) => ({ overrides: [...both, ...b], seed, ticks, persons })),
   ];
   const t0 = Date.now();
-  const all = await dispatch<Job, RunMeasures>(jobs, workers, __filename);
-  const baseline = all.slice(0, seeds.length);
-  const treatment = all.slice(seeds.length);
+
+  // Same status file as the sweep, for the same reason: a paired comparison at 48 seeds is a long
+  // wait, and `npm run progress` should answer "how far along" without stopping anything.
+  const statusPath = opts.status ?? DEFAULT_PROGRESS_FILE;
+  const snapshot: ProgressSnapshot = {
+    pid: process.pid,
+    tool: 'compare',
+    label: `${jobs.length} jobs (${seeds.length} paired seeds), ${ticks} ticks, ${persons} persons`,
+    startedAtMs: t0,
+    updatedAtMs: t0,
+    total: jobs.length,
+    completed: 0,
+    inFlight: 0,
+    done: false,
+    rows: [],
+  };
+  writeProgress(statusPath, snapshot);
+
+  const all = await dispatch<Job, RunMeasures>(jobs, workers, __filename, {
+    onDispatch: (inFlight): void => {
+      snapshot.inFlight = inFlight;
+      snapshot.updatedAtMs = Date.now();
+      writeProgress(statusPath, snapshot);
+    },
+    onProgress: (completedCount): void => {
+      snapshot.completed = completedCount;
+      snapshot.inFlight = Math.max(0, snapshot.inFlight - 1);
+      snapshot.updatedAtMs = Date.now();
+      writeProgress(statusPath, snapshot);
+    },
+  });
+  snapshot.done = true;
+  snapshot.updatedAtMs = Date.now();
+  writeProgress(statusPath, snapshot);
+
+  // Uninterrupted dispatch fills every slot; compare has no stop path because a partial arm cannot
+  // be paired against a complete one, and a half-paired test is worse than no test.
+  const complete = all.filter((r): r is RunMeasures => r !== undefined);
+  if (complete.length !== jobs.length) throw new Error('comparison did not complete; refusing to report a partial pairing');
+  const baseline = complete.slice(0, seeds.length);
+  const treatment = complete.slice(seeds.length);
   console.log(`  ${jobs.length} runs on ${Math.max(1, Math.min(workers, jobs.length))} workers`
     + ` in ${((Date.now() - t0) / 1000).toFixed(1)}s.`);
 

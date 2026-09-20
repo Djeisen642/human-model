@@ -52,6 +52,10 @@ import { detectCycles } from '../src/Helpers/CycleDetector';
 import { detectGrowth } from '../src/Helpers/GrowthDetector';
 import { applyOverrides, parseSeeds } from '../src/Helpers/HarnessOverrides';
 import { dispatch, isWorkerProcess, serveWorker } from './workerPool';
+import {
+  DEFAULT_PROGRESS_FILE, ProgressRow, ProgressSnapshot, writeProgress,
+} from '../src/Helpers/RunProgress';
+import { serveProgressOverHttp } from './progressServer';
 
 interface RunMetrics {
   seed: number;
@@ -228,6 +232,35 @@ function tally(labels: OutcomeLabel[]): string {
   return [...counts.entries()].map(([k, v]) => `${k}×${v}`).join(' ');
 }
 
+/**
+ * Summarise one finished job for the status file.
+ *
+ * Deliberately a handful of headline fields rather than the whole `RunMetrics`: the file is read
+ * by a human mid-run who wants to know whether the configuration is going anywhere, and the full
+ * metrics are printed by the final table anyway.
+ *
+ * @param index - the job's position in the dispatch order
+ * @param jobs - every job in the run
+ * @param seeds - the seed list, used to recover which sweep value this job belongs to
+ * @param sweepKey - the swept Variables key, or null when not sweeping
+ * @param sweepVals - the swept values, in job-matrix order
+ * @param result - the finished job's metrics
+ * @returns one row for the status file
+ */
+function progressRow(
+  index: number, jobs: Job[], seeds: number[], sweepKey: string | null,
+  sweepVals: string[], result: RunMetrics,
+): ProgressRow {
+  const row: ProgressRow = { seed: jobs[index].seed };
+  if (sweepKey) row[sweepKey] = sweepVals[Math.floor(index / seeds.length)];
+  row.outcome = result.outcome;
+  row.endPop = result.endPop;
+  row.peakPop = result.peakPop;
+  row.popTrd = Number(result.popTrendPerK.toFixed(2));
+  row.cyc = result.numCycles;
+  return row;
+}
+
 async function main(): Promise<void> {
   const { opts, sets } = parseArgs(process.argv.slice(2));
   const seeds = parseSeeds(opts.seeds, [1, 2, 3, 4, 5, 6, 7, 8]);
@@ -260,19 +293,100 @@ async function main(): Promise<void> {
   console.log('');
 
   const t0 = Date.now();
-  const flat = await dispatch<Job, RunMetrics>(jobs, workers, __filename);
-  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-  // Jobs were emitted sweep-value-major, seed-minor, and come back in the same order.
-  const results = new Map<string, RunMetrics>();
-  jobs.forEach((job, i) => results.set(`${sweepVals[Math.floor(i / seeds.length)]}::${job.seed}`, flat[i]));
 
+  // Progress is published to a status file after every job so a long run can be inspected while
+  // it works, and — the reason this exists — so killing it keeps the rows it already finished.
+  const statusPath = opts.status ?? DEFAULT_PROGRESS_FILE;
+  const snapshot: ProgressSnapshot = {
+    pid: process.pid,
+    tool: 'sweep',
+    label: `${jobs.length} jobs, ${ticks} ticks, ${persons} persons` +
+      (sweepKey ? `, sweeping ${sweepKey}` : '') + (sets.length ? `, set:{${sets.join(' ')}}` : ''),
+    startedAtMs: t0,
+    updatedAtMs: t0,
+    total: jobs.length,
+    completed: 0,
+    inFlight: 0,
+    done: false,
+    rows: [],
+  };
+  writeProgress(statusPath, snapshot);
+
+  // `--port` additionally serves the same snapshot over HTTP, always current rather than as of the
+  // last completed job. Opt-in: two concurrent sweeps would otherwise collide on one port.
+  const closeServer = opts.port
+    ? serveProgressOverHttp(Number(opts.port), () => ({ ...snapshot, updatedAtMs: Date.now() }))
+    : null;
+
+  // A job can run for many minutes, so without a heartbeat the file's timestamp would make a
+  // healthy run look wedged. Unref'd so it never keeps the process alive on its own.
+  const heartbeat = setInterval(() => {
+    snapshot.updatedAtMs = Date.now();
+    writeProgress(statusPath, snapshot);
+  }, 10_000);
+  heartbeat.unref();
+
+  const controller = new AbortController();
+  let stopping = false;
+  const requestStop = (signalName: string): void => {
+    if (stopping) return;
+    stopping = true;
+    console.log(`\n[${signalName}] stopping after in-flight jobs; reporting what finished.`);
+    controller.abort();
+  };
+  process.on('SIGINT', () => requestStop('SIGINT'));
+  process.on('SIGTERM', () => requestStop('SIGTERM'));
+
+  const flat = await dispatch<Job, RunMetrics>(jobs, workers, __filename, {
+    signal: controller.signal,
+    onDispatch: (inFlight): void => {
+      snapshot.inFlight = inFlight;
+      snapshot.updatedAtMs = Date.now();
+      writeProgress(statusPath, snapshot);
+    },
+    onProgress: (completedCount, total, index, result): void => {
+      snapshot.completed = completedCount;
+      snapshot.inFlight = Math.max(0, snapshot.inFlight - 1);
+      snapshot.updatedAtMs = Date.now();
+      snapshot.rows.push(progressRow(index, jobs, seeds, sweepKey, sweepVals, result));
+      writeProgress(statusPath, snapshot);
+    },
+  });
+  clearInterval(heartbeat);
+  closeServer?.();
+  snapshot.done = true;
+  snapshot.inFlight = 0;
+  snapshot.updatedAtMs = Date.now();
+  writeProgress(statusPath, snapshot);
+
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  // Jobs were emitted sweep-value-major, seed-minor, and come back in the same order. A stopped
+  // run leaves holes, so unfinished slots are dropped rather than aggregated as if they were data.
+  const results = new Map<string, RunMetrics>();
+  jobs.forEach((job, i) => {
+    const r = flat[i];
+    if (r !== undefined) results.set(`${sweepVals[Math.floor(i / seeds.length)]}::${job.seed}`, r);
+  });
+  if (stopping) {
+    console.log(`(stopped: ${results.size} of ${jobs.length} jobs completed; rows below cover only those)\n`);
+  }
+
+  // `n≤` when stopped: each row's counts are denominated in the seeds that finished, which may
+  // differ per sweep value, so a flat `n=12` in the header would contradict a `0/2` in the row.
   const header = (sweepKey ? `${sweepKey.padEnd(28)}  ` : '') +
-    `outcomes (n=${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  orph%  orphPk%  welf%  extinct  cyc  stable  good%  popTrd  rnwy`;
+    `outcomes (n${stopping ? '≤' : '='}${seeds.length})`.padEnd(34) + `  endPop  peakPop  peakGini  bound%  orph%  orphPk%  welf%  extinct  cyc  stable  good%  popTrd  rnwy`;
   console.log(header);
   console.log('-'.repeat(header.length));
 
   for (const sv of sweepVals) {
-    const rows = seeds.map((seed) => results.get(`${sv}::${seed}`)!);
+    // A stopped run has no result for some seeds. Aggregating over the seeds that did finish is
+    // the only honest option, so every count below is denominated in `n`, not the requested seed
+    // count — a 3/5 extinction rate from a run that was cut short must not read as 3/12.
+    const rows = seeds
+      .map((seed) => results.get(`${sv}::${seed}`))
+      .filter((r): r is RunMetrics => r !== undefined);
+    if (rows.length === 0) continue;
+    const n = rows.length;
     const extinctCount = rows.filter((r) => r.extinctTick !== null).length;
     const stableCount = rows.filter((r) => r.stableCycle).length;
     const runawayCount = rows.filter((r) => r.runawaySeries.length > 0).length;
@@ -287,12 +401,12 @@ async function main(): Promise<void> {
       (100 * median(rows.map((r) => r.orphanShare))).toFixed(1).padStart(4) + '%  ' +
       (100 * median(rows.map((r) => r.peakOrphanShare))).toFixed(0).padStart(6) + '%  ' +
       (100 * median(rows.map((r) => r.welfareShare))).toFixed(0).padStart(4) + '%  ' +
-      `${extinctCount}/${seeds.length}`.padStart(7) + '  ' +
+      `${extinctCount}/${n}`.padStart(7) + '  ' +
       String(median(rows.map((r) => r.numCycles))).padStart(3) + '  ' +
-      `${stableCount}/${seeds.length}`.padStart(6) + '  ' +
+      `${stableCount}/${n}`.padStart(6) + '  ' +
       (100 * median(rows.map((r) => r.goodShare))).toFixed(0).padStart(4) + '%  ' +
       median(rows.map((r) => r.popTrendPerK)).toFixed(2).padStart(6) + '  ' +
-      `${runawayCount}/${seeds.length}`.padStart(4),
+      `${runawayCount}/${n}`.padStart(4),
     );
     if (verbose) {
       for (const r of rows) {
@@ -312,7 +426,7 @@ async function main(): Promise<void> {
       }
     }
   }
-  console.log(`\n(${jobs.length} runs in ${elapsed}s)`);
+  console.log(`\n(${results.size}${results.size === jobs.length ? '' : ` of ${jobs.length}`} runs in ${elapsed}s)`);
 }
 
 if (isWorkerProcess()) {

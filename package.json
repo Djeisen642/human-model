@@ -10,7 +10,8 @@
     "generate-config": "ts-node scripts/generate-config.ts",
     "sweep": "ts-node scripts/sweep.ts",
     "start": "ts-node src/App/index.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "progress": "ts-node scripts/progress.ts"
   },
   "keywords": [],
   "author": "Jason Suttles <jasonssuttles@gmail.com>",
