@@ -25,8 +25,12 @@ concentration strips the pool into private stockpiles that never come back, so a
 at a high gradient cannot be attributed to inequality rather than to the missing depreciation. A
 control arm needs either a per-tick decay on held `resources` (stored food spoils, tools wear) or a
 fraction of consumption returning to the pool. Which of the two is a real design choice: decay is a
-sink, return-to-pool is a cycle, and they imply different long-run carrying capacities. ARD-level,
-and it gates any causal claim about inequality from ARD 068.
+sink, return-to-pool is a cycle, and they imply different long-run carrying capacities. ARD-level.
+*(2026-09-20: this no longer gates the first ARD-068 result. `docs/research-access-gradient.md`
+measured per-capita private holdings at 22.8 against 22.7 across gradients 0 and 0.75 — total
+private wealth rises only in proportion to population, so nothing is being hoarded out of the
+commons and the trough effect is not sequestration. The defect is still real and still worth
+fixing; it is just not the explanation for that result.)*
 
 **Frontier expansion — a resource ceiling that isn't structurally fixed**
 Every non-extinct configuration found so far (`docs/research-scale-robustness.md`) works within a

@@ -195,6 +195,8 @@ gradient bites, meaning redistribution becomes the subsistence base for half the
 could absorb the entire effect. Include one deliberately unnormalised arm as a positive control, to
 demonstrate the instrument can distinguish a change in distribution from a change in volume.
 
+> **Measured 2026-09-20 (commit `6d69e06`) — the prediction above is half right; see `docs/research-access-gradient.md`.** Trough depth does fall, but **not monotonically**: 0.25 and 0.5 are flat nulls and the whole effect lands between 0.5 and 0.75 (−29.6 people, p < 0.001, 21/24 seeds). The `TAX_RATE` cross this section called for was decisive — without welfare funding the effect roughly doubles (−61.6, 24/24 seeds) and the threshold drops to 0.5. The sequestration confound in the next paragraph was also measured and **does not explain the result**: per-capita private holdings are 22.8 against 22.7 across doses.
+
 **Known weakness, and it is not small.** Private wealth in this model never depreciates and never
 returns to `naturalResources`. Under a positive gradient, concentration sequesters the commons into
 private stockpiles permanently, so a collapse observed at a high exponent may be the missing
