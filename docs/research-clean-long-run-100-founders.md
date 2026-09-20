@@ -85,12 +85,31 @@ pool — and note how tightly, 4,251–4,551 across 24 seeds, a ±3% spread that
 3,000 and 30,000 ticks. Carrying capacity here is a hard constant, consistent with
 `docs/research-ceiling-pins-carrying-capacity.md`.
 
-> **Paired test pending.** The table above is `sweep.ts` output on 24 seeds per arm, which this
-> project's own rules say is for exploring, not deciding. The `compare.ts` run on the same 24 paired
-> seeds at 30,000 ticks is in progress, with **runs ending extinct** and **lowest population
-> reached** named as the measures beforehand. Treat the commons-scale result as unconfirmed until
-> this section carries its verdict. Note that `compare.ts`'s lowest-population measure is the
-> floored one described below, so it is expected to under-report the trough effect.
+**Paired test verdict (24 seeds, 30,000 ticks per arm, 6,338s).** Both measures named beforehand
+came back in the predicted direction, but read the first one carefully:
+
+| Measure | Baseline | Treatment | Verdict |
+|---|---|---|---|
+| **Runs ending extinct** *(predicted)* | 7/24 | 0/24 | **PROBABLY REAL**, ~1 in 64 |
+| **Lowest population reached** *(predicted)* | 18 | 104 | REAL, +89 per seed (85 to 99), <1 in 10,001 |
+| Peak population | 1,575 | 4,481 | REAL, +2,858 (2,793 to 2,956), <1 in 10,001 |
+| Population at the end | 159 | 869 | REAL, +582 (340 to 1,964), ~1 in 2,500 |
+| Share of ticks with pool stripped | 80% | 82% | REAL, +2 points (1 to 15), ~1 in 500 |
+
+**The extinction result is weaker than the raw counts suggest, and that is the point of running the
+test.** 7 versus 0 looks overwhelming, but the arms disagree on only 7 seeds, and an exact McNemar
+test on 7 discordant pairs all pointing one way cannot do better than about 1 in 64 however lopsided
+they are. That is suggestive, not decisive. A confident call needs more seeds. This corrects the
+expectation stated in the pull request that opened this study — that the paired test would be a
+formality.
+
+**The trough measure is floor-limited and under-reports.** Treatment median 104 is the founding
+population, not a trough (see the measurement trap below); the true trough depths are ~60 against
+~221. So +89 is a lower bound on an effect that is roughly +160.
+
+**The commons got very slightly worse, not better.** +2 points of stripped-pool time is real but
+tiny, and its range runs to +15. Scaling the world buys survival and population, not relief on the
+commons.
 
 Nothing else improved. `bound%` went *up* slightly, `welf%` is unchanged, `good%` is 10%. This is the
 same Malthusian grind with 2.8x more people in it — about 500,000 births and 500,000 deaths per run.
@@ -113,6 +132,45 @@ saturates silently rather than erroring. The paired tests in
 are unaffected, since every value there is below its founding population — but they are closer to the
 floor than is comfortable, and any future use of that measure in a healthy regime will be wrong.
 `scripts/trough-probe.ts` was written to replace it and drops the leading pivot for this reason.
+
+## A second measurement trap: `compare.ts` was counting jitter as cycles
+
+`compare.ts`'s "Boom-bust cycles completed" counted **every local maximum in the raw, unsmoothed
+tick series** (`p > 20` and higher than its neighbours two ticks out), described in the code as a
+"simple, threshold-free cycle proxy". It counted jitter. Worse, the jitter count *falls* as the
+population grows, because a larger population is relatively less noisy tick to tick — so the measure
+anti-correlates with population size.
+
+Measured on one seed at 6,000 ticks, same data through both counters:
+
+| | local-max count | `detectCycles` | Peak pop |
+|---|---|---|---|
+| Small world | 83 | 23 | 1,684 |
+| Big world | 53 | 24 | 4,230 |
+
+Inflated 2–4x, and **the sign reverses**: the proxy says the small world cycles far more, the real
+detector says the two are level. That is exactly what the paired run above reported — "cycles
+completed, baseline 388 against treatment 246, REAL DIFFERENCE, about 1 in 526" — a significance
+verdict on an artifact, produced by the tool this project mandates for deciding whether two configs
+differ. Fixed here: `compare.ts` now calls `detectCycles` with the same `Variables` thresholds as
+`sweep.ts` and `classifyOutcome`, so the three cannot disagree about what a cycle is. The same
+comparison now reads 23 against 24, TOO CLOSE TO CALL.
+
+Both traps in this study have the same shape: a measure that looks meaningful, reports something
+else, and fails silently. Neither errors, and both produced confident-looking output.
+
+## The outcome tally measures where the clock stopped
+
+This study's sweep tables report labels like `STRUGGLING x19 CYCLICAL x1 COLLAPSE x4`. That tally is
+24 statements about which decade each run happened to end in, not 24 statements about how those runs
+were doing. Demonstrated directly: seed 4 of the surviving configuration classifies **COLLAPSE** when
+truncated at 6,000 ticks and **CYCLICAL** at 30,000 — the same seed, the same configuration, the same
+trajectory, differing only in where the clock stopped. `good%` is the phase-robust figure and is the
+one to quote; it reads 10% for the surviving configuration, against 6% for the small world.
+
+`docs/calibration-guide.md` already documented this effect and `good%` already existed to correct
+for it. What is new is the worked demonstration on a single seed, which is more convincing than the
+prose and came out of generating an HTML report rather than from an experiment designed to find it.
 
 ## Three attempts at a clean run, all trading survival for health
 
@@ -195,6 +253,33 @@ instrument:
 npx ts-node scripts/trough-probe.ts --seeds 3 --ticks 6000 --persons 100 --set …
 ```
 
+## Unverified: inequality tracks cycle phase, not population size
+
+One seed, parsed out of a report log rather than measured by a designed experiment, so this is an
+observation to test rather than a result. Across 3,000 decades of seed 4, median adult Gini binned
+by population level **and** direction of travel:
+
+| Population (% of peak) | Growing | Shrinking |
+|---|---|---|
+| 0–10% | 0.325 | 0.220 |
+| 10–20% | 0.410 | 0.210 |
+| 20–40% | 0.400 | 0.490 |
+| 40–60% | **0.210** | **0.670** |
+| 60–80% | **0.110** | **0.550** |
+| 80–100% | 0.150 | 0.370 |
+
+At matched headcount in the upper half of the range, a population on the way up sits at Gini
+0.11–0.21 and one on the way down at 0.55–0.67 — three to five times the inequality with the same
+number of people. Straight correlation between population and Gini across the run is **+0.035**,
+i.e. nothing, which is what to expect if the operative variable is phase rather than scale.
+
+If it holds across seeds it is a mechanical explanation for the project's standing open question
+(`docs/research-inequality-signal.md`, and the first paragraph of `CLAUDE.md`): `peakGini` is a
+maximum taken over the decline phase, and every configuration declines, so the statistic asks "did
+this run ever crash" — which they all did — rather than anything that separates them. Caveats: one
+seed, the 20–40% band inverts the pattern, and the bands are not equally populated. Worth a designed
+run across seeds with the measure named in advance.
+
 ## What this does not establish
 
 The 30,000-tick horizon is 3.75x the previous longest run here, and 0/24 is a flat curve across a 10x
@@ -207,5 +292,5 @@ difference — an 8x deeper worst-case trough — is measured rather than inferr
 The health-versus-survival trade is a consistent direction across three experiments, not a tested
 claim. None of the three was taken to `compare.ts`; the flattened-profile comparison in particular
 rests on 12 seeds against 24 at a single horizon, and its arms differ by a factor of two in sample
-size. The only paired test attempted here is the commons-scale one, still running at the time of
-writing.
+size. The one paired test run here is the commons-scale one, and even its headline measure came back
+PROBABLY REAL rather than REAL — 24 seeds is not enough to settle a 7-versus-0 extinction gap.
