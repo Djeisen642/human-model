@@ -188,7 +188,9 @@ Why the ratio, and not the scale, is what this run measures is already settled e
 is a 1000× overshoot. `docs/research-population-scaling.md` measured founding population on a fixed
 commons as a scarcity dial, and `docs/research-scale-robustness.md` ran the properly-tested version of
 "scale the commons with the founders" at 24 seeds. A single-seed trace at 16,000 founders on a ×100
-commons was run here only to size the compute (it was still growing at tick 80, which is why the 100k
-version of it is an overnight job, not an hour) — **it is a timing probe and is not offered as a
-comparison.** Deciding anything about that arm needs `scripts/compare.ts` and the procedure in
+commons was run here only to size the compute: 4,417s for 100 ticks, ending at 129,081 living people
+because the population never stops growing. That is the number that rules out the 100,000-founder
+version of it — cost tracks the square of the *living* population, not the founding one, so the big
+run would spend its 100 ticks somewhere near 800,000 people and take days, with memory a second open
+question. **The trace is a timing probe and is not offered as a comparison.** Deciding anything about that arm needs `scripts/compare.ts` and the procedure in
 `.claude/skills/sweep-results/`.
