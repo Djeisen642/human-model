@@ -185,3 +185,4 @@ When in doubt:
 | [065](./065-resource-threshold-years-and-reporting.md) | Resource Thresholds Documented as Years of Consumption, With a Mandatory Cross-Config Reporting Convention | Superseded by ARD 067 |
 | [066](./066-endowment-and-acquired-traits.md) | Heritability Reads Endowment, Not Accumulated State | Accepted |
 | [067](./067-threshold-years-and-ordering-invariants.md) | Stock Thresholds in Years of Consumption; Ordering Invariants | Accepted |
+| [068](./068-extraction-access-gradient.md) | Wealth-Scaled Access to the Commons | Proposed |

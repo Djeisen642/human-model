@@ -14,6 +14,20 @@ Sharpens the collapse/thrive signal or experimental setup, but does not cause de
 
 ### Mechanics
 
+**Private wealth never depreciates and never returns to the commons** — raised by ARD 068
+`ConsumptionEvent` deletes resources from a personal balance and credits nothing back to
+`naturalResources`; nothing else does either, except the 40% estate share that reaches
+`communityPool` and is then spent on welfare. So everything extracted and not consumed is
+sequestered from the commons permanently, and an agent who hoards damages the pool exactly as much
+as one who consumes. At the flat wealth distribution the model currently produces this is close to
+harmless, because nobody holds much. Under ARD 068's access gradient it becomes load-bearing:
+concentration strips the pool into private stockpiles that never come back, so a collapse measured
+at a high gradient cannot be attributed to inequality rather than to the missing depreciation. A
+control arm needs either a per-tick decay on held `resources` (stored food spoils, tools wear) or a
+fraction of consumption returning to the pool. Which of the two is a real design choice: decay is a
+sink, return-to-pool is a cycle, and they imply different long-run carrying capacities. ARD-level,
+and it gates any causal claim about inequality from ARD 068.
+
 **Frontier expansion — a resource ceiling that isn't structurally fixed**
 Every non-extinct configuration found so far (`docs/research-scale-robustness.md`) works within a
 fixed `MAX_NATURAL_RESOURCE_CEILING`: invention's ceiling-growth branch only pushes the *current*
