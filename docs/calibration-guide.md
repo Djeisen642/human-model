@@ -86,6 +86,11 @@ signals one exact process rather than matching a pattern that can also match you
 harness finishes its in-flight jobs, prints a table covering only the seeds that completed, and
 exits zero.
 
+Stopping works even when a job is the thing that is stuck. Workers only notice the stop request
+between jobs, so a runaway configuration that holds one for hours would otherwise leave the parent
+hanging on open channels with the workers still burning CPU. Aborted workers get two seconds to
+leave on their own and are then killed; their results were being discarded anyway.
+
 A run that dies without finishing — killed, crashed, or cut off with its terminal — leaves a file
 that would otherwise read as still working forever. `npm run progress` checks whether the recorded
 process still exists and says `DIED without finishing`, with how far it got, so a corpse is never

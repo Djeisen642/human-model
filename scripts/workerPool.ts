@@ -14,6 +14,9 @@
 
 import { fork } from 'child_process';
 
+/** How long an aborted dispatch waits for workers to exit on their own before killing them. */
+const ABORT_GRACE_MS = 2000;
+
 /** A job dispatched to a worker, tagged with its position in the caller's job list. */
 interface JobMsg<J> { type: 'job'; index: number; job: J }
 /** Instruction for a worker to exit. */
@@ -90,6 +93,17 @@ export function dispatch<J, R>(
       settled = true;
       // Tell every worker to exit so their IPC channels close and the parent can terminate.
       for (const c of children) if (c.connected) c.send({ type: 'done' });
+      if (aborted) {
+        // A worker only reads `done` between jobs, and a run is usually aborted precisely because
+        // a job is not coming back — a runaway config can hold one for hours. Asking politely then
+        // waiting means the parent hangs on the open IPC channels while the workers keep burning
+        // CPU, which is the opposite of stopping. Their results are discarded anyway, so give them
+        // a moment to leave on their own and then take them down.
+        const grace = setTimeout(() => {
+          for (const c of children) if (!c.killed) c.kill('SIGKILL');
+        }, ABORT_GRACE_MS);
+        grace.unref();
+      }
       resolve(results);
     };
 
