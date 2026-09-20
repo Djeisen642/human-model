@@ -1,6 +1,6 @@
 # ARD 068: Wealth-Scaled Access to the Commons
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-20
 
 ## Context
@@ -82,12 +82,15 @@ dependency ratio, and so on the birth rate. The median rather than the mean, bec
 dragged by the tail the mechanism itself creates, which would make the gradient self-damping in
 exactly the regime worth measuring.
 
-**The reference is computed once per tick, before the agent loop.** `Simulation` computes the
-reference median and the normalisation factor at tick start and caches them for the tick.
-`GatherResourcesEvent` reads the cached values. Computing them inside the loop would let the
-Fisher-Yates extraction shuffle decide who counts as rich within a tick, adding order dependence to
-a mechanism whose entire purpose is measuring distribution, and would put a second sort next to the
-Gini path that `718a295` optimised because `KillEvent` already re-evaluates it inside the tick.
+**Multipliers are computed once per tick, before the agent loop.** `Simulation` takes the reference
+median and the normalisation factor after taxation and writes each person's finished multiplier onto
+them; `GatherResourcesEvent` reads that snapshot. Caching only the two scalars and evaluating the
+multiplier at gather time would not be equivalent, because theft, help and childbirth move a
+person's resources during the tick, so the Fisher-Yates extraction shuffle would decide who counts
+as rich part-way through it. That is order dependence inside a mechanism whose entire purpose is
+measuring distribution. Computing the median inside the loop would be worse still, adding a sort per
+agent next to the Gini path that `718a295` optimised because `KillEvent` already re-evaluates it
+inside the tick.
 
 Three constants, all in `Variables.ts`:
 

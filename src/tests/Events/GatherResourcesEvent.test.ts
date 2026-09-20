@@ -108,4 +108,34 @@ describe('GatherResourcesEvent', () => {
     expect(person.resources).toBe(0);
     expect(simulation.naturalResources).toBe(0);
   });
+
+  it('scales output by the access multiplier (ARD 068)', () => {
+    const person = new Person([]);
+    person.experience = 20;
+    person.intelligence = 5;
+    person.accessMultiplier = 2.5;
+    simulation.add(person);
+    const initialPool = simulation.naturalResources;
+
+    event.execute(person, simulation);
+
+    const potential = person.experience * (Variables.BASE_GATHER_AMOUNT + 5 * Variables.INTELLIGENCE_GATHER_SCALAR);
+    const expected = potential * simulation.extractionProductivity * 2.5;
+    expect(person.resources).toBeCloseTo(expected);
+    // ARD 039's conservation still holds: the pool loses exactly what the person gains.
+    expect(simulation.naturalResources).toBeCloseTo(initialPool - expected);
+  });
+
+  it('is unchanged by a neutral access multiplier, bit for bit', () => {
+    const withField = new Person([]);
+    withField.experience = 20;
+    withField.intelligence = 5;
+    simulation.add(withField);
+    event.execute(withField, simulation);
+
+    const potential = 20 * (Variables.BASE_GATHER_AMOUNT + 5 * Variables.INTELLIGENCE_GATHER_SCALAR);
+    // Multiplication by exactly 1.0 is exact in IEEE754, which is what lets the off setting
+    // reproduce the pre-ARD-068 tick history bitwise.
+    expect(withField.resources).toBe(potential * simulation.extractionProductivity);
+  });
 });
