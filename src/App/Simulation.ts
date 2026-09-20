@@ -151,6 +151,18 @@ export default class Simulation {
   }
 
   /**
+   * Adult resource Gini over the living population, computed without `getLiving`'s
+   * shallow copy. Identical in value to `resourceGini(getLiving())` — the copy is pure
+   * overhead, and `KillEvent` calls this inside the person loop, so at 10^5 persons the
+   * copy alone costs O(population^2) per tick.
+   *
+   * @returns Gini coefficient over adult resources, in [0, 1)
+   */
+  currentResourceGini(): number {
+    return resourceGini(this.living);
+  }
+
+  /**
    * Returns a shallow copy of the deceased population (persons retain their
    * age at death and `causeOfDeath`). Used for end-of-run age-mortality reporting.
    *
@@ -689,7 +701,7 @@ export default class Simulation {
 
     const resources = this.living.map(p => p.resources);
     const averageResources = mean(resources);
-    const adultResourceGini = resourceGini(this.living);
+    const adultResourceGini = this.currentResourceGini();
     const averageHappiness = mean(this.living.map(p => p.happiness));
     const averageIllness = mean(this.living.map(p => p.illness));
     const aggregateKillingIntent = this.living.reduce((s, p) => s + p.killingIntent, 0);

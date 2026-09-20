@@ -2,7 +2,6 @@ import Person from '../App/Person';
 import Simulation from '../App/Simulation';
 import IEvent from './IEvent';
 import { ageModifier } from '../Helpers/AgeModifier';
-import { resourceGini } from '../Helpers/Inequality';
 import Variables from '../Helpers/Variables';
 import Constants from '../Helpers/Constants';
 import { RNG } from '../Helpers/Types';
@@ -37,7 +36,7 @@ export default class KillEvent implements IEvent {
     );
 
     // The attempt probability is `intentAge * giniFactor * happinessFactor`, where the only
-    // expensive term is the population-wide Gini. Draw first, then bracket: `resourceGini`
+    // expensive term is the population-wide Gini. Draw first, then bracket: the Gini
     // returns [0, 1), so `giniFactor` lies in [1, 1 + KILL_GINI_SCALAR] and the probability is
     // bracketed by evaluating the same expression at both ends. A roll outside that bracket
     // decides the branch without the Gini at all, which is the common case — the bracket is
@@ -45,7 +44,7 @@ export default class KillEvent implements IEvent {
     // population scan runs for a few percent of person-ticks instead of all of them.
     //
     // Two properties make this exactly equivalent to computing the Gini up front rather than
-    // an approximation of it. `resourceGini` is pure and draws no random numbers, so hoisting
+    // an approximation of it. The Gini is pure and draws no random numbers, so hoisting
     // the roll above it leaves the RNG stream untouched; and the in-bracket expression below
     // multiplies its terms in the original order, so it is bit-for-bit the old probability.
     const intentAge = person.killingIntent
@@ -60,7 +59,7 @@ export default class KillEvent implements IEvent {
     // true lower bound and a roll beneath it attempts regardless of the real Gini.
     let attemptProb = intentAge * 1 * happinessFactor;
     if (roll >= attemptProb) {
-      const currentGini = resourceGini(simulation.getLiving());
+      const currentGini = simulation.currentResourceGini();
       attemptProb = intentAge
         * (1 + currentGini * Variables.KILL_GINI_SCALAR)
         * happinessFactor;
