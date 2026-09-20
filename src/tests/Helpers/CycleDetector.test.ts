@@ -81,4 +81,27 @@ describe('detectCycles', () => {
     expect(m.period).toBeGreaterThan(80);
     expect(m.period).toBeLessThan(120);
   });
+
+  it('exposes every trough value, consistent with troughTrend', () => {
+    // Troughs hold near 150, so the values should cluster there and bracket troughTrend's ratio.
+    const m = detectCycles(sine(300, 3, 300, 150));
+    expect(m.troughValues.length).toBeGreaterThanOrEqual(2);
+    for (const v of m.troughValues) expect(v).toBeLessThan(300);
+    const last = m.troughValues[m.troughValues.length - 1];
+    expect(m.troughTrend).toBeCloseTo(last / Math.max(1, m.troughValues[0]), 6);
+  });
+
+  it('reports trough depth where troughTrend cannot: a level envelope sitting low vs high', () => {
+    // Same trend (troughs hold), very different depth — the distinction the sweep table's
+    // founding-population-floored `min=` column loses, and the reason troughValues is exposed.
+    const shallow = detectCycles(sine(300, 3, 300, 150));  // troughs ≈ 150
+    const deep = detectCycles(sine(300, 3, 300, 290));     // troughs ≈ 10
+    expect(shallow.troughTrend).toBeCloseTo(deep.troughTrend, 1);
+    expect(Math.min(...deep.troughValues)).toBeLessThan(Math.min(...shallow.troughValues));
+  });
+
+  it('returns no trough values for a series with no turning points', () => {
+    expect(detectCycles(Array(200).fill(250)).troughValues).toEqual([]);
+    expect(detectCycles([]).troughValues).toEqual([]);
+  });
 });

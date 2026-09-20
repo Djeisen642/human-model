@@ -17,11 +17,11 @@ import DeathRecord from '../../Records/DeathRecord';
 import { CycleMetrics } from '../../Helpers/CycleDetector';
 
 /** No confirmed cycle — the default for tests that don't exercise the CYCLICAL dimension. */
-const NOT_CYCLING: CycleMetrics = { numCycles: 0, period: 0, amplitude: 1, troughTrend: 1, stableCycle: false, extinct: false };
+const NOT_CYCLING: CycleMetrics = { numCycles: 0, period: 0, amplitude: 1, troughTrend: 1, stableCycle: false, extinct: false, troughValues: [] };
 /** A confirmed, non-ratcheting boom-bust cycle. */
-const CYCLING: CycleMetrics = { numCycles: 3, period: 250, amplitude: 2, troughTrend: 0.9, stableCycle: true, extinct: false };
+const CYCLING: CycleMetrics = { numCycles: 3, period: 250, amplitude: 2, troughTrend: 0.9, stableCycle: true, extinct: false, troughValues: [100, 95, 90] };
 /** An oscillation whose troughs ratchet down — not a stable cycle (ARD 063's `stableCycle` gate). */
-const DECAYING_CYCLE: CycleMetrics = { numCycles: 3, period: 250, amplitude: 2, troughTrend: 0.3, stableCycle: false, extinct: false };
+const DECAYING_CYCLE: CycleMetrics = { numCycles: 3, period: 250, amplitude: 2, troughTrend: 0.3, stableCycle: false, extinct: false, troughValues: [100, 55, 30] };
 
 /**
  * @param tick - zero-based tick index

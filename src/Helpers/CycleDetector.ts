@@ -26,6 +26,20 @@ export interface CycleMetrics {
   stableCycle: boolean;
   /** True when the series ends extinct (final value 0). */
   extinct: boolean;
+  /**
+   * Every detected trough value, in the order they occur.
+   *
+   * `troughTrend` compares only the first and last, which says whether the envelope holds but not
+   * how deep it sits. Depth is what predicts extinction in an oscillating regime — a run dies when
+   * one cycle happens to bottom out at zero — and no caller could get it without redoing the pivot
+   * walk. Exposed rather than duplicated so `scripts/trough-probe.ts` reports the same troughs the
+   * `cyc` and `trTrend` columns are derived from.
+   *
+   * The first entry is normally the founding population rather than a cycle trough, since a series
+   * that grows from tick 0 registers its starting value as a minimum. Callers measuring depth
+   * should drop it.
+   */
+  troughValues: number[];
 }
 
 /** Tunable thresholds for cycle detection. Defaults suit boom-bust population series. */
@@ -184,5 +198,5 @@ export function detectCycles(series: number[], options: CycleOptions = {}): Cycl
     && numCycles >= opts.minCycles
     && troughTrend >= opts.troughHoldFraction;
 
-  return { numCycles, period, amplitude, troughTrend, stableCycle, extinct };
+  return { numCycles, period, amplitude, troughTrend, stableCycle, extinct, troughValues: troughs.map(t => t.val) };
 }

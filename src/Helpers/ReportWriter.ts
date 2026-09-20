@@ -65,7 +65,7 @@ function buildHTML(
   seed: number,
   outcome: string,
   embedAssets = false,
-  cycles: CycleMetrics = { numCycles: 0, period: 0, amplitude: 1, troughTrend: 1, stableCycle: false, extinct: false },
+  cycles: CycleMetrics = { numCycles: 0, period: 0, amplitude: 1, troughTrend: 1, stableCycle: false, extinct: false, troughValues: [] },
 ): string {
   const history = simulation.history;
   const decadeHistory = simulation.decadeHistory;

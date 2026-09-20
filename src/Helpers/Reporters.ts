@@ -404,7 +404,7 @@ export function formatEndReport(
   extractionProductivity = 1.0,
   inventionCounts: { faster: number; slower: number; ceiling: number } = { faster: 0, slower: 0, ceiling: 0 },
   communityPool = 0,
-  cycles: CycleMetrics = { numCycles: 0, period: 0, amplitude: 1, troughTrend: 1, stableCycle: false, extinct: false },
+  cycles: CycleMetrics = { numCycles: 0, period: 0, amplitude: 1, troughTrend: 1, stableCycle: false, extinct: false, troughValues: [] },
 ): string {
   if (decadeHistory.length === 0) {
     return `=== End of Simulation (${ticks} ticks, seed ${seed}) ===\n(Run too short to produce a decade summary.)`;
