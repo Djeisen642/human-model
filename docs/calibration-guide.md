@@ -161,6 +161,17 @@ effect that is real and useless.
 down a gap of the size observed, so an inconclusive result can be reported honestly as "too small to
 tell with 48 runs" rather than as a null. Use that number to size the next sweep before running it.
 
+**Fixed 2026-09-20: "Boom-bust cycles completed" was counting jitter.** It counted every local
+maximum in the raw, unsmoothed tick series — a "threshold-free proxy" that inflates the count 2–4x
+and, because a larger population is relatively less noisy tick to tick, *falls* as the population
+grows. On one seed at 6,000 ticks it read 83 for a small-world run against 53 for a big-world one
+while the real counts were 23 and 24, reversing the sign; the paired run in
+`docs/research-clean-long-run-100-founders.md` duly reported "baseline 388, treatment 246, REAL
+DIFFERENCE, about 1 in 526" for an artifact of population size. It now calls `detectCycles` with the
+same `Variables` thresholds as `sweep.ts` and `classifyOutcome`, so the three agree on what a cycle
+is, and that comparison reads 23 against 24, TOO CLOSE TO CALL. **Comparisons of this measure from
+before that date should be disregarded**; the other five measures are unaffected.
+
 **Six measures are compared at once, so about one run of this tool in four will throw up a false
 alarm when nothing truly differs.** A measure you predicted in advance is much stronger evidence than
 the one surprising row in an otherwise flat table. The tool prints this reminder itself.

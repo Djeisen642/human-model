@@ -42,6 +42,8 @@ import {
   mcnemarExact, pairedPermutationTest, bootstrapPairedDifference,
   median, seedsNeededForRateChange,
 } from '../src/Helpers/Statistics';
+import Variables from '../src/Helpers/Variables';
+import { detectCycles } from '../src/Helpers/CycleDetector';
 import { applyOverrides, parseSeeds } from '../src/Helpers/HarnessOverrides';
 import { dispatch, isWorkerProcess, serveWorker } from './workerPool';
 import { DEFAULT_PROGRESS_FILE, ProgressSnapshot, writeProgress } from '../src/Helpers/RunProgress';
@@ -105,13 +107,18 @@ async function runOne(seed: number, ticks: number, persons: number): Promise<Run
     if (s.population > 0) trough = Math.min(trough, s.population);
     if (s.naturalResourceCeiling > 0 && s.naturalResources / s.naturalResourceCeiling < 0.05) empty++;
   }
-  // Count peaks in the population series as a simple, threshold-free cycle proxy.
-  let cycles = 0;
-  for (let i = 2; i < history.length - 2; i++) {
-    const p = history[i].population;
-    if (p > 20 && p > history[i - 2].population && p > history[i + 2].population
-      && p >= history[i - 1].population && p >= history[i + 1].population) cycles++;
-  }
+  // Cycles come from `detectCycles`, the same call (and the same Variables thresholds) that feeds
+  // sweep.ts's `cyc` column and `classifyOutcome`, so the three cannot disagree about what a cycle
+  // is. This previously counted every local maximum in the RAW tick series as a "threshold-free
+  // proxy", which counted jitter, not cycles — and the jitter count falls as the population grows,
+  // because a bigger population is relatively less noisy. Measured on one seed at 6000 ticks: the
+  // local-max count read 83 for a small-world run against 53 for a big-world one, while the real
+  // cycle counts were 23 and 24. So the proxy reversed the sign of the comparison and the tool
+  // reported the artifact as a REAL DIFFERENCE. See docs/research-clean-long-run-100-founders.md.
+  const cycles = detectCycles(history.map((s) => s.population), {
+    minCycles: Variables.CYCLICAL_MIN_CYCLES,
+    troughHoldFraction: Variables.CYCLICAL_TROUGH_HOLD_FRACTION,
+  }).numCycles;
   return {
     extinct: last.population === 0 ? 1 : 0,
     peakPopulation: peak,
