@@ -50,6 +50,27 @@ before ARD 063.
 
 Two narrower probes sit alongside it: `npx ts-node scripts/gini-decomp.ts` splits `resourceGini` into all-living vs adults-only at a few horizons, and `npx ts-node scripts/gini-basis-probe.ts` dumps both bases per decade as TSV for calibration work. `npx ts-node scripts/throughput-probe.ts --sweep KEY=v1,v2,… --seeds 24` reports median cumulative **births** next to median peak population, which the sweep table does not — use it whenever a lever reads as a null, because "the lever is inert" and "the lever works and the commons absorbs it" are indistinguishable in `sweep.ts` output and mean opposite things (see `docs/research-untested-variables.md`). `scripts/thrive-probe.ts` measured gates for the retired THRIVING label and was removed with it (ARD 063).
 
+**`min=` and "lowest population reached" are floored by the founding population — prefer
+`scripts/trough-probe.ts`.** Both scan the whole history including the startup ticks, so once a
+configuration's cycles hold *above* their starting size, both report the founding population for
+every seed and stop discriminating. This is not hypothetical: in
+`docs/research-clean-long-run-100-founders.md` the surviving 100-founder configuration reports
+`min=` 99–109 across all 24 seeds, which reads like an extraordinarily tight trough floor and is
+just the starting 100 showing through — its real troughs sit near 221. The column is valid only
+while troughs fall below the founding population, and it saturates silently rather than erroring.
+
+```bash
+npx ts-node scripts/trough-probe.ts --seeds 3 --ticks 6000 --persons 100 [--set KEY=VAL] [--tsv]
+```
+
+It finds the population series' local minima, drops the leading pivot (the founding population,
+not a cycle trough), and reports the deepest, median and shallowest trough per seed. **The deepest
+trough is the number that predicts extinction** in an oscillating regime: a run dies when one cycle
+happens to bottom out at zero, so extinction count at a fixed horizon measures the horizon as much
+as the configuration. The same study makes the case — a config reading 0/24 extinct at 3,000 ticks
+lost 7 of 24 by 30,000, with deaths spread evenly from tick 7,660 to 22,353 (a constant per-trough
+hazard, not a cliff), while trough depth separated the two arms immediately and cheaply.
+
 `npx ts-node scripts/flow-probe.ts --seed 1 --ticks 2000 --persons 300 --metric net [--set KEY=VAL] [--tsv]` prints the per-person **distribution** of resource flow as box-and-whisker rows, one per decade. Every other resource figure in the model is a mean or a sum (`TickSnapshot.totalConsumption` is a per-tick total, `TenYearSummary.avgResources` a mean of means), so `resourceGini` was the only spread statistic anywhere — one scalar. Four metrics: `extract` (per-tick extraction capacity), `consume` (per-tick living cost), `net` (the difference), and `hold` (resources in hand, which is what Gini compresses). The `under` column is the share of people whose extraction capacity is below their own living cost.
 
 **`extract` is potential, not realised.** `GatherResourcesEvent` takes `min(output, naturalResources)`, so once the pool is stripped the realised figure is lower and order-dependent. Read the `pool` column alongside it: at a full pool potential ≈ realised, at an empty one potential wildly overstates what anyone actually got. This is not a detail — it inverts the comparison. At default extraction the `under` share reads 0–6% while the pool sits at 0%, which means almost nobody is short *on paper* and almost everybody is short in fact; under the cut-extraction config of `docs/research-extraction-need-ratio.md` the pool stays 60–99% full, so its much worse-looking 36–83% `under` share is close to the truth while the baseline's is not. Realised per-person extraction would need `GatherResourcesEvent` instrumented to record it, which is a model change and needs an ARD first.
