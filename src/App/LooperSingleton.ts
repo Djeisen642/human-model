@@ -62,6 +62,10 @@ export default class LooperSingleton {
       const living = simulation.getLiving();
       shuffleInPlace(living, rng);
       simulation.collectTax(living);
+      // After taxation and the disaster, so the reference median reflects what people actually
+      // hold entering the agent loop; before the loop, so mid-tick transfers cannot change who
+      // counts as rich part-way through it. ARD 068.
+      simulation.updateAccessMultipliers(living);
       for (const person of living) {
         if (person.jailedTicksRemaining > 0) person.jailedTicksRemaining--;
         person.helpHappinessBoost = Math.max(0, person.helpHappinessBoost - Variables.HELP_HAPPINESS_DECAY);
