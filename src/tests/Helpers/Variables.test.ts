@@ -13,6 +13,8 @@ describe('Variables.validate', () => {
     happinessComfortableElderly: Variables.HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD_ELDERLY,
     childbirthMin: Variables.CHILDBIRTH_RESOURCE_MIN,
     childbirthScale: Variables.CHILDBIRTH_RESOURCE_SCALE,
+    accessMin: Variables.EXTRACTION_ACCESS_MIN,
+    accessMax: Variables.EXTRACTION_ACCESS_MAX,
   };
 
   afterEach(() => {
@@ -27,6 +29,8 @@ describe('Variables.validate', () => {
     Variables.HAPPINESS_RESOURCE_COMFORTABLE_THRESHOLD_ELDERLY = saved.happinessComfortableElderly;
     Variables.CHILDBIRTH_RESOURCE_MIN = saved.childbirthMin;
     Variables.CHILDBIRTH_RESOURCE_SCALE = saved.childbirthScale;
+    Variables.EXTRACTION_ACCESS_MIN = saved.accessMin;
+    Variables.EXTRACTION_ACCESS_MAX = saved.accessMax;
   });
 
   it('passes at defaults', () => {
@@ -90,5 +94,24 @@ describe('Variables.validate', () => {
     Variables.CHILDBIRTH_RESOURCE_MIN = 30;
     Variables.CHILDBIRTH_RESOURCE_SCALE = 20;
     expect(() => Variables.validate()).toThrow(/CHILDBIRTH_RESOURCE_MIN must be strictly less than CHILDBIRTH_RESOURCE_SCALE.*ARD 067/);
+  });
+
+  it('throws when EXTRACTION_ACCESS_MIN is above 1 (ARD 068)', () => {
+    // A floor above 1 makes every gather larger at EXTRACTION_ACCESS_GRADIENT=0, so the arm
+    // every comparison treats as "mechanism off" silently stops being the baseline.
+    Variables.EXTRACTION_ACCESS_MIN = 1.5;
+    expect(() => Variables.validate()).toThrow(/EXTRACTION_ACCESS_MIN <= 1 <= EXTRACTION_ACCESS_MAX.*ARD 068/);
+  });
+
+  it('throws when EXTRACTION_ACCESS_MAX is below 1 (ARD 068)', () => {
+    Variables.EXTRACTION_ACCESS_MAX = 0.5;
+    expect(() => Variables.validate()).toThrow(/EXTRACTION_ACCESS_MIN <= 1 <= EXTRACTION_ACCESS_MAX.*ARD 068/);
+  });
+
+  it('accepts a clamp range that pins the multiplier to exactly 1 (ARD 068)', () => {
+    // Degenerate but coherent: the mechanism is forced off by the clamp rather than the gradient.
+    Variables.EXTRACTION_ACCESS_MIN = 1;
+    Variables.EXTRACTION_ACCESS_MAX = 1;
+    expect(() => Variables.validate()).not.toThrow();
   });
 });

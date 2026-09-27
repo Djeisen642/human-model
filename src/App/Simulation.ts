@@ -645,6 +645,73 @@ export default class Simulation {
   }
 
   /**
+   * Rewrites every living person's `accessMultiplier` for this tick: wealth relative to the adult
+   * median, raised to `EXTRACTION_ACCESS_GRADIENT`, clamped, then divided through by the adult
+   * mean so the mean multiplier is exactly 1. Normalising is what makes the gradient a pure
+   * distribution dial — without it, raising the gradient would raise aggregate extraction
+   * capacity and reproduce the extraction lever instead of testing inequality. Children take 1:
+   * ARD 060, ARD 024 and ARD 062 all decline to read a child's own resources as their standard of
+   * living, and including them would tie the mechanism's strength to the dependency ratio.
+   * Call once per tick after taxation and before the agent loop. ARD 068.
+   *
+   * @param persons - living population to assign multipliers to
+   */
+  updateAccessMultipliers(persons: Person[]): void {
+    const gradient = Variables.EXTRACTION_ACCESS_GRADIENT;
+    // Off. Nothing has ever written a multiplier, so every one is still its initial 1 and the
+    // sort below is skipped entirely: the tick history stays bitwise identical to the model
+    // before ARD 068, which `scripts/parity-check.ts` asserts.
+    if (gradient === 0) return;
+
+    const minAge = Variables.WORKING_AGE_MIN;
+    // One buffer, used twice: adult wealth to find the median, then raw multipliers by person
+    // index. Same Float64Array motive as `Inequality.giniOfBuffer` — this runs every tick next to
+    // a Gini path that is already the hottest loop at large populations.
+    const buffer = new Float64Array(persons.length);
+    let adults = 0;
+    for (const person of persons) {
+      if (person.age >= minAge) buffer[adults++] = person.resources;
+    }
+    if (adults === 0) return;
+
+    const wealth = adults === persons.length ? buffer : buffer.subarray(0, adults);
+    wealth.sort();
+    const mid = adults >> 1;
+    const reference = adults % 2 === 0 ? (wealth[mid - 1] + wealth[mid]) / 2 : wealth[mid];
+
+    // A zero median means at least half the adults hold nothing, so there is no scale to measure
+    // wealth against. Fall back to neutral rather than dividing by zero, and write it rather than
+    // returning early, because last tick's multipliers are still on the persons.
+    if (reference <= 0) {
+      for (const person of persons) person.accessMultiplier = 1;
+      return;
+    }
+
+    let rawSum = 0;
+    for (let i = 0; i < persons.length; i++) {
+      const person = persons[i];
+      if (person.age < minAge) continue;
+      const raw = Math.min(
+        Variables.EXTRACTION_ACCESS_MAX,
+        Math.max(Variables.EXTRACTION_ACCESS_MIN, Math.pow(person.resources / reference, gradient)),
+      );
+      buffer[i] = raw;
+      rawSum += raw;
+    }
+
+    const meanRaw = rawSum / adults;
+    if (!(meanRaw > 0)) {
+      for (const person of persons) person.accessMultiplier = 1;
+      return;
+    }
+
+    for (let i = 0; i < persons.length; i++) {
+      const person = persons[i];
+      person.accessMultiplier = person.age < minAge ? 1 : buffer[i] / meanRaw;
+    }
+  }
+
+  /**
    * Tops each recipient up toward `WELFARE_THRESHOLD`, drawing on
    * `communityPool * (1 - COMMUNITY_POOL_RESERVE_FRACTION)`. A recipient is anyone whose
    * resources fall short of the threshold, and nobody receives more than their own shortfall,

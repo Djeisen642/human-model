@@ -41,6 +41,15 @@ export default class Person {
   helpingIntent = 0;
   /** Ticks remaining in current jail sentence; 0 means free. Decremented by LooperSingleton each tick before EventFactory. See ARD 035. */
   jailedTicksRemaining = 0;
+  /**
+   * Multiplier on this person's extraction potential, standing for how large a claim on the
+   * commons their wealth buys. Transient: `Simulation.updateAccessMultipliers` rewrites it once
+   * per tick before the agent loop, and it is 1 (neutral) for children, for newborns arriving
+   * mid-tick, and for everybody whenever `EXTRACTION_ACCESS_GRADIENT` is 0. Snapshotted rather
+   * than computed at gather time because theft, help and welfare move resources during the tick,
+   * so a live read would let the extraction shuffle decide who counts as rich. See ARD 068.
+   */
+  accessMultiplier = 1;
   /** Transient happiness boost from a recent successful help; decays each tick. See ARD 046. */
   helpHappinessBoost = 0;
   /** Transient happiness boost from a recent confirmed kill; decays each tick. See ARD 046. */

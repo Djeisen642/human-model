@@ -1389,4 +1389,151 @@ describe('Simulation', () => {
       expect(sim.communityPool).toBe(100);
     });
   });
+
+  describe('updateAccessMultipliers (ARD 068)', () => {
+    const savedGradient = Variables.EXTRACTION_ACCESS_GRADIENT;
+    const savedMin = Variables.EXTRACTION_ACCESS_MIN;
+    const savedMax = Variables.EXTRACTION_ACCESS_MAX;
+
+    afterEach(() => {
+      Variables.EXTRACTION_ACCESS_GRADIENT = savedGradient;
+      Variables.EXTRACTION_ACCESS_MIN = savedMin;
+      Variables.EXTRACTION_ACCESS_MAX = savedMax;
+    });
+
+    /**
+     * Builds an adult holding the given resources.
+     *
+     * @param resources - starting resources
+     * @param age - age in years; defaults to an adult age
+     * @returns the constructed person
+     */
+    function adult(resources: number, age = 30): Person {
+      const person = new Person([]);
+      person.age = age;
+      person.resources = resources;
+      return person;
+    }
+
+    it('leaves every multiplier at 1 when the gradient is off', () => {
+      Variables.EXTRACTION_ACCESS_GRADIENT = 0;
+      const sim = new Simulation();
+      const people = [adult(1), adult(50), adult(5000)];
+
+      sim.updateAccessMultipliers(people);
+
+      for (const person of people) expect(person.accessMultiplier).toBe(1);
+    });
+
+    it('normalises the adult mean multiplier to 1, so aggregate capacity is unchanged', () => {
+      Variables.EXTRACTION_ACCESS_GRADIENT = 0.5;
+      const sim = new Simulation();
+      const people = [adult(5), adult(20), adult(60), adult(200)];
+
+      sim.updateAccessMultipliers(people);
+
+      const mean = people.reduce((sum, p) => sum + p.accessMultiplier, 0) / people.length;
+      expect(mean).toBeCloseTo(1, 12);
+    });
+
+    it('gives a richer adult a larger claim than a poorer one', () => {
+      Variables.EXTRACTION_ACCESS_GRADIENT = 0.5;
+      const sim = new Simulation();
+      const poor = adult(5);
+      const rich = adult(500);
+
+      sim.updateAccessMultipliers([poor, adult(50), rich]);
+
+      expect(rich.accessMultiplier).toBeGreaterThan(poor.accessMultiplier);
+    });
+
+    it('keeps an adult at zero resources able to extract, so zero is not absorbing', () => {
+      Variables.EXTRACTION_ACCESS_GRADIENT = 1;
+      const sim = new Simulation();
+      const destitute = adult(0);
+
+      sim.updateAccessMultipliers([destitute, adult(50), adult(60)]);
+
+      expect(destitute.accessMultiplier).toBeGreaterThan(0);
+    });
+
+    it('clamps the top, so two very different fortunes buy the same claim', () => {
+      Variables.EXTRACTION_ACCESS_GRADIENT = 1;
+      Variables.EXTRACTION_ACCESS_MAX = 2;
+      const sim = new Simulation();
+      const rich = adult(1000);
+      const richer = adult(100000);
+
+      // Odd count so the median is exactly 10: both fortunes are far above the clamp.
+      sim.updateAccessMultipliers([adult(10), adult(10), adult(10), rich, richer]);
+
+      expect(richer.accessMultiplier).toBeCloseTo(rich.accessMultiplier, 12);
+    });
+
+    it('leaves children neutral and out of the reference median', () => {
+      Variables.EXTRACTION_ACCESS_GRADIENT = 0.5;
+      const sim = new Simulation();
+      const adultsOnly = [adult(10), adult(40), adult(90)];
+      sim.updateAccessMultipliers(adultsOnly);
+      const withoutChildren = adultsOnly.map(p => p.accessMultiplier);
+
+      const sameAdults = [adult(10), adult(40), adult(90)];
+      const child = adult(100000, 5);
+      sim.updateAccessMultipliers([...sameAdults, child]);
+
+      expect(child.accessMultiplier).toBe(1);
+      expect(sameAdults.map(p => p.accessMultiplier)).toEqual(withoutChildren);
+    });
+
+    it('does not depend on the order persons are passed in', () => {
+      Variables.EXTRACTION_ACCESS_GRADIENT = 0.75;
+      const sim = new Simulation();
+      const wealths = [3, 17, 42, 80, 150, 900];
+      const forward = wealths.map(w => adult(w));
+      const reversed = [...wealths].reverse().map(w => adult(w));
+
+      sim.updateAccessMultipliers(forward);
+      sim.updateAccessMultipliers(reversed);
+
+      const forwardByWealth = forward.map(p => p.accessMultiplier);
+      const reversedByWealth = [...reversed].reverse().map(p => p.accessMultiplier);
+      forwardByWealth.forEach((value, i) => expect(reversedByWealth[i]).toBeCloseTo(value, 12));
+    });
+
+    it('falls back to neutral when the adult median is zero', () => {
+      Variables.EXTRACTION_ACCESS_GRADIENT = 1;
+      const sim = new Simulation();
+      // Half the adults hold nothing, so there is no scale to measure wealth against.
+      const people = [adult(0), adult(0), adult(0), adult(500)];
+
+      sim.updateAccessMultipliers(people);
+
+      for (const person of people) expect(person.accessMultiplier).toBe(1);
+    });
+
+    it('clears stale multipliers when the median collapses to zero on a later tick', () => {
+      Variables.EXTRACTION_ACCESS_GRADIENT = 1;
+      const sim = new Simulation();
+      const person = adult(500);
+      const others = [adult(10), adult(20), adult(30)];
+      sim.updateAccessMultipliers([person, ...others]);
+      expect(person.accessMultiplier).not.toBe(1);
+
+      for (const other of others) other.resources = 0;
+      person.resources = 0;
+      sim.updateAccessMultipliers([person, ...others]);
+
+      expect(person.accessMultiplier).toBe(1);
+    });
+
+    it('leaves no adult holding a multiplier when the population has none', () => {
+      Variables.EXTRACTION_ACCESS_GRADIENT = 1;
+      const sim = new Simulation();
+      const child = adult(500, 4);
+
+      sim.updateAccessMultipliers([child]);
+
+      expect(child.accessMultiplier).toBe(1);
+    });
+  });
 });

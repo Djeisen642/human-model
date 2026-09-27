@@ -47,6 +47,7 @@ Each agent represents one individual. All fields are per-person; collections are
 | `killingIntent` | number | [0, 0.1) | Probability weight for KillEvent |
 | `helpingIntent` | number | [0, 0.5) | Probability weight for HelpEvent (ARD 045) |
 | `jailedTicksRemaining` | integer | ≥ 0 | Ticks remaining in current jail sentence; 0 = free; decremented by LooperSingleton before EventFactory (ARD 035) |
+| `accessMultiplier` | number | ≥ 0 | Wealth-derived claim on the commons; multiplies gather potential. Rewritten each tick before the agent loop; exactly 1 for children and whenever `EXTRACTION_ACCESS_GRADIENT` is 0 (ARD 068) |
 | `causeOfDeath` | DeathRecord \| null | — | Null while alive; set on death (cause + optional killer reference) |
 | `hasChildren` | Person[] | — | Biological children (living or deceased) |
 | `childOf` | Person[] | — | Biological parents (readonly) |
@@ -93,10 +94,11 @@ Each tick executes in this order:
 1. **`simulation.degradeCeiling()`** then **`simulation.regenerate()`** — first the carrying capacity erodes by `naturalResourceCeiling × CEILING_DEGRADATION_RATE × (1 − naturalResources/naturalResourceCeiling)`, floored at `NATURAL_RESOURCE_CEILING_FLOOR`, so overexploitation degrades carrying capacity (ARD 050); then the pool replenishes by `naturalResourceCeiling × NATURAL_RESOURCE_REGEN_FRACTION`, clamped at `naturalResourceCeiling` (ARD 043).
 2. **`DisasterEvent`** — fires once per tick (not per agent); probabilistic trigger; random subset of living agents may be killed or lose resources.
 3. **`simulation.collectTax(living)`** — deducts `TAX_RATE × resources` from each living agent; credited to `communityPool` (ARD 034).
-4. **Jail countdown** — for each living agent, if `jailedTicksRemaining > 0`, decrement by 1. Happens before EventFactory so the decremented value governs this tick's event set (ARD 035).
-5. **Per-agent event loop** (routing per ARD 010) — extraction order shuffled each tick via Fisher-Yates (seeded RNG). For each living agent, `EventFactory` fires events based on jail status:
+4. **`simulation.updateAccessMultipliers(living)`** — recomputes every living agent's `accessMultiplier` from their wealth relative to the adult median, normalised so the adult mean is exactly 1. After taxation and the disaster so the reference reflects actual holdings; before the agent loop so mid-tick transfers cannot change who counts as rich part-way through it. No-op at `EXTRACTION_ACCESS_GRADIENT = 0` (ARD 068).
+5. **Jail countdown** — for each living agent, if `jailedTicksRemaining > 0`, decrement by 1. Happens before EventFactory so the decremented value governs this tick's event set (ARD 035).
+6. **Per-agent event loop** (routing per ARD 010) — extraction order shuffled each tick via Fisher-Yates (seeded RNG). For each living agent, `EventFactory` fires events based on jail status:
    - **If jailed (`jailedTicksRemaining > 0` before decrement, i.e. > 0 after decrement still running the remaining ticks):**
-     - **Note:** after the decrement in step 4, `jailedTicksRemaining` is checked again by `EventFactory`. If still > 0 after decrement, agent gets reduced suite.
+     - **Note:** after the decrement in step 5, `jailedTicksRemaining` is checked again by `EventFactory`. If still > 0 after decrement, agent gets reduced suite.
      1. `AgeEvent`
      2. `IllnessEvent`
      3. `JailEvent` — flat gather/consume replacing normal economy events (ARD 035)
@@ -121,10 +123,10 @@ Each tick executes in this order:
      16. `HelpEvent` — intent-gated; voluntary transfer to a poorer agent (ARD 045)
      17. `StealEvent` — intent-gated with resource-pressure multiplier (ARD 036); detection + emboldening inside execute() (ARD 035, ARD 036)
      18. `StatDecayEvent` — always appended last; age-based constitution/intelligence decay (ARD 048)
-6. **`simulation.distributeWelfare(living)`** — pays each recipient short of `WELFARE_THRESHOLD` their shortfall, drawn from `communityPool × (1 − COMMUNITY_POOL_RESERVE_FRACTION)`. Recipients are all agents with a positive shortfall **except** parentally subsidised children (`age < CONSUMPTION_CHILD_MAX_AGE` with a living parent), whose need is met by topping up their parents (ARD 062); orphans are recipients at any age. Nobody receives more than their own shortfall, so welfare cannot lift an agent above the threshold; surplus stays in the pool. When total shortfall exceeds the distributable amount it is split in proportion to shortfall (ARD 034, ARD 061, ARD 062).
-7. **`simulation.snapshot()`** — records per-tick aggregate metrics.
-8. **Every 10 ticks:** `buildTenYearSummary()` appended to `decadeHistory`; one-line console summary printed.
-9. **After the final tick (if `ticks % 10 !== 0`):** partial-decade summary built over the remaining ticks and appended to `decadeHistory` (ARD 031).
+7. **`simulation.distributeWelfare(living)`** — pays each recipient short of `WELFARE_THRESHOLD` their shortfall, drawn from `communityPool × (1 − COMMUNITY_POOL_RESERVE_FRACTION)`. Recipients are all agents with a positive shortfall **except** parentally subsidised children (`age < CONSUMPTION_CHILD_MAX_AGE` with a living parent), whose need is met by topping up their parents (ARD 062); orphans are recipients at any age. Nobody receives more than their own shortfall, so welfare cannot lift an agent above the threshold; surplus stays in the pool. When total shortfall exceeds the distributable amount it is split in proportion to shortfall (ARD 034, ARD 061, ARD 062).
+8. **`simulation.snapshot()`** — records per-tick aggregate metrics.
+9. **Every 10 ticks:** `buildTenYearSummary()` appended to `decadeHistory`; one-line console summary printed.
+10. **After the final tick (if `ticks % 10 !== 0`):** partial-decade summary built over the remaining ticks and appended to `decadeHistory` (ARD 031).
 
 Deaths during the loop are processed immediately (agent removed from `living`). Newborns added via `simulation.add()` during the loop are eligible for events in the same tick (ordering depends on shuffle position).
 
@@ -226,9 +228,9 @@ Two independent rolls per tick:
 `senescence = max(ILLNESS_RECOVERY_SENESCENCE_FLOOR, 1 - ILLNESS_RECOVERY_SENESCENCE_DECAY × max(0, age - ILLNESS_RECOVERY_SENESCENCE_START_AGE))` — recovery capacity declines with age so chronic illness accumulates in the old and disease carries old-age mortality (ARD 049).
 `illness` clamped to `[0, 1]` after both rolls.
 
-#### GatherResourcesEvent (ARD 011, superseded by ARD 039)
+#### GatherResourcesEvent (ARD 011, superseded by ARD 039; access multiplier ARD 068)
 Strictly conservative:
-`output = experience × (BASE_GATHER_AMOUNT + intelligence × INTELLIGENCE_GATHER_SCALAR) × extractionProductivity`
+`output = experience × (BASE_GATHER_AMOUNT + intelligence × INTELLIGENCE_GATHER_SCALAR) × extractionProductivity × accessMultiplier`
 `extracted = min(output, naturalResources)`
 Person gains `extracted`; pool loses `extracted` (no factor).
 

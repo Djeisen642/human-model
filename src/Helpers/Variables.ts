@@ -12,6 +12,30 @@ export default class Variables {
   /** Additional resources gathered per point of experience per point of intelligence. */
   static INTELLIGENCE_GATHER_SCALAR = 0.005;
 
+  /**
+   * Exponent on an adult's wealth relative to the adult median in the extraction access
+   * multiplier: wealth buys a larger claim on the commons, which is the only path by which
+   * holdings raise future income. 0 disables the mechanism entirely and leaves every multiplier
+   * at exactly 1, so the default configuration is bitwise identical to the pre-ARD-068 model
+   * (`scripts/parity-check.ts` is the contract). Negative values are permitted and invert the
+   * gradient, which is a progressive-access counterfactual worth sweeping. See ARD 068.
+   */
+  static EXTRACTION_ACCESS_GRADIENT = 0;
+  /**
+   * Lower clamp on the access multiplier. Not a calibration dial: without it an adult at zero
+   * resources takes a multiplier of zero, extracts nothing, and can never recover, making zero
+   * resources an absorbing state for anyone robbed or taxed to it. Represents the subsistence
+   * gleaning no property regime fully forecloses. See ARD 068.
+   */
+  static EXTRACTION_ACCESS_MIN = 0.1;
+  /**
+   * Upper clamp on the access multiplier. A numerical guard against wealth condensation, set
+   * well outside the intended calibration range: a clamp tight enough to act as the inequality
+   * control flattens every gradient above ~0.75 to the same distribution and turns the dial back
+   * into a switch. See ARD 068.
+   */
+  static EXTRACTION_ACCESS_MAX = 20;
+
   /** Age of minimum mortality; the U-curve is centred here. */
   static PRIME_AGE = 28;
   /** Controls steepness of the U-shaped mortality curve. */
@@ -453,6 +477,7 @@ export default class Variables {
    * @throws {Error} when the ARD 042 estate shares do not sum to 1.0
    * @throws {Error} when the ARD 067 adult happiness ladder, elderly happiness ladder, or
    *   childbirth resource ramp is not strictly ordered
+   * @throws {Error} when the ARD 068 access clamp range excludes 1
    */
   static validate(): void {
     const estateSum = Variables.ESTATE_COMMUNITY_SHARE + Variables.ESTATE_PARTNER_SHARE + Variables.ESTATE_CHILDREN_SHARE;
@@ -494,6 +519,17 @@ export default class Variables {
         `CHILDBIRTH_RESOURCE_MIN must be strictly less than CHILDBIRTH_RESOURCE_SCALE (ARD 067), got min=${Variables.CHILDBIRTH_RESOURCE_MIN}, scale=${Variables.CHILDBIRTH_RESOURCE_SCALE}. ` +
         'ChildbirthEvent divides by (SCALE − MIN): equal values produce 0/0 → NaN, and `rng() >= NaN` is false, so birth becomes ' +
         'certain instead of blocked; an inverted ramp turns the famine brake into a famine accelerator.'
+      );
+    }
+
+    // ARD 068: the off setting relies on a raw multiplier of 1 surviving the clamp untouched. A
+    // range excluding 1 silently rescales every gather at EXTRACTION_ACCESS_GRADIENT=0, so a sweep
+    // that believes it has a baseline arm does not have one, with nothing to notice.
+    if (!(Variables.EXTRACTION_ACCESS_MIN <= 1 && 1 <= Variables.EXTRACTION_ACCESS_MAX)) {
+      throw new Error(
+        `EXTRACTION_ACCESS_MIN <= 1 <= EXTRACTION_ACCESS_MAX must hold (ARD 068), got min=${Variables.EXTRACTION_ACCESS_MIN}, max=${Variables.EXTRACTION_ACCESS_MAX}. ` +
+        'A clamp range excluding 1 makes EXTRACTION_ACCESS_GRADIENT=0 stop meaning "mechanism off", ' +
+        'silently changing the baseline every other arm is compared against.'
       );
     }
   }
