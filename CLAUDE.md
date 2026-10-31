@@ -16,7 +16,7 @@ This section is a pointer, not a changelog: each claim links to the study that m
 
 The project skill `.claude/skills/sweep-results/` covers the process that has gone wrong most often: deciding whether a sweep difference is real. It fires when you compare configs or write up a result, and carries only the procedure and traps; every definition stays in `docs/calibration-guide.md`.
 
-This file is the handoff: orientation, process, conventions. Detail lives here:
+This file is the handoff: orientation, process, conventions. `docs/README.md` maps questions to docs; the detail lives here:
 
 | Need | Read |
 |---|---|
@@ -24,7 +24,7 @@ This file is the handoff: orientation, process, conventions. Detail lives here:
 | Why a subsystem works that way, per ARD | `docs/model-reference.md` |
 | The full argument for one decision, including what was rejected | `docs/decisions/NNN-*.md` (index in `decisions/README.md`) |
 | Running sweeps, which metrics to trust, what tuning can't fix | `docs/calibration-guide.md` |
-| Measured results, with provenance | `docs/research-*.md` |
+| What was measured, and whether it still stands | `docs/studies.md` (every `research-*.md` with its finding and status) |
 | Candidate mechanisms not yet built | `docs/future-ideas.md` |
 
 The event set is complete — no planned events are unbuilt. New mechanisms go through `docs/future-ideas.md` and an ARD first.
@@ -182,6 +182,16 @@ Also do a brief integrity scan of the code changed this session:
 - Is there something the new code *almost* does but stops short of, where the missing piece would meaningfully affect collapse/thrive dynamics?
 
 A real bug gets fixed before closing. A plausible new direction not in the current plan goes in `docs/future-ideas.md` with a one-sentence note on why it matters; don't implement it.
+
+## Keeping the docs in order
+
+The docs stay findable only if someone maintains the indexes. These rules apply to every session that touches `docs/`.
+
+- **One home per fact.** State a finding or decision once, in the doc that owns it, and link from everywhere else. The Gini premise was restated in the README, `project-background.md` and the ODD, and went on being repeated there after it was contradicted. The Research state section above is the home for what the research currently says.
+- **Index everything you add.** A new `docs/research-*.md` gets a row in `docs/studies.md` (finding and status) in the same commit. A new ARD gets its row in `docs/decisions/README.md`.
+- **Put status where a reader will see it.** When a later result contradicts, narrows or retires a study, add `> **Status: <state>.** <one sentence and a link>` directly under its provenance block, change its row in `docs/studies.md`, and update Research state if it is a headline claim. States are Current, Partly superseded, Resolved, Historical and Unchecked (defined in `studies.md`). The dated note next to the claim itself stays, per the convention below.
+- **Current rule first.** A `docs/model-reference.md` bullet opens with what the code does now; history follows a `History.` marker.
+- **Budget for this file.** Keep `CLAUDE.md` under about 3,200 words. To add a rule, cut or move one; findings and history belong in `docs/`.
 
 ## Coding conventions
 

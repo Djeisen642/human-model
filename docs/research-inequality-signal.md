@@ -4,6 +4,8 @@
 **Commands:** a one-off probe (reproduced below) reporting per-seed adult Gini at the population peak, its maximum while the population was still at least half its peak, and its value in the last decade anyone was alive; paired tests via `src/Helpers/Statistics.ts`
 **Key context vars:** `COLLAPSE_GINI_THRESHOLD=0.60`, `STRUGGLING_GINI_THRESHOLD=0.43`, `EXTRACTION_PRODUCTIVITY_FLOOR=0.01`, `MAX_EXTRACTION_PRODUCTIVITY=10`, `NATURAL_RESOURCES_INITIAL=10000`
 
+> **Status: partly superseded.** The measurement is unchanged (peak Gini did not separate survival from collapse), but its explanation, that nothing drove inequality independently of the economy, was addressed by ARD 068, and inequality does matter past a threshold: see `research-access-gradient.md`. Whether the Gini *as computed* tracks that mechanism is unmeasured.
+
 **Headline: a configuration where every run dies and a configuration where no run dies reach the same
 peak inequality, so inequality does not separate survival from collapse here.** CLAUDE.md's opening
 states the Gini coefficient of `resources` is the primary collapse signal, and that inequality matters

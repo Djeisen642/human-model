@@ -4,6 +4,8 @@
 **Commands:** `npm run sweep -- --ticks 200 --seeds 8 [--set KEY=0 | --sweep KEY=v1,v2,…]`
 **Key context vars:** `BASE_CHILDBIRTH_RATE=0.6`, `ILLNESS_DEATH_SCALAR=0.05`, `NATURAL_RESOURCE_REGEN_FRACTION=0.03`, `BASE_INVENTION_RATE=0.002`
 
+> **Status: partly superseded.** A 2026-09-13 re-run did not reproduce the claim that zero jail detection is the best point on the detection sweep; the high-detection end survives. See the dated note in section 4.
+
 **Purpose:** Follow-up to `research-zero-variability-tests.md`. Runs combination knockouts (two variables zeroed simultaneously) and parameter sweeps over the most surprising single-variable findings.
 
 **Baseline (default settings):**

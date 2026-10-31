@@ -4,6 +4,8 @@
 **Commands:** `npm run sweep -- --seeds 16 --ticks {100..800} [--set KEY=VAL | --sweep KEY=v1,v2,…]`
 **Key context vars:** `BASE_CHILDBIRTH_RATE=0.6`, `BASE_INVENTION_RATE=0.002`, `NATURAL_RESOURCE_REGEN_FRACTION=0.03`, `CEILING_DEGRADATION_RATE=0.025`, `MAX_NATURAL_RESOURCE_CEILING=20000`
 
+> **Status: partly superseded.** Its method lesson, judge configs at long horizons, holds. Several headline numbers do not: the invention-rate rescue was only a delay of about 800 ticks, and the high-invention exception did not hold at 48 seeds (dated notes in the body). Later work found sustained-cycling regimes: `research-scale-robustness.md`, `research-clean-long-run-100-founders.md`.
+
 The question this study set out to answer: now that the event set is complete, can parameter tuning
 find **sane defaults** — a regime where the population persists and outcomes are varied and
 non-degenerate — or is the model **too chaotic**, such that sanity requires a *new structural

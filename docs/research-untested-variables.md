@@ -4,6 +4,8 @@
 **Commands:** `npx ts-node scripts/sweep.ts --seeds 48 --ticks 2000 --workers 4 [--sweep KEY=… | --set KEY=VAL]`; `npx ts-node scripts/throughput-probe.ts --sweep KEY=… --seeds 24`; `npx ts-node scripts/thrive-probe.ts --seeds 8 --ticks 300 --set KEY=VAL`
 **Key context vars:** `HAPPINESS_BASELINE=0`, `EXPERIENCE_CAP=50`, `CONSUMPTION_ELDER_MULTIPLIER=1.5`, `INVENTION_DEPLETION_{FASTER,SLOWER}_WEIGHT=1`, `THRIVING_HAPPINESS_THRESHOLD=6.0`
 
+> **Status: partly superseded.** Re-checked on 2026-09-15 with paired tests: some readings did not survive (the monotone elder-consumption ladder is too close to call), the happiness mechanism did, and of the four "helps once the commons is fixed" findings two hold at larger scale and two do not (`research-scale-robustness.md`). See the dated notes in the body.
+
 **Terms used throughout.** *The commons* is the single shared resource pool everyone gathers from;
 it *binds* when it has been stripped to near zero, which is the model's normal state. *The
 productivity pin* is `INVENTION_DEPLETION_{FASTER,SLOWER}_WEIGHT=0`, which stops extraction

@@ -4,6 +4,8 @@
 **Commands:** `npx ts-node scripts/sweep.ts --seeds {8,12,16} --ticks {2000,8000} --persons 300 --workers 4 --verbose --set …`; `npx ts-node scripts/compare.ts --seeds 24 --ticks {2000,8000} --persons 300 --workers 4 --both … --b …`
 **Key context vars:** `BASE_GATHER_AMOUNT=0.05`, `INTELLIGENCE_GATHER_SCALAR=0.005`, `CONSUMPTION_BASE=1.0`, `NATURAL_RESOURCE_REGEN_FRACTION=0.03`, `EXPERIENCE_CAP=50`
 
+> **Status: partly superseded.** The damping of the boom-bust does not survive raising the resource cap; it was the ceiling, not extraction per person (the Resolved note near the end). Follow-up: `research-ceiling-pins-carrying-capacity.md`.
+
 **Headline (read the dated note above first): cutting how much each person extracts — without touching the pool, the birth rate or
 anything else — turns the model's 90-fold boom-bust into an 8-fold one, and makes the society far
 healthier on every measure except the one that matters most. It does not improve survival, and may
