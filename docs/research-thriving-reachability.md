@@ -4,6 +4,8 @@
 **Commands:** `npm run sweep -- --seeds 32 --ticks 800` (ARD 060/061 validation); `npx ts-node scripts/thrive-probe.ts --ticks 800 --seeds 2 --decades [--set KEY=VAL …]`; `npx ts-node scripts/gini-decomp.ts`; `npx ts-node scripts/gini-basis-probe.ts` (the 2026-09-14 re-measurement)
 **Key context vars:** `EXTRACTION_PRODUCTIVITY_FLOOR=0.01`, `MAX_EXTRACTION_PRODUCTIVITY=10`, `NATURAL_RESOURCE_CEILING_INITIAL=10000`, `NATURAL_RESOURCE_REGEN_FRACTION=0.03`, `TAX_RATE=0.02`, `WELFARE_THRESHOLD=20`, `BASE_CHILDBIRTH_RATE=0.6`, `THRIVING_*` thresholds
 
+> **Status: historical.** Measured against the THRIVING label, which ARD 063 removed. What it found blocking a healthy state was followed up in `research-productivity-band.md` (the blocker is how far extraction productivity can wander, not its asymmetry) and `research-scale-robustness.md`.
+
 CLAUDE.md flagged ARD 051's THRIVING label as possibly "definitionally unreachable" and asked for that
 to be established rather than assumed. This is the existence check: cheating freely (extreme
 Variables, hand-built cohorts, disabled degradation), can any reachable state of the simulation trip

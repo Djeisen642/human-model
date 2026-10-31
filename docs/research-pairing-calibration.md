@@ -4,6 +4,8 @@
 **Commands:** `npx ts-node scripts/diagnose-crash.ts --seeds 16 --ticks 500 --persons 100`
 **Key context vars:** `BASE_RELATIONSHIP_RATE=0.18`, `BASE_BREAKUP_RATE=0.03`, `RELATIONSHIP_MAX_FORMATION_ATTEMPTS=5`, `RELATIONSHIP_AGE_GAP_SCALE=10`, `RELATIONSHIP_AGE_GAP_FLOOR=0.1`
 
+> **Status: partly superseded.** A 2026-09-13 re-run showed the pairing-rate experiment did not hold up (breakup rate does not change the outcome), though the recommended value survives for other reasons. See the dated note near the end.
+
 ---
 
 ## Question

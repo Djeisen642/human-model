@@ -10,7 +10,7 @@
 
 ### 1. Purpose and Patterns
 
-**Purpose.** The model studies the conditions under which a small human population collapses, struggles, stabilizes, or thrives over multi-generational time. The primary collapse signal is the Gini coefficient of individual `resources` **over adults (age ≥ `WORKING_AGE_MIN`)** — dependent children are excluded because the model does not treat a child's own resources as their standard of living (ARD 060) — following the HANDY finding (Motesharrei et al., 2014) that inequality drives collapse more reliably than absolute scarcity. Secondary signals are average happiness, population size, and natural-resource pool depletion.
+**Purpose.** The model studies the conditions under which a small human population collapses, struggles, stabilizes, or thrives over multi-generational time. The primary collapse signal is the Gini coefficient of individual `resources` **over adults (age ≥ `WORKING_AGE_MIN`)** — dependent children are excluded because the model does not treat a child's own resources as their standard of living (ARD 060) — following the HANDY finding (Motesharrei et al., 2014) that inequality drives collapse more reliably than absolute scarcity. That premise was contradicted when measured in this model as first built and partly restored by ARD 068 (`docs/research-inequality-signal.md`, `docs/research-access-gradient.md`; current status in "Research state" in `CLAUDE.md`). Secondary signals are average happiness, population size, and natural-resource pool depletion.
 
 **Patterns the model should reproduce:**
 
@@ -136,7 +136,7 @@ Deaths during the loop are processed immediately (agent removed from `living`). 
 
 ### 4. Design Concepts
 
-**Basic principles.** The model draws on three research traditions: (1) Sugarscape (Epstein & Axtell, 1996) — emergent social behavior from local agent rules; (2) HANDY (Motesharrei et al., 2014) — inequality-driven collapse dynamics; (3) Cliodynamics (Turchin) — quantitative societal cycles. The core hypothesis is that Gini inequality, not resource scarcity alone, is the leading collapse predictor.
+**Basic principles.** The model draws on three research traditions: (1) Sugarscape (Epstein & Axtell, 1996) — emergent social behavior from local agent rules; (2) HANDY (Motesharrei et al., 2014) — inequality-driven collapse dynamics; (3) Cliodynamics (Turchin) — quantitative societal cycles. The founding hypothesis was that Gini inequality, not resource scarcity alone, is the leading collapse predictor. Measurement contradicted it for the model as first built (`docs/research-inequality-signal.md`), and ARD 068 later made inequality causal past a threshold (`docs/research-access-gradient.md`).
 
 **Emergence.** The Gini coefficient, population trajectory, and outcome classification (COLLAPSE / STRUGGLING / CYCLICAL / STABLE, plus EXTINCTION) are not imposed — they emerge from per-agent decisions each tick. Feedback loops (KillEvent amplified by Gini, GatherResourcesEvent depleting a shared pool, illness propagating through MisfortuneEvent) are the mechanism through which micro-rules produce macro-outcomes.
 
