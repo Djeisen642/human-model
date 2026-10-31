@@ -4,7 +4,7 @@ An agent-based simulation for exploring what causes civilizations to thrive or c
 
 The model is inspired by and adjacent to:
 - **Sugarscape** (Epstein & Axtell, 1996) — agents gathering resources, reproducing, dying; wealth inequality and social dynamics emerge from simple rules
-- **HANDY model** (Motesharrei et al., 2014) — civilizational collapse driven by resource overexploitation combined with inequality, not scarcity alone. This is why the Gini coefficient of `resources` is the primary signal we track, not average wealth.
+- **HANDY model** (Motesharrei et al., 2014) — civilizational collapse driven by resource overexploitation combined with inequality, not scarcity alone. This is why the Gini coefficient of `resources` is tracked, not average wealth. Measured in this model, the premise failed as first built and partly held once wealth bought a larger claim on the commons (ARD 068); see "Research state" in `CLAUDE.md`.
 - **Cliodynamics** (Turchin) — quantitative modeling of secular cycles: demographic pressure, elite overproduction, and societal instability
 
 It's also an exercise in TypeScript and test-driven development. The model is intentionally simplistic and makes assumptions. Contributions and forks that challenge those assumptions are welcome.
@@ -37,7 +37,7 @@ Other flags: `--no-report` (skip HTML), `--embed` (inline Chart.js for offline u
 npm test                 # run Jest suite
 npm run build            # compile TypeScript
 npm run lint             # ESLint
-npm run start:dev        # nodemon — watches src/, restarts on change
+npm start                # run one simulation with defaults (see above for flags)
 npm run sweep -- [opts]  # run many simulations across seeds (see below)
 ```
 
@@ -104,24 +104,23 @@ A small tax fraction is taken from everyone each year and pooled. Persons below 
 
 ## Outcome classification
 
-Each run ends with a verdict based on four dimensions: population decline from its peak, final Gini coefficient, average happiness, and how full the resource pool is. The verdicts are `EXTINCTION`, `COLLAPSE`, `STRUGGLING`, `STABLE`, and `THRIVING`. THRIVING requires all four to look good simultaneously — in practice it's rare, because the model is collapse-prone by design.
+Each run ends with a verdict based on four dimensions: population decline from its peak, final Gini coefficient, average happiness, and how full the resource pool is. The Gini is computed over adults only (ARD 060). The verdicts are `EXTINCTION`, `COLLAPSE`, `STRUGGLING`, `CYCLICAL`, and `STABLE`. `CYCLICAL` is a population that sustains repeated boom-bust cycles without going extinct while every stress signal stays clear. The earlier `THRIVING` verdict was removed because population overshoot made it unreachable (ARD 063).
 
 ## Known gaps and limitations
 
 The event set is complete and the model is usable, but it has known structural holes worth understanding before drawing conclusions from runs.
 
-**The population almost always collapses to extinction.** At long horizons (500–800 ticks) the dominant outcome is extinction regardless of parameters. Population booms once, then crashes straight through to zero. This isn't a calibration failure — it's a HANDY-consistent finding that overexploitation and inequality drive collapse. But it does mean THRIVING is rare in practice and that no amount of constant-tuning produces a stable long-run population. The missing piece is crash recovery: when a population crashes, survivors are too old and too sparse to rebuild (a partnership-density Allee effect), so the crash completes itself. Fixing this requires a structural mechanic that doesn't exist yet — something like a low-density fertility boost or a younger age structure after a crash. See `docs/future-ideas.md` and `docs/research-tuning-defaults.md`.
+**At default settings the population goes extinct.** It booms once, then crashes through to zero (48 of 48 seeds at 4,000 ticks). Two non-default regimes survive: 300 founders with the resource pool scaled to match and extraction productivity pinned, and 100 founders with productivity bounded to `[0.5, 2]`, which survived 30,000 ticks on 24 of 24 seeds. Neither is a good place to live (the commons sits stripped about 40% and 82% of ticks), so surviving is not thriving. See "Research state" in `CLAUDE.md` and the status of each study in `docs/studies.md`.
 
-**The Gini signal includes dependent children.** The resource Gini is computed over all living persons, including newborns and young children who start at zero resources by design. This means a high child-share population reads as more unequal than an identical adult population — the metric conflates dependency ratio with inequality. It's consistent run-to-run, but worth keeping in mind when comparing across parameter regimes that produce different age structures.
+**No voluntary trade.** Every resource transfer in the model is zero-sum or negative-sum: gathering, theft, taxation, gifts, windfalls, inheritance. The positive-sum exchange channel — where two people each hold a surplus of something the other needs and both benefit — is not implemented. Sugarscape, the direct ancestor of this model's Gini focus, includes bilateral trade as a core mechanic. Its absence may be part of why the model rarely thrives.
 
-**No voluntary trade.** Every resource transfer in the model is zero-sum or negative-sum: gathering, theft, taxation, gifts, windfalls, inheritance. The positive-sum exchange channel — where two people each hold a surplus of something the other needs and both benefit — is not implemented. Sugarscape, the direct ancestor of this model's Gini focus, includes bilateral trade as a core mechanic. Its absence may be part of why THRIVING is so rare.
-
-**Redistribution is probably near-inert.** Taxation and welfare are implemented, but at the current calibration the community pool circulates a small fraction of total resources and is unlikely to be compressing the Gini meaningfully. This is a known calibration gap — see `docs/future-ideas.md` for the proposed fix.
+**How much redistribution matters is uncertain.** An earlier version of this note called it near-inert, but that predates ARD 061 (welfare now tops people up to a threshold). Under the wealth-scaled access mechanism (ARD 068), removing welfare funding roughly doubles the damage to cycle troughs (`docs/research-access-gradient.md`), so it matters at least in that regime.
 
 ## Docs
 
 * `docs/odd-protocol.md` — full formal model specification (ODD 2020 protocol)
 * `docs/decisions/` — design decision records (ARDs) for every non-obvious choice
 * `docs/future-ideas.md` — candidate mechanics not yet built
-* `docs/research-*.md` — calibration studies for fertility, mortality, tuning, and more
+* `docs/studies.md` — every research study, with its finding and whether it still stands
+* `docs/README.md` — map of all the docs by question
 * `docs/project-background.md` — research inspirations and design philosophy

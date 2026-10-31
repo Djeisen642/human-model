@@ -8,7 +8,7 @@ This project is inspired by:
 - **HANDY** civilizational collapse model (Motesharrei et al., 2014) — formal modeling of collapse dynamics
 - **Cliodynamics** (Turchin) — quantitative history and societal cycles
 
-Key HANDY finding: collapse is driven by resource overexploitation combined with inequality — not scarcity alone. This is why the Gini coefficient of `resources` is tracked per tick as the primary collapse signal rather than average resources.
+Key HANDY finding: collapse is driven by resource overexploitation combined with inequality — not scarcity alone. This is why the Gini coefficient of `resources` is tracked per tick rather than average resources. Measured in this model, the premise failed as first built and partly held once ARD 068 made inequality causal; current status is in "Research state" in `CLAUDE.md`.
 
 ## Git Workflow Rationale
 
